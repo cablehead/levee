@@ -104,14 +104,18 @@ function methods:poll(fd, cb)
 		C.kevent(self.fd, self.ev_in, 64, nil, 0, nil)
 		self.ev_in_pos = 0
 	end
-	table.insert(self.callbacks, cb)
+
+	local id = self.id
+
 	local ev = self.ev_in[self.ev_in_pos]
 	ev.ident = fd
 	ev.filter = C.EVFILT_READ
 	ev.flags = C.EV_ADD
 	ev.fflags = 0
 	ev.data = 0
-	ev.udata = self.id
+	ev.udata = id
+
+	self.callbacks[id] = cb
 	self.id = self.id+1
 	self.ev_in_pos = self.ev_in_pos + 1
 end
