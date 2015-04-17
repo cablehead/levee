@@ -10,6 +10,7 @@ def echo(conn):
     for s in conn.recver:
         print s
         conn.send(s)
+    print 'disconnected'
 
 
 while True:
