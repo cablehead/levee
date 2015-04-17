@@ -12,6 +12,7 @@ local types = {
 -- return require(types[ffi.os])
 
 
+-- TODO: need a decent structure here
 local FIFO = {}
 
 
@@ -38,6 +39,9 @@ function FIFO:pop()
 	return v
 end
 
+function FIFO:length()
+	return self.tail - self.head + 1
+end
 
 
 local Hub = {}
@@ -51,33 +55,39 @@ function Hub:new()
 	-- hub.tcp = require("ev.tcp")(self)
 
 	hub.ready = FIFO:new()
-
-	hub.loop = coroutine.create(Hub.main)
-	coroutine.resume(hub.loop, hub)
 	return hub
 end
 
 
 function Hub:main()
-	coroutine.yield()
-	print("main", self)
-	local task = self.ready:pop()
-
-	if type(task) == "function" then
-		local co = coroutine.create(task)
-		coroutine.resume(co)
+	while self.ready:length() > 0 do
+		local task = self.ready:pop()
+		coroutine.resume(task.co, unpack(task.a))
 	end
 	print("peace")
 end
 
 
-function Hub:spawn(f)
-	self.ready:push(f)
+function Hub:spawn(f, ...)
+	self.ready:push({co=coroutine.create(f), a={...}})
 end
 
 
 function Hub:pause()
-	coroutine.resume(self.loop)
+	return coroutine.yield()
+end
+
+
+function Hub:pause_to(co)
+	self.ready:push({co=co, a={coroutine.running()}})
+	return coroutine.yield()
+end
+
+
+function Hub:switch_to(co, ...)
+	self.ready:push({co=co, a={...}})
+	self.ready:push({co=coroutine.running(), a={}})
+	coroutine.yield()
 end
 
 
@@ -86,4 +96,11 @@ function Hub:pipe()
 end
 
 
-return {Hub = Hub, FIFO = FIFO}
+function run(f)
+	local h = Hub:new()
+	h:spawn(f, h)
+	h:main()
+end
+
+
+return {run=run}

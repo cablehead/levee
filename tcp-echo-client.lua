@@ -1,18 +1,35 @@
 local ev = require("ev")
 
 
-local h = ev.Hub:new()
+ev.run(function(h)
+	local p = h:pipe()
 
-local p = h:pipe()
+	h:spawn(function()
+		print("spawn start")
+		p:send("oh hai 1")
+		print("spawn done")
+	end)
 
-h:spawn(function()
-	print("in spawned")
+	local got = p:recv()
+	print("recv", got)
+
+	h:spawn(function()
+		print("spawn start")
+		local got = p:recv()
+		print("recv", got)
+		print("spawn done")
+	end)
+
+	p:send("oh hai 2")
+
+	print("out")
 end)
-
-p:recv()
 
 
 print("done")
+
+
+-----
 
 
 if false then
