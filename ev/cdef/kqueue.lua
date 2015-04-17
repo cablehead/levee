@@ -121,7 +121,7 @@ function methods:poll(fd, cb)
 end
 
 function methods:run()
-	while true do 
+	while true do
 		-- flush pending changes and poll for events
 		local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 64, nil)
 		self.ev_in_pos = 0
@@ -147,4 +147,3 @@ return {
 		}, mt)
 	end
 }
-
