@@ -1,6 +1,24 @@
-local socket = require("ev/cdef/socket")
+require("ev.cdef.socket")
+require("ev.cdef.fcntl")
+
 local ffi = require("ffi")
 local C = ffi.C
+
+
+function unblock(fd)
+  local flags = C.fcntl(fd, C.F_GETFL, 0)
+  if flags == -1 then
+    return -1
+  end
+
+  flags = bit.bor(flags, C.O_NONBLOCK)
+  local rc = C.fcntl(fd, C.F_SETFL, ffi.new("int", flags))
+  if rc == -1 then
+    return -1
+  end
+
+  return 0
+end
 
 
 local FD = {}
