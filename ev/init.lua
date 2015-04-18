@@ -3,13 +3,13 @@ local message = require("ev.message")
 
 local ffi = require("ffi")
 
-
-local types = {
+local pollers = {
 	OSX     = "ev.cdef.kqueue",
 	Linux   = "ev.cdef.epoll",
-	BSD     = "ev.cdef.kqueue"
+	BSD     = "ev.cdef.kqueue",
 }
--- return require(types[ffi.os])
+
+local Poller = require(pollers[ffi.os])
 
 
 -- TODO: need a decent structure here
@@ -52,18 +52,47 @@ function Hub:new()
 	setmetatable(hub, self)
 	self.__index = self
 
-	-- hub.tcp = require("ev.tcp")(self)
-
 	hub.ready = FIFO:new()
+
+	hub.registered = {}
+	hub.poller = Poller()
+
+	hub.tcp = require("ev.tcp")(hub)
 	return hub
 end
 
 
+function Hub:register(fd)
+	local pipe = self:pipe()
+	local id = self.poller:register(fd)
+	print("register", id)
+	self.registered[id] = pipe
+	return pipe
+end
+
+
 function Hub:main()
-	while self.ready:length() > 0 do
-		local task = self.ready:pop()
-		coroutine.resume(task.co, unpack(task.a))
+
+	while true do
+
+		while self.ready:length() > 0 do
+			local task = self.ready:pop()
+			local status = coroutine.resume(task.co, unpack(task.a))
+			-- print("STATUS", status)
+		end
+
+		if not next(self.registered) then
+			error("deadlocked")
+		end
+
+		print("should poll")
+		local id = self.poller:poll2()
+
+		self:spawn(function(p)
+			p:send(true)
+		end, self.registered[id])
 	end
+
 	print("peace")
 end
 

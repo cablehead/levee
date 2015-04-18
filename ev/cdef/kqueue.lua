@@ -133,17 +133,42 @@ function methods:run()
 	end
 end
 
+function methods:register(fd)
+	-- just registering one event at a time to get started
+	--
+	local ev = self.ev_in[0]
+	ev.ident = fd
+	ev.filter = C.EVFILT_READ
+	ev.flags = bit.bor(C.EV_ADD, C.EV_CLEAR)
+	ev.fflags = 0
+	ev.data = 0
+	ev.udata = self.id
+
+	self.id = self.id + 1
+
+	C.kevent(self.fd, self.ev_in, 1, self.ev_out, 0, nil)
+	return self.id - 1
+end
+
+
+function methods:poll2()
+	print("poll2 start")
+	local n = C.kevent(self.fd, nil, 0, self.ev_out, 64, nil)
+	print("poll2", n)
+	return tonumber(self.ev_out[0].udata)
+end
+
+
+
 local default = nil
 
-return {
-	loop = function()
-		return setmetatable({
-			id = 1,
-			ev_in = kevent_list(64),
-			ev_in_pos = 0,
-			ev_out = kevent_list(64),
-			callbacks = {},
-			fd = ffi.C.kqueue()
-		}, mt)
-	end
-}
+return function()
+	return setmetatable({
+		id = 1,
+		ev_in = kevent_list(64),
+		ev_in_pos = 0,
+		ev_out = kevent_list(64),
+		callbacks = {},
+		fd = ffi.C.kqueue()
+	}, mt)
+end

@@ -1,29 +1,40 @@
 local ev = require("ev")
 
-
 ev.run(function(h)
-	local p = h:pipe()
 
-	h:spawn(function()
-		print("spawn start")
-		p:send("oh hai 1")
-		print("spawn done")
-	end)
+	local serve = h.tcp:listen(8000)
 
-	local got = p:recv()
-	print("recv", got)
+	local conn = serve:recv()
 
-	h:spawn(function()
-		print("spawn start")
+	print("ACCEPTED", conn)
+
+end)
+
+if false then
+	ev.run(function(h)
+		local p = h:pipe()
+
+		h:spawn(function()
+			print("spawn start")
+			p:send("oh hai 1")
+			print("spawn done")
+		end)
+
 		local got = p:recv()
 		print("recv", got)
-		print("spawn done")
+
+		h:spawn(function()
+			print("spawn start")
+			local got = p:recv()
+			print("recv", got)
+			print("spawn done")
+		end)
+
+		p:send("oh hai 2")
+
+		print("out")
 	end)
-
-	p:send("oh hai 2")
-
-	print("out")
-end)
+end
 
 
 print("done")
