@@ -58,6 +58,7 @@ function Hub:new()
 	hub.poller = Poller()
 
 	hub.tcp = require("ev.tcp")(hub)
+	hub.io = require("ev.io")(hub)
 	return hub
 end
 
@@ -77,15 +78,16 @@ function Hub:main()
 
 		while self.ready:length() > 0 do
 			local task = self.ready:pop()
-			local status = coroutine.resume(task.co, unpack(task.a))
-			-- print("STATUS", status)
+			local status, message = coroutine.resume(task.co, unpack(task.a))
+			if not status then
+				error(message)
+		  end
 		end
 
 		if not next(self.registered) then
 			error("deadlocked")
 		end
 
-		print("should poll")
 		local id = self.poller:poll2()
 
 		self:spawn(function(p)

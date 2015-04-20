@@ -152,9 +152,8 @@ end
 
 
 function methods:poll2()
-	print("poll2 start")
 	local n = C.kevent(self.fd, nil, 0, self.ev_out, 64, nil)
-	print("poll2", n)
+	print("poll got:", n)
 	return tonumber(self.ev_out[0].udata)
 end
 

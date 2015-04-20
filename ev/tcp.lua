@@ -16,7 +16,6 @@ function unblock(fd)
   if rc == -1 then
     return -1
   end
-
   return 0
 end
 
@@ -41,6 +40,7 @@ function FD:recv()
 	local BUFSIZE = 8192
 	local buf = ffi.new("uint8_t[?]", BUFSIZE)
 	local bytes_read = C.read(self.no, buf, ffi.sizeof(buf))
+	print("BYTES_READ", bytes_read)
 	local response = ffi.string(buf, bytes_read)
 	return response
 end
@@ -77,6 +77,11 @@ end
 
 
 function Socket:bind(host, port)
+	local on = ffi.new("int32_t[1]", 1)
+	local rc = C.setsockopt(
+		self.no, C.SOL_SOCKET, C.SO_REUSEADDR, on, ffi.sizeof(on))
+	assert(rc == 0)
+
 	local addr = ffi.new("struct sockaddr_in[1]")
 	addr[0].sin_family = C.AF_INET
 	addr[0].sin_port = C.htons(port);
@@ -95,7 +100,11 @@ function Socket:accept()
 	local no = C.accept(
 		self.no, ffi.cast("struct sockaddr *", peer_addr), peer_addr_size)
 	assert(no >= 0)
-	return FD:new(no)
+
+	local rc = unblock(no)
+	assert(rc == 0)
+
+	return no
 end
 
 
@@ -122,7 +131,8 @@ return function(hub)
 		self.hub:spawn(function()
 			while true do
 				ready:recv()
-				local conn = socket:accept()
+				local no = socket:accept()
+				local conn = self.hub.io:fd_in(no)
 				connections:send(conn)
 			end
 		end)

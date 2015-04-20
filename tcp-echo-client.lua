@@ -4,9 +4,17 @@ ev.run(function(h)
 
 	local serve = h.tcp:listen(8000)
 
-	local conn = serve:recv()
+	while true do
+		local conn = serve:recv()
+		print("ACCEPTED", conn)
 
-	print("ACCEPTED", conn)
+		h:spawn(function()
+			for message in conn do
+				print("ECHO", message)
+			end
+			print("ECHO DONE")
+		end)
+	end
 
 end)
 
