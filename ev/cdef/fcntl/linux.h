@@ -1,6 +1,3 @@
-local ffi = require "ffi"
-
-ffi.cdef[[
 int fcntl(int fd, int cmd, ... /* arg */);
 
 static const int F_DUPFD = 0; /* Duplicate file descriptor.  */
@@ -23,4 +20,3 @@ static const int O_NDELAY = O_NONBLOCK;
 static const int O_SYNC =     04010000;
 static const int O_FSYNC =      O_SYNC;
 static const int O_ASYNC =      020000;
-]]
