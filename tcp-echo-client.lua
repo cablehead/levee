@@ -1,22 +1,42 @@
 local ev = require("ev")
 
 ev.run(function(h)
+	function echo(conn)
+		for message in conn do
+			print("Echo:", message)
+		end
+	end
 
 	local serve = h.tcp:listen(8000)
 
 	while true do
 		local conn = serve:recv()
-		print("ACCEPTED", conn)
-
-		h:spawn(function()
-			for message in conn do
-				print("ECHO", message)
-			end
-			print("ECHO DONE")
-		end)
+		h:spawn(echo, conn)
 	end
-
 end)
+
+
+if false then
+	local ev = require("ev")
+
+	ev.run(function(h)
+
+		local serve = h.tcp:listen(8000)
+
+		while true do
+			local conn = serve:recv()
+			print("ACCEPTED", conn)
+
+			h:spawn(function()
+				for message in conn do
+					print("ECHO", message)
+				end
+				print("ECHO DONE")
+			end)
+		end
+
+	end)
+end
 
 if false then
 	ev.run(function(h)
