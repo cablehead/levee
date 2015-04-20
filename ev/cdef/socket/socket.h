@@ -1,6 +1,3 @@
-local ffi = require "ffi"
-
-ffi.cdef[[
 static const int SOMAXCONN = 128;
 
 static const int PF_INET = 2;
@@ -11,9 +8,6 @@ static const int SOCK_STREAM = 1;
 int socket(int domain, int type, int protocol);
 
 typedef uint32_t socklen_t;
-
-static const int SOL_SOCKET = 1;
-static const int SO_REUSEADDR = 2;
 
 int setsockopt(int sockfd, int level, int optname, const void *optval,
   socklen_t optlen);
@@ -60,4 +54,3 @@ ssize_t read(int fd, void *buf, size_t count);
 ssize_t write(int fd, const void *buf, size_t count);
 
 int close(int fd);
-]]
