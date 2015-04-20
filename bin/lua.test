@@ -1,0 +1,82 @@
+#!/usr/bin/env luajit
+
+
+local io = require('io')
+local os = require('os')
+
+
+-- setup global variables
+assert = require('luassert')
+debug = require('debug')
+
+
+local usage = [[
+Usage: lua.test [-k <match>] <path>]]
+
+
+function bad_usage()
+	print(usage)
+	os.exit(1)
+end
+
+
+function parse_argv()
+	local path
+	local match
+
+	local i = 1
+
+	while i <= #arg do
+		if arg[i] == "-k" then
+			i = i + 1
+			if not arg[i] then bad_usage() end
+			match = arg[i]
+
+		else
+			if path then bad_usage() end
+			path = arg[i]
+		end
+
+		i = i + 1
+	end
+
+	if not path then bad_usage() end
+
+	return {path = path, match = match}
+end
+
+
+function scan(path)
+	local command = ('find %s -type f -name "*.lua"'):format(path)
+	return io.popen(command):lines()
+end
+
+
+function main(argv)
+	local status = 0
+
+	for script in scan(argv.path) do
+		local traceback
+		local M = assert(loadfile(script))()
+		for name, f in pairs(M) do
+			io.write(('%s::%s'):format(script, name))
+			local success = xpcall(M[name],
+				function(err)
+					print(' FAIL')
+					print('-----')
+					print(debug.traceback())
+					print(err)
+					print()
+					status = 1
+				end)
+			if success then
+				print(' PASS')
+			end
+		end
+	end
+
+	return status
+end
+
+
+os.exit(main(parse_argv()))
