@@ -1,4 +1,5 @@
 typedef long int ssize_t;
+typedef unsigned int sigset_t;
 
 void *malloc(size_t);
 void free(void *);
