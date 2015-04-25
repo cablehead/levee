@@ -1,5 +1,4 @@
-require("ev.cdef.socket")
-require("ev.cdef.fcntl")
+require("ev.cdef")
 
 local ffi = require("ffi")
 local C = ffi.C
