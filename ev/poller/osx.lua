@@ -24,7 +24,7 @@ function mt:__gc()
 	C.close(self.fd)
 end
 
-function mt:register(fd)
+local function next_event(self)
 	if self.ev_in_pos == C.EV_POLL_IN_MAX then
 		-- flush pending events if the list is full
 		local rc = C.kevent(self.fd, self.ev_in, C.EV_POLL_IN_MAX, nil, 0, nil)
@@ -32,6 +32,12 @@ function mt:register(fd)
 		self.ev_in_pos = 0
 	end
 	local ev = self.ev_in[self.ev_in_pos]
+	self.ev_in_pos = self.ev_in_pos + 1
+	return ev
+end
+
+function mt:register(fd)
+	local ev = next_event(self)
 	ev.ident = fd
 	ev.filter = C.EVFILT_READ
 	ev.flags = bit.bor(C.EV_ADD, C.EV_CLEAR)
@@ -41,7 +47,6 @@ function mt:register(fd)
 
 	self.id = self.id + 1
 
-	C.kevent(self.fd, self.ev_in, 1, self.ev_out, 0, nil)
 	return tonumber(ev.udata)
 end
 
@@ -60,7 +65,7 @@ end
 local Poller = ffi.metatype("struct EVPoller", mt)
 
 return function()
-	local fd = C.kqueue()
-	if fd < 0 then errno.error("kqueue") end
-	return Poller(fd)
+	local self = Poller(C.kqueue(), 0, 0)
+	if self.fd < 0 then errno.error("kqueue") end
+	return self
 end
