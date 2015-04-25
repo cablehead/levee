@@ -6,16 +6,21 @@ local types = {
 	BSD     = "ev.errno.bsd"
 }
 
-local codes = {}
+local module = {}
 local messages = {}
 for k,v in pairs(require(types[ffi.os])) do
-	codes[k] = v[1]
+	module[k] = v[1]
 	messages[v[1]] = v[2]
 end
 
-function codes.message(code)
+function module.message(code)
 	return messages[code or ffi.errno()]
 end
 
-return codes
+function module.error(msg, level)
+	local no = ffi.errno()
+	error(string.format("%s: %s (%d)", msg, messages[no], no), 1 + (level or 1))
+end
+
+return module
 
