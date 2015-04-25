@@ -1,41 +1,41 @@
+typedef unsigned int socklen_t;
+typedef unsigned short int in_port_t;
+typedef unsigned int in_addr_t;
+
+struct in_addr {
+	in_addr_t s_addr;
+};
+
+struct in6_addr {
+	union {
+		uint8_t   __u6_addr8[16];
+		uint16_t  __u6_addr16[8];
+		uint32_t  __u6_addr32[4];
+	} __in6_u;
+};
+
+static const int INADDR_ANY = 0x00000000;
 static const int SOMAXCONN = 128;
 
+static const int PF_UNSPEC = 0;
+static const int PF_LOCAL = 1;
+static const int PF_UNIX = PF_LOCAL;
+static const int PF_FILE = PF_LOCAL;
 static const int PF_INET = 2;
+
+static const int AF_UNSPEC = PF_UNSPEC;
+static const int AF_LOCAL = PF_LOCAL;
+static const int AF_UNIX = PF_UNIX;
+static const int AF_FILE = PF_FILE;
 static const int AF_INET = PF_INET;
 
 static const int SOCK_STREAM = 1;
+static const int SOCK_DGRAM = 2;
 
 int socket(int domain, int type, int protocol);
 
-typedef uint32_t socklen_t;
-
 int setsockopt(int sockfd, int level, int optname, const void *optval,
   socklen_t optlen);
-
-typedef unsigned short int sa_family_t;
-typedef uint16_t in_port_t;
-typedef uint32_t in_addr_t;
-struct in_addr {
-  in_addr_t s_addr;
-};
-static const int INADDR_ANY = (in_addr_t)0x00000000;
-
-struct sockaddr {
-  sa_family_t sin_family;
-  char sa_data[14];		/* Address data.  */
-};
-
-struct sockaddr_in {
-  sa_family_t sin_family;
-  in_port_t sin_port;
-  struct in_addr sin_addr;
-
-  /* Pad to size of `struct sockaddr'.  */
-  unsigned char sin_zero[sizeof(struct sockaddr) -
-       sizeof(sa_family_t) -
-       sizeof(in_port_t) -
-       sizeof(struct in_addr)];
-};
 
 uint16_t htons(uint16_t hostshort);
 int inet_aton(const char *cp, struct in_addr *inp);
