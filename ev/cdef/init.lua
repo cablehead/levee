@@ -21,6 +21,7 @@ function include(dir, name)
 	ffi.cdef(header)
 end
 
+include("std", "std")
 include("socket", "socket")
 include("socket", os)
 include("fcntl", os)

@@ -48,7 +48,6 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
-typedef int ssize_t;
 ssize_t read(int fd, void *buf, size_t count);
 
 ssize_t write(int fd, const void *buf, size_t count);
