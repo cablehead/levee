@@ -3,13 +3,7 @@ local message = require("ev.message")
 
 local ffi = require("ffi")
 
-local pollers = {
-	OSX     = "ev.cdef.kqueue",
-	Linux   = "ev.cdef.epoll",
-	BSD     = "ev.cdef.kqueue",
-}
-
-local Poller = require(pollers[ffi.os])
+local Poller = require("ev.poller." .. ffi.os:lower())
 
 
 -- TODO: need a decent structure here
@@ -88,7 +82,7 @@ function Hub:main()
 			error("deadlocked")
 		end
 
-		local id = self.poller:poll2()
+		local id = self.poller:poll()
 
 		self:spawn(function(p)
 			p:send(true)
