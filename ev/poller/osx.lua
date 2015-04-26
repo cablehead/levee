@@ -17,12 +17,21 @@ struct EVPoller {
 
 local C = ffi.C
 
-local mt = {}
-mt.__index = mt
+local Poller = {}
+Poller.__index = Poller
 
-function mt:__gc()
+
+function Poller:new()
+	local self = self.allocate(C.kqueue(), 0, 0)
+	if self.fd < 0 then errno.error("kqueue") end
+	return self
+end
+
+
+function Poller:__gc()
 	C.close(self.fd)
 end
+
 
 local function next_event(self)
 	if self.ev_in_pos == C.EV_POLL_IN_MAX then
@@ -36,7 +45,7 @@ local function next_event(self)
 	return ev
 end
 
-function mt:register(fd)
+function Poller:register(fd)
 	local ev = next_event(self)
 	ev.ident = fd
 	ev.filter = C.EVFILT_READ
@@ -51,7 +60,7 @@ function mt:register(fd)
 end
 
 
-function mt:poll()
+function Poller:poll()
 	--local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, nil)
 	local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
 	if n < 0 then errno.error("kevent") end
@@ -62,14 +71,6 @@ function mt:poll()
 end
 
 
-local Poller = {
-	allocate = ffi.metatype("struct EVPoller", mt)
-}
-
-function Poller:new()
-	local self = self.allocate(C.kqueue(), 0, 0)
-	if self.fd < 0 then errno.error("kqueue") end
-	return self
-end
+Poller.allocate = ffi.metatype("struct EVPoller", Poller)
 
 return Poller

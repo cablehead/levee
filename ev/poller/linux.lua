@@ -14,14 +14,23 @@ struct EVPoller {
 
 local C = ffi.C
 
-local mt = {}
-mt.__index = mt
+local Poller = {}
+Poller.__index = Poller
 
-function mt:__gc()
+
+function Poller:new()
+	local self = self.allocate(C.epoll_create1(0))
+	if self.fd < 0 then errno.error("epoll_create1") end
+	return self
+end
+
+
+function Poller:__gc()
 	C.close(self.fd)
 end
 
-function mt:register(fd)
+
+function Poller:register(fd)
 	local ev = self.ev[0]
 	ev.events = bit.bor(C.EPOLLIN, C.EPOLLET)
 	ev.data.fd = fd
@@ -33,7 +42,7 @@ function mt:register(fd)
 end
 
 
-function mt:poll()
+function Poller:poll()
 	--local n = C.epoll_wait(self.fd, self.ev, EV_POLL_OUT_MAX, -1)
 	local n = C.epoll_wait(self.fd, self.ev, 1, -1)
 	if n < 0 then errno.error("epoll_wait") end
@@ -47,14 +56,6 @@ function mt:poll()
 end
 
 
-local Poller = {
-	allocate = ffi.metatype("struct EVPoller", mt)
-}
-
-function Poller:new()
-	local self = self.allocate(C.epoll_create1(0))
-	if self.fd < 0 then errno.error("epoll_create1") end
-	return self
-end
+Poller.allocate = ffi.metatype("struct EVPoller", Poller)
 
 return Poller
