@@ -7,6 +7,7 @@ ffi.cdef[[
 static const int EV_POLL_OUT_MAX = 64;
 struct EVPoller {
 	int fd;
+	int tmp[1];
 	struct epoll_event ev[EV_POLL_OUT_MAX];
 };
 ]]
@@ -38,7 +39,11 @@ function mt:poll()
 	if n < 0 then errno.error("epoll_wait") end
 
 	print("poll got:", n)
-	return tonumber(self.ev[0].data.fd)
+	self.tmp[0] = 0
+	local fd = self.ev[0].data.fd
+	-- TODO don't call on listening sockets
+	C.ioctl(fd, C.FIONREAD, ffi.cast("int *", self.tmp))
+	return tonumber(fd), self.tmp[0]
 end
 
 

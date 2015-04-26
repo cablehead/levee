@@ -82,7 +82,8 @@ function Hub:main()
 			error("deadlocked")
 		end
 
-		local id = self.poller:poll()
+		local id, avail = self.poller:poll()
+		print(string.format("id=%d, size=%d", id, tonumber(avail)))
 
 		self:spawn(function(p)
 			p:send(true)

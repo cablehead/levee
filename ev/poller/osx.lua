@@ -58,7 +58,7 @@ function mt:poll()
 	self.ev_in_pos = 0
 
 	print("poll got:", n)
-	return tonumber(self.ev_out[0].udata)
+	return tonumber(self.ev_out[0].udata), self.ev_out[0].data
 end
 
 
