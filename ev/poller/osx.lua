@@ -62,10 +62,14 @@ function mt:poll()
 end
 
 
-local Poller = ffi.metatype("struct EVPoller", mt)
+local Poller = {
+	allocate = ffi.metatype("struct EVPoller", mt)
+}
 
-return function()
-	local self = Poller(C.kqueue(), 0, 0)
+function Poller:new()
+	local self = self.allocate(C.kqueue(), 0, 0)
 	if self.fd < 0 then errno.error("kqueue") end
 	return self
 end
+
+return Poller

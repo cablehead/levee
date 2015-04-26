@@ -47,10 +47,14 @@ function mt:poll()
 end
 
 
-local Poller = ffi.metatype("struct EVPoller", mt)
+local Poller = {
+	allocate = ffi.metatype("struct EVPoller", mt)
+}
 
-return function()
-	local self = Poller(C.epoll_create1(0))
+function Poller:new()
+	local self = self.allocate(C.epoll_create1(0))
 	if self.fd < 0 then errno.error("epoll_create1") end
 	return self
 end
+
+return Poller

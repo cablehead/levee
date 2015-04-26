@@ -49,7 +49,7 @@ function Hub:new()
 	hub.ready = FIFO:new()
 
 	hub.registered = {}
-	hub.poller = Poller()
+	hub.poller = Poller:new()
 
 	hub.tcp = require("ev.tcp")(hub)
 	hub.io = require("ev.io")(hub)
