@@ -13,14 +13,25 @@ function __FILE__() return debug.getinfo(2,'S').source:sub(2) end
 
 local path = dirname(__FILE__())
 local os = ffi.os:lower()
+local arch = ffi.arch
 
-function include(dir, name)
-	local fh = io.open(path.."/"..dir.."/"..name..".h", "r")
+function try_include(full)
+	local fh = io.open(full, "r")
+	if not fh then return false end
 	local header = fh:read("*all")
 	fh:close()
 	ffi.cdef(header)
+	return true
 end
 
+function include(name, ...)
+	local full = path.."/"..name.."/"..table.concat({...}, "-")..".h"
+	if not try_include(full) then
+		error("failed to load header: " .. full, 2)
+	end
+end
+
+include("std", arch)
 include("std", "std")
 include("socket", "socket")
 include("socket", os)
