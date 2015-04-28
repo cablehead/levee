@@ -2,9 +2,9 @@ local ffi = require('ffi')
 ffi.cdef[[
 long read(int fildes, void *buf, size_t nbyte);
 ]]
-local ev = require('ev')
+local levee = require('levee')
 
-local loop = ev.loop()
+local loop = levee.loop()
 
 loop:poll(0, function(avail)
 	local buf = ffi.new('uint8_t[?]', avail)

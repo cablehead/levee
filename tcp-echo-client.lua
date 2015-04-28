@@ -1,6 +1,6 @@
-local ev = require("ev")
+local levee = require("levee")
 
-ev.run(function(h)
+levee.run(function(h)
 	function echo(conn)
 		for message in conn do
 			print("Echo:", message)
@@ -17,9 +17,9 @@ end)
 
 
 if false then
-	local ev = require("ev")
+	local levee = require("levee")
 
-	ev.run(function(h)
+	levee.run(function(h)
 
 		local serve = h.tcp:listen(8000)
 
@@ -39,7 +39,7 @@ if false then
 end
 
 if false then
-	ev.run(function(h)
+	levee.run(function(h)
 		local p = h:pipe()
 
 		h:spawn(function()
@@ -72,7 +72,7 @@ print("done")
 
 
 if false then
-	local conn = ev.tcp.connect(8000)
+	local conn = levee.tcp.connect(8000)
 
 	for _, str in ipairs{"hello", "goodbye"} do
 		conn:send(str)
