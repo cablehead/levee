@@ -20,8 +20,12 @@ function try_include(full)
 	if not fh then return false end
 	local header = fh:read("*all")
 	fh:close()
-	ffi.cdef(header)
-	return true
+	local ok, msg = pcall(ffi.cdef,header)
+	if ok then
+		return true
+	else
+		error(string.format("%s: %s", full, msg), 2)
+	end
 end
 
 function include(name, ...)
