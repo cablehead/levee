@@ -38,31 +38,6 @@ if false then
 	end)
 end
 
-if false then
-	levee.run(function(h)
-		local p = h:pipe()
-
-		h:spawn(function()
-			print("spawn start")
-			p:send("oh hai 1")
-			print("spawn done")
-		end)
-
-		local got = p:recv()
-		print("recv", got)
-
-		h:spawn(function()
-			print("spawn start")
-			local got = p:recv()
-			print("recv", got)
-			print("spawn done")
-		end)
-
-		p:send("oh hai 2")
-
-		print("out")
-	end)
-end
 
 
 print("done")

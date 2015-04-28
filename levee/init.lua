@@ -79,7 +79,8 @@ function Hub:main()
 		end
 
 		if not next(self.registered) then
-			error("deadlocked")
+			return -- fin
+			-- error("deadlocked")
 		end
 
 		local id, avail = self.poller:poll()
