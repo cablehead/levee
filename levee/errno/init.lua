@@ -1,4 +1,5 @@
 local ffi = require("ffi")
+local debug = require("debug")
 
 local types = {
 	OSX     = "levee.errno.osx",
@@ -6,21 +7,29 @@ local types = {
 	BSD     = "levee.errno.bsd"
 }
 
-local module = {}
+local Errno = {}
 local messages = {}
 for k,v in pairs(require(types[ffi.os])) do
-	module[k] = v[1]
+	Errno[k] = v[1]
 	messages[v[1]] = v[2]
 end
 
-function module.message(code)
-	return messages[code or ffi.errno()]
+function Errno:message(no)
+	return messages[no or ffi.errno()]
 end
 
-function module.error(msg, level)
-	local no = ffi.errno()
-	error(string.format("%s: %s (%d)", msg, messages[no], no), 1 + (level or 1))
+function Errno:format(msg, no)
+	local no = no or ffi.errno()
+	return string.format("%s: %s (%d)", msg, messages[no], no)
 end
 
-return module
+function Errno:print(msg, no)
+	print(self:format(msg, no))
+	print(debug.traceback():sub(18))
+end
 
+function Errno:error(msg, no, level)
+	error(self:format(msg, no), 1 + (level or 1))
+end
+
+return Errno

@@ -1,7 +1,7 @@
 require('levee.cdef')
 
 local ffi = require('ffi')
-local errno = require('levee.errno')
+local Errno = require('levee.errno')
 
 ffi.cdef[[
 static const int EV_POLL_OUT_MAX = 64;
@@ -20,8 +20,13 @@ Poller.__index = Poller
 
 function Poller:new()
 	local self = self.allocate(C.epoll_create1(0))
-	if self.fd < 0 then errno.error("epoll_create1") end
+	if self.fd < 0 then Errno:error("epoll_create1") end
 	return self
+end
+
+
+function Poller:__tostring()
+	return string.format("levee.Poller(epoll): %d", self.fd)
 end
 
 
@@ -36,7 +41,7 @@ function Poller:register(fd)
 	ev.data.fd = fd
 
 	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_ADD, fd, ev)
-	if rc < 0 then errno.error("epoll_ctl") end
+	if rc < 0 then Errno:error("epoll_ctl") end
 
 	return tonumber(fd)
 end
@@ -45,7 +50,7 @@ end
 function Poller:poll()
 	--local n = C.epoll_wait(self.fd, self.ev, EV_POLL_OUT_MAX, -1)
 	local n = C.epoll_wait(self.fd, self.ev, 1, -1)
-	if n < 0 then errno.error("epoll_wait") end
+	if n < 0 then Errno:error("epoll_wait") end
 
 	print("poll got:", n)
 	self.tmp[0] = 0

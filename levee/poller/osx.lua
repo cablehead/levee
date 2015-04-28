@@ -1,7 +1,7 @@
 require('levee.cdef')
 
 local ffi = require('ffi')
-local errno = require('levee.errno')
+local Errno = require('levee.errno')
 
 ffi.cdef[[
 static const int EV_POLL_IN_MAX = 64;
@@ -23,8 +23,13 @@ Poller.__index = Poller
 
 function Poller:new()
 	local self = self.allocate(C.kqueue(), 0, 0)
-	if self.fd < 0 then errno.error("kqueue") end
+	if self.fd < 0 then Errno:error("kqueue") end
 	return self
+end
+
+
+function Poller:__tostring()
+	return string.format("levee.Poller(kqueue): %d", self.fd)
 end
 
 
@@ -37,7 +42,7 @@ local function next_event(self)
 	if self.ev_in_pos == C.EV_POLL_IN_MAX then
 		-- flush pending events if the list is full
 		local rc = C.kevent(self.fd, self.ev_in, C.EV_POLL_IN_MAX, nil, 0, nil)
-		if rc < 0 then errno.error("kevent") end
+		if rc < 0 then Errno:error("kevent") end
 		self.ev_in_pos = 0
 	end
 	local ev = self.ev_in[self.ev_in_pos]
@@ -64,7 +69,7 @@ end
 function Poller:poll()
 	--local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, nil)
 	local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
-	if n < 0 then errno.error("kevent") end
+	if n < 0 then Errno:error("kevent") end
 	self.ev_in_pos = 0
 
 	print("poll got:", n)
