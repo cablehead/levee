@@ -8,12 +8,12 @@ local Poller = require("ev.poller." .. ffi.os:lower())
 
 -- TODO: need a decent structure here
 local FIFO = {}
+FIFO.__index = FIFO
 
 
 function FIFO:new(hub)
 	local T = {head = 1, tail = 0}
 	setmetatable(T, self)
-	self.__index = self
 	return T
 end
 
@@ -39,12 +39,12 @@ end
 
 
 local Hub = {}
+Hub.__index = Hub
 
 
 function Hub:new()
 	local hub = {}
 	setmetatable(hub, self)
-	self.__index = self
 
 	hub.ready = FIFO:new()
 

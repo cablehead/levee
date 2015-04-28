@@ -45,6 +45,7 @@ local function next_event(self)
 	return ev
 end
 
+
 function Poller:register(fd)
 	local ev = next_event(self)
 	ev.ident = fd
