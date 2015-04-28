@@ -1,8 +1,9 @@
 static const int PF_INET6 = 30;
 static const int AF_INET6 = PF_INET6;
 
-static const int SOL_SOCKET   = 0xffff;
-static const int SO_REUSEADDR = 0x0004;
+static const int SOL_SOCKET    = 0xffff;
+static const int SO_REUSEADDR  = 0x0004;
+static const int SO_ACCEPTCONN = 0x0002;
 
 typedef uint8_t sa_family_t;
 
