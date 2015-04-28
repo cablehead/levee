@@ -1,9 +1,5 @@
 return {
-	test_socket = function()
+	test_cdef = function()
 		require("levee.cdef")
-	end,
-
-	test_fcntl = function()
-		require("levee.cdef)
 	end,
 }
