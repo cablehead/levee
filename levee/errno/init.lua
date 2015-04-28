@@ -1,9 +1,9 @@
 local ffi = require("ffi")
 
 local types = {
-	OSX     = "ev.errno.osx",
-	Linux   = "ev.errno.linux",
-	BSD     = "ev.errno.bsd"
+	OSX     = "levee.errno.osx",
+	Linux   = "levee.errno.linux",
+	BSD     = "levee.errno.bsd"
 }
 
 local module = {}

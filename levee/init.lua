@@ -1,9 +1,9 @@
-local message = require("ev.message")
+local message = require("levee.message")
 
 
 local ffi = require("ffi")
 
-local Poller = require("ev.poller." .. ffi.os:lower())
+local Poller = require("levee.poller." .. ffi.os:lower())
 
 
 -- TODO: need a decent structure here
@@ -51,8 +51,8 @@ function Hub:new()
 	hub.registered = {}
 	hub.poller = Poller:new()
 
-	hub.tcp = require("ev.tcp")(hub)
-	hub.io = require("ev.io")(hub)
+	hub.tcp = require("levee.tcp")(hub)
+	hub.io = require("levee.io")(hub)
 	return hub
 end
 

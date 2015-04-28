@@ -1,12 +1,12 @@
 require('ev.cdef')
 
 local ffi = require('ffi')
-local errno = require('ev.errno')
+local errno = require('levee.errno')
 
 ffi.cdef[[
 static const int EV_POLL_IN_MAX = 64;
 static const int EV_POLL_OUT_MAX = 64;
-struct EVPoller {
+struct LeveePoller {
 	int fd;
 	int ev_in_pos;
 	uintptr_t id;
@@ -72,6 +72,6 @@ function Poller:poll()
 end
 
 
-Poller.allocate = ffi.metatype("struct EVPoller", Poller)
+Poller.allocate = ffi.metatype("struct LeveePoller", Poller)
 
 return Poller
