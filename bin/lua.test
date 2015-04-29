@@ -1,6 +1,20 @@
 #!/usr/bin/env luajit
 
 
+function dirname(str)
+	if str:match(".-/.-") then
+		local name = string.gsub(str, "(.*/)(.*)", "%1")
+		return name
+	else
+		return ''
+	end
+end
+
+local path = dirname(arg[0])
+
+package.path = string.format(
+	'%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s', path, path, path, package.path)
+
 local io = require('io')
 local os = require('os')
 
