@@ -106,7 +106,7 @@ function Conn(hub, no)
 		return self:recv()
 	end
 
-	function M:send()
+	function M:send(s)
 		-- TODO: handle EAGAIN
 		return C.write(self.no, s, #s)
 	end
@@ -124,7 +124,7 @@ return function(hub)
 	function M:connect(port, host)
 		local socket = Socket:new()
 		socket:connect(host or "127.0.0.1", port)
-		return FD:new(socket.no)
+		return Conn(hub, socket.no)
 	end
 
 
