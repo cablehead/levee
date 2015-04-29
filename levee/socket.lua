@@ -6,7 +6,10 @@ local FD = require("levee.fd")
 ffi.cdef[[
 struct LeveeSocket {
 	struct LeveeFD base;
-	socklen_t tmp[1];
+	union {
+		socklen_t socklen[1];
+		int intval[1];
+	} tmp;
 	bool listening;
 };
 ]]
@@ -120,11 +123,22 @@ end
 
 function Socket:accept()
 	local addr = sockaddr_in()
-	local no = C.accept(self.base.no, ffi.cast("struct sockaddr *", addr), self.tmp)
+	local no = C.accept(self.base.no, ffi.cast("struct sockaddr *", addr), self.tmp.socklen)
 	if no < 0 then
 		return nil, ffi.errno()
 	end
 	return Socket:new(no, false)
+end
+
+
+function Socket:available()
+	if self.listening then
+		-- TODO figure out accept count?
+		return 0ULL
+	else
+		C.ioctl(self.base.no, C.FIONREAD, ffi.cast("int *", self.tmp.intval))
+		return self.tmp.intval[0]
+	end
 end
 
 
