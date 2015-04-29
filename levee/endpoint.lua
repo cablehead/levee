@@ -34,7 +34,7 @@ function Endpoint:sockname(fd)
 	if rc < 0 then
 		return nil, ffi.errno()
 	end
-	return ep
+	return ep, 0
 end
 
 
@@ -46,7 +46,7 @@ function Endpoint:peername(fd)
 	if rc < 0 then
 		return nil, ffi.errno()
 	end
-	return ep
+	return ep, 0
 end
 
 
