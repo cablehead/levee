@@ -4,54 +4,6 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
-function unblock(fd)
-  local flags = C.fcntl(fd, C.F_GETFL, 0)
-  if flags == -1 then
-    return -1
-  end
-
-  flags = bit.bor(flags, C.O_NONBLOCK)
-  local rc = C.fcntl(fd, C.F_SETFL, ffi.new("int", flags))
-  if rc == -1 then
-    return -1
-  end
-  return 0
-end
-
-
-local FD = {}
-
-
-function FD:new(no)
-	local T = {no = no}
-	setmetatable(T, self)
-	self.__index = self
-	return T
-end
-
-
-function FD:send(str)
-	return C.write(self.no, str, #str)
-end
-
-
-function FD:recv()
-	local BUFSIZE = 8192
-	local buf = ffi.new("uint8_t[?]", BUFSIZE)
-	local bytes_read = C.read(self.no, buf, ffi.sizeof(buf))
-	print("BYTES_READ", bytes_read)
-	local response = ffi.string(buf, bytes_read)
-	return response
-end
-
-
-function FD:close()
-	rc = C.close(self.no)
-	assert(rc == 0)
-end
-
-
-
 local Socket = {}
 
 
@@ -99,14 +51,8 @@ function Socket:accept()
 	local no = C.accept(
 		self.no, ffi.cast("struct sockaddr *", peer_addr), peer_addr_size)
 	assert(no >= 0)
-
-	local rc = unblock(no)
-	assert(rc == 0)
-
 	return no
 end
-
-
 
 
 return function(hub)
