@@ -4,8 +4,8 @@ local ffi = require('ffi')
 local Errno = require('levee.errno')
 
 ffi.cdef[[
-static const unsigned MIN_SIZE = 8192;
-static const unsigned MAX_BLOCK = 65536;
+static const unsigned LEVEE_BUFFER_MIN_SIZE = 8192;
+static const unsigned LEVEE_BUFFER_MAX_BLOCK = 65536;
 struct LeveeBuffer {
 	uint8_t *buf;
 	uint32_t off, len, cap;
@@ -55,11 +55,11 @@ function Buffer:ensure(hint)
 	end
 
 	-- find next capacity size
-	if cap <= C.MIN_SIZE then
-		cap = C.MIN_SIZE
-	elseif cap >= C.MAX_BLOCK then
-		-- grow to nearest MAX_BLOCK size with capacity to hold hint
-		cap = (((cap - 1) / C.MAX_BLOCK) + 1) * C.MAX_BLOCK;
+	if cap <= C.LEVEE_BUFFER_MIN_SIZE then
+		cap = C.LEVEE_BUFFER_MIN_SIZE
+	elseif cap >= C.LEVEE_BUFFER_MAX_BLOCK then
+		-- grow to nearest LEVEE_BUFFER_MAX_BLOCK size with capacity to hold hint
+		cap = (((cap - 1) / C.LEVEE_BUFFER_MAX_BLOCK) + 1) * C.LEVEE_BUFFER_MAX_BLOCK;
 	else
 		-- grow to nearest power of 2
 		cap = math.pow(2, math.ceil(math.log(cap)/math.log(2)))
@@ -116,6 +116,11 @@ function Buffer:write(sock, len)
 		self:trim(write)
 	end
 	return write
+end
+
+
+function Buffer:value()
+	return self.buf + self.off, self.len
 end
 
 
