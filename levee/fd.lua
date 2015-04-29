@@ -51,7 +51,12 @@ end
 
 function FD:read(buf, len)
 	if not len then len = ffi.sizeof(buf) end
-	return C.read(self.no, buf, len)
+	local len = C.read(self.no, buf, len)
+	if len > 0 then
+		return len, 0
+	else
+		return len, ffi.errno()
+	end
 end
 
 
@@ -63,7 +68,12 @@ function FD:write(buf, len)
 			len = #buf
 		end
 	end
-	return C.write(self.no, buf, len)
+	local len = C.write(self.no, buf, len)
+	if len > 0 then
+		return len, 0
+	else
+		return len, ffi.errno()
+	end
 end
 
 
