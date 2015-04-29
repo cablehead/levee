@@ -2,6 +2,7 @@ require("levee.cdef")
 
 local ffi = require("ffi")
 local FD = require("levee.fd")
+local Endpoint = require("levee.endpoint")
 
 ffi.cdef[[
 struct LeveeSocket {
@@ -21,7 +22,6 @@ Socket.__index = Socket
 
 
 local sockaddr_in = ffi.typeof("struct sockaddr_in")
-local sockaddr_storage ffi.typeof("struct sockaddr_storage")
 
 
 function Socket:new(no, listening)
@@ -71,46 +71,14 @@ function Socket:listen(port, host, backlog)
 end
 
 
-local function addr_name(addr)
-	if addr.ss_family == C.AF_INET then
-		local cast = ffi.cast("struct sockaddr_in *", addr)
-		local buf = ffi.new("char [16]")
-		local str = C.inet_ntop(C.AF_INET, cast.sin_addr, buf, 16)
-		if str then
-			return string.format("%s:%d", ffi.string(buf), tonumber(C.ntohs(cast.sin_port)))
-		end
-	elseif addr.ss_family == C.AF_INET6 then
-		local cast = ffi.cast("struct sockaddr_in6 *", addr)
-		local buf = ffi.new("char [48]")
-		local str = C.inet_ntop(C.AF_INET6, cast.sin6_addr, buf, 48)
-		if str then
-			return string.format("[%s]:%d", ffi.string(buf), tonumber(C.ntohs(cast.sin6_port)))
-		end
-	elseif addr.ss_family == C.AF_LOCAL then
-		local cast = ffi.cast("struct sockaddr_un *", addr)
-		return ffi.string(cast.sun_path)
-	end
-end
-
 function Socket:__tostring()
-	local addr = ffi.new("struct sockaddr_storage")
-	local len = ffi.new("socklen_t[1]")
-	local sock = nil
-	local peer = nil
-
-	len[0] = ffi.sizeof(addr)
-	if C.getsockname(self.base.no, ffi.cast("struct sockaddr *", addr), len) then
-		sock = addr_name(addr)
-	end
+	local sock = Endpoint:sockname(self.base.no)
 
 	if self.listening then
-		return string.format("levee.Socket: %d, %s", self.base.no, sock or "")
+		return string.format("levee.Socket: %d, %s", self.base.no, sock)
 	else
-		len[0] = ffi.sizeof(addr)
-		if C.getpeername(self.base.no, ffi.cast("struct sockaddr *", addr), len) then
-			peer = addr_name(addr)
-		end
-		return string.format("levee.Socket: %d, %s->%s", self.base.no, sock or "", peer or "")
+		local peer = Endpoint:peername(self.base.no)
+		return string.format("levee.Socket: %d, %s->%s", self.base.no, sock, peer)
 	end
 
 end
