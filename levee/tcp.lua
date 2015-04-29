@@ -3,6 +3,8 @@ require("levee.cdef")
 local ffi = require("ffi")
 local C = ffi.C
 
+local FD = require("levee/fd")
+
 
 local Socket = {}
 
@@ -55,6 +57,66 @@ function Socket:accept()
 end
 
 
+-- TODO: will rework soon
+function Conn(hub, no)
+
+	local M = {
+		no = no,
+		fd = FD:new(no),
+		pollin = hub:register(no),
+		recver = hub:pipe(),
+	}
+
+	M.fd:nonblock(true)
+
+	function M:read()
+		local BUFSIZE = 8192
+		local buf = ffi.new("uint8_t[?]", BUFSIZE)
+		local bytes_read = C.read(self.no, buf, ffi.sizeof(buf))
+		if bytes_read <= 0 then
+			return bytes_read
+		end
+		local response = ffi.string(buf, bytes_read)
+		return bytes_read, response
+	end
+
+	hub:spawn(function()
+		while true do
+			M.pollin:recv()
+			while true do
+				n, data = M:read()
+				if n < 0 then
+					print("IO RECV LOOP", ffi.errno())
+					break
+				elseif n == 0 then
+					print("IO RECV CLOSE")
+					M.recver:close()
+					return
+				end
+				M.recver:send(data)
+			end
+		end
+	end)
+
+	function M:recv()
+		return self.recver:recv()
+	end
+
+	function M:__call()
+		return self:recv()
+	end
+
+	function M:send()
+		-- TODO: handle EAGAIN
+		return C.write(self.no, s, #s)
+	end
+
+	setmetatable(M, M)
+
+	return M
+end
+
+
 return function(hub)
 	-- todo, turn this into an object, just bashing this out
 	local M = {hub=hub}
@@ -77,7 +139,7 @@ return function(hub)
 			while true do
 				ready:recv()
 				local no = socket:accept()
-				local conn = self.hub.io:fd_in(no)
+				local conn = Conn(hub, no)
 				connections:send(conn)
 			end
 		end)

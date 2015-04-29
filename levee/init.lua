@@ -52,7 +52,6 @@ function Hub:new()
 	hub.poller = Poller:new()
 
 	hub.tcp = require("levee.tcp")(hub)
-	hub.io = require("levee.io")(hub)
 	return hub
 end
 
