@@ -58,11 +58,6 @@ function Poller:register(fd)
 	ev.flags = bit.bor(C.EV_ADD, C.EV_CLEAR)
 	ev.fflags = 0
 	ev.data = 0
-	ev.udata = self.id
-
-	self.id = self.id + 1
-
-	return tonumber(ev.udata)
 end
 
 
@@ -73,7 +68,7 @@ function Poller:poll()
 	self.ev_in_pos = 0
 
 	print("poll got:", n)
-	return tonumber(self.ev_out[0].udata), self.ev_out[0].data
+	return tonumber(self.ev_out[0].ident), self.ev_out[0].data
 end
 
 

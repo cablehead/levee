@@ -56,11 +56,10 @@ function Hub:new()
 end
 
 
-function Hub:register(fd)
+function Hub:register(no)
 	local pipe = self:pipe()
-	local id = self.poller:register(fd)
-	print("register", id)
-	self.registered[id] = pipe
+	self.poller:register(no)
+	self.registered[no] = pipe
 	return pipe
 end
 

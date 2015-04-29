@@ -39,11 +39,8 @@ function Poller:register(fd)
 	local ev = self.ev[0]
 	ev.events = bit.bor(C.EPOLLIN, C.EPOLLET)
 	ev.data.fd = fd
-
 	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_ADD, fd, ev)
 	if rc < 0 then Errno:error("epoll_ctl") end
-
-	return tonumber(fd)
 end
 
 
