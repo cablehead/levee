@@ -74,17 +74,22 @@ function main(argv)
 		local M = assert(loadfile(script))()
 		for name, f in pairs(M) do
 			io.write(('%s::%s'):format(script, name))
-			local success = xpcall(M[name],
-				function(err)
-					print(' FAIL')
-					print('-----')
-					print(debug.traceback())
-					print(err)
-					print()
-					status = 1
-				end)
-			if success then
-				print(' PASS')
+			if argv.match and not string.find(name, argv.match) then
+				print(' SKIP')
+			else
+				io.write(('%s::%s'):format(script, name))
+				local success = xpcall(M[name],
+					function(err)
+						print(' FAIL')
+						print('-----')
+						print(debug.traceback())
+						print(err)
+						print()
+						status = 1
+					end)
+				if success then
+					print(' PASS')
+				end
 			end
 		end
 	end
