@@ -45,10 +45,10 @@ function Pipe:recv()
 		local ready = self.ready
 		self.ready = nil
 		self.hub:resume(ready, coroutine.running())
-		return coroutine.yield()
+	else
+		self.ready = coroutine.running()
 	end
 
-	self.ready = coroutine.running()
 	return coroutine.yield()
 end
 
