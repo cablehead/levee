@@ -2,31 +2,19 @@ local ffi = require("ffi")
 
 
 ffi.cdef[[
-typedef struct End End;
 typedef struct Sender Sender;
 typedef struct Recver Recver;
 
-typedef struct Middle Middle;
-
-struct End {
-	Middle *middle;
-	int index;
-	int ref;
-};
 
 struct Sender {
-	struct End;
+	Recver *other;
+	int index;
 };
 
 struct Recver {
-	struct End;
+	Sender *other;
+	int index;
 };
-
-struct Middle {
-	Sender *sender;
-	Recver *recver;
-};
-
 
 void *malloc(size_t);
 void free (void *);
@@ -34,50 +22,20 @@ void free (void *);
 
 local C = ffi.C
 
-local SIZEOF_MIDDLE = ffi.sizeof("Middle")
-local SIZEOF_END = ffi.sizeof("End")
-
-local Middle = {}
-Middle.__index = Middle
-
-function Middle:release(self)
-	print("Middle:release")
-end
-
-function Middle.allocate()
-	return ffi.gc(ffi.cast("Middle *", C.malloc(SIZEOF_MIDDLE)), Middle.release)
-end
-
-function Middle:__tostring()
-	return string.format("Middle: others=[0x%08x,0x%08x], ref=%d",
-		tonumber(ffi.cast("uintptr_t", self.sender)),
-		tonumber(ffi.cast("uintptr_t", self.recver)),
-		self.ref)
-end
-
-ffi.metatype("Middle", Middle)
-
 local Sender = {}
 Sender.__index = Sender
 
 function Sender:release()
 	print("Sender:release")
-	self.ref = self.ref - 1
-	if self.ref > 0 then return end
-	if not self.middle.recver then
-		C.free(self.middle)
-	else
-		self.middle.sender = nil
+	if self.other ~= ffi.NULL then
+		self.other.other = nil
 	end
 	C.free(self)
 end
 
-function Sender:other()
-	return self.middle.recver
-end
-
 function Sender.allocate()
-	return ffi.gc(ffi.cast("Sender *", C.malloc(SIZEOF_END)), Sender.release)
+	return ffi.gc(
+		ffi.cast("Sender *", C.malloc(ffi.sizeof("Sender"))), Sender.release)
 end
 
 ffi.metatype("Sender", Sender)
@@ -88,25 +46,48 @@ Recver.__index = Recver
 
 function Recver:release()
 	print("Recver:release")
-	self.ref = self.ref - 1
-	if self.ref > 0 then return end
-	if not self.middle.sender then
-		C.free(self.middle)
-	else
-		self.middle.recver = nil
+	if self.other ~= ffi.NULL then
+		self.other.other = nil
 	end
 	C.free(self)
 end
 
-function Recver:other()
-	return self.middle.sender
-end
-
 function Recver.allocate()
-	return ffi.gc(ffi.cast("Recver *", C.malloc(SIZEOF_END)), Recver.release)
+	return ffi.gc(
+		ffi.cast("Recver *", C.malloc(ffi.sizeof("Recver"))), Recver.release)
 end
 
 ffi.metatype("Recver", Recver)
+
+
+local Pair = {}
+
+Pair.__index = Pair
+
+Pair.__index = function(self, key)
+	if key == "sender" then
+		return self[1]
+	end
+	if key == "recver" then
+		return self[2]
+	end
+	return Pair[key]
+end
+
+
+function Pair:recv()
+	print("oh hai", self)
+end
+
+
+function Pair.new(sender, recver)
+	local t = {sender,  recver}
+	setmetatable(t, Pair)
+	return t
+end
+
+
+
 
 
 ------
@@ -177,23 +158,16 @@ end
 return {
 	Pipe = Pipe,
 	Foo = function()
-		 local middle = Middle.allocate()
 
 		 local sender = Sender.allocate()
 		 local recver = Recver.allocate()
 
-		 sender.ref = 2
-		 recver.ref = 2
-
-		 sender.middle = middle
-		 recver.middle = middle
-
+		 sender.other = recver
+		 recver.other = sender
 		 sender.index = 10
 		 recver.index = 20
 
-		 middle.sender = sender
-		 middle.recver = recver
+		 return Pair.new(sender, recver)
 
-		 return middle
 	end,
 	End = End}

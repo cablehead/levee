@@ -32,22 +32,25 @@ return {
 		local foo = message.Foo()
 
 		collectgarbage("collect")
-		print(foo.sender.index)
-		print(foo.recver.index)
+		print(foo.sender.index, foo.sender.other.index)
+		print(foo.recver.index, foo.recver.other.index)
 
 		local sender = foo.sender
 		local recver = foo.recver
 
 		foo = nil
 		collectgarbage("collect")
-		print(sender.index, sender:other().index)
-		print(recver.index, recver:other().index)
+		print(sender.index, sender.other.index)
+		print(recver.index, recver.other.index)
 
 		print()
 		recver = nil
 		collectgarbage("collect")
+		print(sender.index, sender.other)
+
+		print()
+		sender = nil
 		collectgarbage("collect")
-		print(sender.index, sender:other().index)
 
 		print()
 	end,
