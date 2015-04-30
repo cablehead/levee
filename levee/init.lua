@@ -98,21 +98,8 @@ function Hub:spawn(f, ...)
 end
 
 
-function Hub:pause()
-	return coroutine.yield()
-end
-
-
-function Hub:pause_to(co)
-	self.ready:push({co=co, a={coroutine.running()}})
-	return coroutine.yield()
-end
-
-
-function Hub:switch_to(co, ...)
+function Hub:resume(co, ...)
 	self.ready:push({co=co, a={...}})
-	self.ready:push({co=coroutine.running(), a={}})
-	coroutine.yield()
 end
 
 

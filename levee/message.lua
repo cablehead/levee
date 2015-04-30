@@ -22,14 +22,16 @@ function Pipe:send(data)
 	end
 
 	local ready
+
 	if self.ready then
 		ready = self.ready
 		self.ready = nil
 	else
 		self.ready = coroutine.running()
-		ready = self.hub:pause()
+		ready = coroutine.yield()
 	end
-	self.hub:switch_to(ready, data)
+
+	self.hub:resume(ready, data)
 	return true
 end
 
@@ -42,11 +44,12 @@ function Pipe:recv()
 	if self.ready then
 		local ready = self.ready
 		self.ready = nil
-		return self.hub:pause_to(ready)
-	else
-		self.ready = coroutine.running()
-		return self.hub:pause()
+		self.hub:resume(ready, coroutine.running())
+		return coroutine.yield()
 	end
+
+	self.ready = coroutine.running()
+	return coroutine.yield()
 end
 
 
