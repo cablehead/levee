@@ -15,9 +15,6 @@ struct Recver {
 	Sender *other;
 	int index;
 };
-
-void *malloc(size_t);
-void free (void *);
 ]]
 
 local C = ffi.C
