@@ -35,8 +35,7 @@ return {
 		print(foo.sender.index, foo.sender.other.index)
 		print(foo.recver.index, foo.recver.other.index)
 
-		local sender = foo.sender
-		local recver = foo.recver
+		local sender, recver = unpack(foo)
 
 		foo = nil
 		collectgarbage("collect")
