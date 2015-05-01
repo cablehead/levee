@@ -53,4 +53,39 @@ return {
 
 		print()
 	end,
+
+	test_coro = function()
+		print()
+		print()
+		local ffi = require("ffi")
+		local coro = require("coro")
+
+		local message = require("levee.message")
+		local foo = message.Foo()
+
+		local co = coroutine.create(
+			function()
+				while true do
+					local got, bar = coro.yield(foo.sender, "oh hai", 2)
+					print("WITH2:", got, bar)
+					coroutine.yield(4, 5)
+					return "Ted"
+				end
+			end)
+
+		print(foo.sender.coro)
+		print(coroutine.resume(co))
+		print(foo.sender.coro)
+
+		print()
+		print("---")
+
+		local got, bar = coro.resume(foo.sender, "some", "args")
+		print("WITH3:", got, bar)
+
+
+		print()
+		print('done')
+		print()
+	end,
 }

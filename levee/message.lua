@@ -5,8 +5,10 @@ ffi.cdef[[
 typedef struct Sender Sender;
 typedef struct Recver Recver;
 
+typedef struct lua_State lua_State;
 
 struct Sender {
+	lua_State *coro;
 	Recver *other;
 	int index;
 };
@@ -15,6 +17,9 @@ struct Recver {
 	Sender *other;
 	int index;
 };
+
+void *malloc(size_t);
+void free (void *);
 ]]
 
 local C = ffi.C
