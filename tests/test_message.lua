@@ -1,41 +1,28 @@
 return {
 	test_pipe = function()
-		print()
-		print()
 		local levee = require("levee")
 
 		levee.run(function(h)
 			local sender, recver = unpack(h:pipe())
 
-			print("start", recver)
-
 			assert.equal(sender.hub, h)
 			assert.equal(recver.hub, h)
 
 			-- test recv and then send
-			h:spawn(function()
-				print()
-				sender:send("1")
-				end)
+			h:spawn(function() sender:send("1") end)
 			local got = recver:recv()
-			print("GOT", got)
-			-- assert(got == "1")
-
-			print()
-			if true then return end
-
-			local done = h:pipe()
-
+			assert(got == "1")
 
 			-- test send and then recv
-			h:spawn(function()
-				local got = p:recv()
-				assert(got == "2")
-				done:send()
-			end)
-			p:send("2")
-
-			done:recv()
+			local done = h:pipe()
+			h:spawn(
+				function()
+					local got = recver:recv()
+					assert(got == "2")
+					done.sender:send(true)
+				end)
+			sender:send("2")
+			done.recver:recv()
 		end)
 	end,
 
@@ -47,19 +34,20 @@ return {
 		local p = message.Pipe({id = 1})
 
 		collectgarbage("collect")
-		assert.equal(p.sender, p.sender.other.other)
-		assert.equal(p.recver, p.recver.other.other)
+		assert(p.sender.other ~= ffi.NULL)
+		assert(p.recver.other ~= ffi.NULL)
 
 		local sender, recver = unpack(p)
 
 		p = nil
 		collectgarbage("collect")
-		assert.equal(sender, sender.other.other)
-		assert.equal(recver, recver.other.other)
+		assert(sender.other ~= ffi.NULL)
+		assert(recver.other ~= ffi.NULL)
 
 		recver = nil
 		collectgarbage("collect")
 		assert(sender.other, ffi.NULL)
+		assert(sender.closed)
 
 		sender = nil
 		collectgarbage("collect")
@@ -101,9 +89,9 @@ return {
 		assert.same(got, {true, "1.1", "1.2"})
 
 		got = pack(coro.resume(stash, "2.1", "2.2"))
-		assert.same(got, {"3.1", "3.2"})
+		assert.same(got, {true, "3.1", "3.2"})
 
 		got = pack(coro.resume(stash, "4.1", "4.2"))
-		assert.same(got, {"5.1", "5.2"})
+		assert.same(got, {true, "5.1", "5.2"})
 	end,
 }

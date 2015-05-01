@@ -72,10 +72,18 @@ function Hub:main()
 
 		while self.ready:length() > 0 do
 			local task = self.ready:pop()
-			local status, message = coroutine.resume(task.co, unpack(task.a))
+
+			-- TODO: is the comparison everytime a performance concern?
+			local status, message
+			if type(task.co) == "thread" then
+				status, message = coroutine.resume(task.co, unpack(task.a))
+			else
+				status, message = coro.resume(task.co, unpack(task.a))
+			end
+
 			if not status then
 				error(message)
-		  end
+			end
 		end
 
 		if not next(self.registered) then

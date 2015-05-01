@@ -12,9 +12,7 @@ extern int
 coro_yield (lua_State *L)
 {
 	lua_State **coro = (lua_State **) lua_topointer(L, 1);
-	printf("coro.c %p %p %p\n", coro, *coro, L);
 	*coro = L;
-	printf("coro.c %p %p %p\n", coro, *coro, L);
 	return lua_yield(L, lua_gettop(L) - 1);
 }
 
@@ -25,16 +23,18 @@ coro_resume (lua_State *L)
 	int n;
 
 	lua_State *coro = *(lua_State **) lua_topointer(L, 1);
-	n = lua_gettop(L) - 1;
-	lua_xmove(L, coro, n);
+	n = lua_gettop(L);
+	lua_xmove(L, coro, n - 1);
 
-	int rc = lua_resume(coro, n);
+	int rc = lua_resume(coro, n - 1);
 	// TODO: error handling
 	assert(rc <= LUA_YIELD);
 
+	lua_pushboolean(L, 1);
+
 	n = lua_gettop(coro);
 	lua_xmove(coro, L, n);
-	return n;
+	return n + 1;
 }
 
 

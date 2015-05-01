@@ -10,6 +10,9 @@ typedef struct Recver Recver;
 
 typedef struct lua_State lua_State;
 
+/*
+	Note: coro *must* be the first item in the struct
+*/
 struct Sender {
 	lua_State *coro;
 	Recver *other;
@@ -38,22 +41,15 @@ Sender.__index = function(self, key)
 		return refs.get(self.hub_id)
 	end
 	if key == "ready" then
-		print(self.other, self.other.coro)
 		return self.other ~= ffi.NULL and self.other.coro ~= ffi.NULL
 	end
 	return Sender[key]
 end
 
-function Sender:release()
+function Sender:__gc()
 	if self.other ~= ffi.NULL then
-		self.other.closed, self.other.other = false, nil
+		self.other.closed, self.other.other = true, nil
 	end
-	C.free(self)
-end
-
-function Sender.allocate()
-	return ffi.gc(
-		ffi.cast("Sender *", C.malloc(ffi.sizeof("Sender"))), Sender.release)
 end
 
 function Sender:close()
@@ -81,7 +77,7 @@ function Sender:send(data)
 	return true
 end
 
-ffi.metatype("Sender", Sender)
+Sender.allocate = ffi.metatype("Sender", Sender)
 
 
 local Recver = {}
@@ -95,16 +91,10 @@ Recver.__index = function(self, key)
 	return Recver[key]
 end
 
-function Recver:release()
+function Recver:__gc()
 	if self.other ~= ffi.NULL then
-		self.other.closed, self.other.other = false, nil
+		self.other.closed, self.other.other = true, nil
 	end
-	C.free(self)
-end
-
-function Recver.allocate()
-	return ffi.gc(
-		ffi.cast("Recver *", C.malloc(ffi.sizeof("Recver"))), Recver.release)
 end
 
 function Recver:close()
@@ -130,13 +120,10 @@ function Recver:recv()
 		return coroutine.yield()
 	end
 
-	print("recv 1", self, self.coro)
-	local got = coro.yield(self)
-	print("recv 2")
-	return got
+	return coro.yield(self)
 end
 
-ffi.metatype("Recver", Recver)
+Recver.allocate = ffi.metatype("Recver", Recver)
 
 
 local Pair = {}
