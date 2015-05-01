@@ -1,7 +1,7 @@
-local message = require("levee.message")
-
-
 local ffi = require("ffi")
+
+local message = require("levee.message")
+local refs = require("levee.refs")
 
 local Poller = require("levee.poller." .. ffi.os:lower())
 
@@ -45,6 +45,8 @@ Hub.__index = Hub
 function Hub:new()
 	local hub = {}
 	setmetatable(hub, self)
+
+	hub.id = refs.new(hub)
 
 	hub.ready = FIFO:new()
 

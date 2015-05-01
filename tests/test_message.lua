@@ -1,18 +1,31 @@
 return {
 	test_pipe = function()
+		print()
+		print()
 		local levee = require("levee")
 
 		levee.run(function(h)
-			local p = h:pipe()
+			local sender, recver = unpack(h:pipe())
 
+			print("start", recver)
+
+			assert.equal(sender.hub, h)
+			assert.equal(recver.hub, h)
+
+			-- test recv and then send
+			h:spawn(function()
+				print()
+				sender:send("1")
+				end)
+			local got = recver:recv()
+			print("GOT", got)
+			-- assert(got == "1")
+
+			print()
 			if true then return end
 
 			local done = h:pipe()
 
-			-- test recv and then send
-			h:spawn(function() p:send("1") end)
-			local got = p:recv()
-			assert(got == "1")
 
 			-- test send and then recv
 			h:spawn(function()
@@ -31,7 +44,7 @@ return {
 
 		local message = require("levee.message")
 
-		local p = message.Pipe()
+		local p = message.Pipe({id = 1})
 
 		collectgarbage("collect")
 		assert.equal(p.sender, p.sender.other.other)

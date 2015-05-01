@@ -12,7 +12,9 @@ extern int
 coro_yield (lua_State *L)
 {
 	lua_State **coro = (lua_State **) lua_topointer(L, 1);
+	printf("coro.c %p %p %p\n", coro, *coro, L);
 	*coro = L;
+	printf("coro.c %p %p %p\n", coro, *coro, L);
 	return lua_yield(L, lua_gettop(L) - 1);
 }
 
