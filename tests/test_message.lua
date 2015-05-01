@@ -23,13 +23,10 @@ return {
 		end)
 	end,
 
-	test_middle_and_end = function()
-		print()
-		print()
-
+	test_pipe_gc = function()
 		local message = require("levee.message")
-
-		local foo = message.Foo()
+		local p = message.Pipe()
+		if true then return end
 
 		collectgarbage("collect")
 		print(foo.sender.index, foo.sender.other.index)
@@ -55,37 +52,44 @@ return {
 	end,
 
 	test_coro = function()
-		print()
-		print()
 		local ffi = require("ffi")
 		local coro = require("coro")
 
-		local message = require("levee.message")
-		local foo = message.Foo()
+		ffi.cdef[[
+			typedef struct lua_State lua_State;
+			typedef struct {
+				lua_State *coro;
+			} Foo;
+		]]
+
+		local stash = ffi.new('Foo')
+
+		function pack(...)
+			local m = {}
+			for _, x in ipairs({...}) do
+				table.insert(m, x)
+			end
+			return m
+		end
 
 		local co = coroutine.create(
 			function()
-				while true do
-					local got, bar = coro.yield(foo.sender, "oh hai", 2)
-					print("WITH2:", got, bar)
-					coroutine.yield(4, 5)
-					return "Ted"
-				end
+				local got = pack(coro.yield(stash, "1.1", "1.2"))
+				assert.same(got, {"2.1", "2.2"})
+
+				got = pack(coro.yield(stash, "3.1", "3.2"))
+				assert.same(got, {"4.1", "4.2"})
+
+				return "5.1", "5.2"
 			end)
 
-		print(foo.sender.coro)
-		print(coroutine.resume(co))
-		print(foo.sender.coro)
+		local got = pack(coroutine.resume(co))
+		assert.same(got, {true, "1.1", "1.2"})
 
-		print()
-		print("---")
+		got = pack(coro.resume(stash, "2.1", "2.2"))
+		assert.same(got, {"3.1", "3.2"})
 
-		local got, bar = coro.resume(foo.sender, "some", "args")
-		print("WITH3:", got, bar)
-
-
-		print()
-		print('done')
-		print()
+		got = pack(coro.resume(stash, "4.1", "4.2"))
+		assert.same(got, {"5.1", "5.2"})
 	end,
 }

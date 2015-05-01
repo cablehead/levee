@@ -1,4 +1,5 @@
 local ffi = require("ffi")
+local coro = require("coro")
 
 
 ffi.cdef[[
@@ -10,12 +11,11 @@ typedef struct lua_State lua_State;
 struct Sender {
 	lua_State *coro;
 	Recver *other;
-	int index;
 };
 
 struct Recver {
+	lua_State *coro;
 	Sender *other;
-	int index;
 };
 
 void *malloc(size_t);
@@ -156,20 +156,12 @@ function Pipe:close()
 end
 
 
-
 return {
-	Pipe = Pipe,
-	Foo = function()
-
+	Pipe = function()
 		 local sender = Sender.allocate()
 		 local recver = Recver.allocate()
-
 		 sender.other = recver
 		 recver.other = sender
-		 sender.index = 10
-		 recver.index = 20
-
 		 return Pair.new(sender, recver)
-
 	end,
-	End = End}
+}
