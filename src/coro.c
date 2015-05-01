@@ -30,6 +30,7 @@ coro_resume (lua_State *L)
 	lua_xmove(L, stash->coro, n);
 
 	int rc = lua_resume(stash->coro, n);
+	// TODO: error handling
 	assert(rc <= LUA_YIELD);
 
 	n = lua_gettop(stash->coro);
