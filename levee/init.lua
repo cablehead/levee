@@ -104,7 +104,7 @@ end
 
 
 function Hub:pipe()
-	return message.Pipe:new(self)
+	return message.Pipe(self)
 end
 
 

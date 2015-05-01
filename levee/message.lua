@@ -22,7 +22,9 @@ void *malloc(size_t);
 void free (void *);
 ]]
 
+
 local C = ffi.C
+
 
 local Sender = {}
 Sender.__index = Sender
@@ -74,20 +76,15 @@ Pair.__index = function(self, key)
 	return Pair[key]
 end
 
-
 function Pair:recv()
 	print("oh hai", self)
 end
-
 
 function Pair.new(sender, recver)
 	local t = {sender,  recver}
 	setmetatable(t, Pair)
 	return t
 end
-
-
-
 
 
 ------
@@ -155,7 +152,7 @@ end
 
 
 return {
-	Pipe = function()
+	Pipe = function(hub)
 		 local sender = Sender.allocate()
 		 local recver = Recver.allocate()
 		 sender.other = recver
