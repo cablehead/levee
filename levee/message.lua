@@ -28,7 +28,6 @@ local Sender = {}
 Sender.__index = Sender
 
 function Sender:release()
-	print("Sender:release")
 	if self.other ~= ffi.NULL then
 		self.other.other = nil
 	end
@@ -47,7 +46,6 @@ local Recver = {}
 Recver.__index = Recver
 
 function Recver:release()
-	print("Recver:release")
 	if self.other ~= ffi.NULL then
 		self.other.other = nil
 	end

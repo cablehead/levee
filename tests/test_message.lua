@@ -23,32 +23,30 @@ return {
 		end)
 	end,
 
-	test_pipe_gc = function()
+	test_gc = function()
+		local ffi = require("ffi")
+
 		local message = require("levee.message")
+
 		local p = message.Pipe()
-		if true then return end
 
 		collectgarbage("collect")
-		print(foo.sender.index, foo.sender.other.index)
-		print(foo.recver.index, foo.recver.other.index)
+		assert.equal(p.sender, p.sender.other.other)
+		assert.equal(p.recver, p.recver.other.other)
 
-		local sender, recver = unpack(foo)
+		local sender, recver = unpack(p)
 
-		foo = nil
+		p = nil
 		collectgarbage("collect")
-		print(sender.index, sender.other.index)
-		print(recver.index, recver.other.index)
+		assert.equal(sender, sender.other.other)
+		assert.equal(recver, recver.other.other)
 
-		print()
 		recver = nil
 		collectgarbage("collect")
-		print(sender.index, sender.other)
+		assert(sender.other, ffi.NULL)
 
-		print()
 		sender = nil
 		collectgarbage("collect")
-
-		print()
 	end,
 
 	test_coro = function()
