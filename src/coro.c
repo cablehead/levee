@@ -7,15 +7,12 @@
 #include <luajit-2.0/lualib.h>
 #include <luajit-2.0/lauxlib.h>
 
-typedef struct {
-	lua_State *coro;
-} End;
 
 extern int
 coro_yield (lua_State *L)
 {
-	End *stash = (End *) lua_topointer(L, 1);
-	stash->coro = L;
+	lua_State **coro = (lua_State **) lua_topointer(L, 1);
+	*coro = L;
 	return lua_yield(L, lua_gettop(L) - 1);
 }
 
@@ -25,16 +22,16 @@ coro_resume (lua_State *L)
 {
 	int n;
 
-	End *stash = (End *) lua_topointer(L, 1);
+	lua_State *coro = *(lua_State **) lua_topointer(L, 1);
 	n = lua_gettop(L) - 1;
-	lua_xmove(L, stash->coro, n);
+	lua_xmove(L, coro, n);
 
-	int rc = lua_resume(stash->coro, n);
+	int rc = lua_resume(coro, n);
 	// TODO: error handling
 	assert(rc <= LUA_YIELD);
 
-	n = lua_gettop(stash->coro);
-	lua_xmove(stash->coro, L, n);
+	n = lua_gettop(coro);
+	lua_xmove(coro, L, n);
 	return n;
 }
 
