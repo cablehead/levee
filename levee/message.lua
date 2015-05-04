@@ -1,3 +1,5 @@
+require("levee.cdef")
+
 local ffi = require("ffi")
 local coro = require("coro")
 
@@ -5,30 +7,25 @@ local refs = require("levee.refs")
 
 
 ffi.cdef[[
-typedef struct Sender Sender;
-typedef struct Recver Recver;
-
-typedef struct lua_State lua_State;
+typedef struct LeveeSender LeveeSender;
+typedef struct LeveeRecver LeveeRecver;
 
 /*
 	Note: coro *must* be the first item in the struct
 */
-struct Sender {
-	lua_State *coro;
-	Recver *other;
+struct LeveeSender {
+	void *coro; /* lua_State */
+	LeveeRecver *other;
 	int hub_id;
 	bool closed;
 };
 
-struct Recver {
-	lua_State *coro;
-	Sender *other;
+struct LeveeRecver {
+	void *coro; /* lua_State */
+	LeveeSender *other;
 	int hub_id;
 	bool closed;
 };
-
-void *malloc(size_t);
-void free (void *);
 ]]
 
 
@@ -77,7 +74,7 @@ function Sender:send(data)
 	return true
 end
 
-Sender.allocate = ffi.metatype("Sender", Sender)
+Sender.allocate = ffi.metatype("LeveeSender", Sender)
 
 
 local Recver = {}
@@ -123,7 +120,7 @@ function Recver:recv()
 	return coro.yield(self)
 end
 
-Recver.allocate = ffi.metatype("Recver", Recver)
+Recver.allocate = ffi.metatype("LeveeRecver", Recver)
 
 
 local Pair = {}
