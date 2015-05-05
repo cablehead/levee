@@ -17,6 +17,7 @@ struct LeveeSender {
 	void *coro; /* lua_State */
 	LeveeRecver *other;
 	int hub_id;
+	int data_id;
 	bool closed;
 };
 
@@ -37,9 +38,6 @@ Sender.__index = function(self, key)
 	if key == "hub" then
 		return refs.get(self.hub_id)
 	end
-	if key == "ready" then
-		return self.other ~= ffi.NULL and self.other.coro ~= ffi.NULL
-	end
 	return Sender[key]
 end
 
@@ -50,10 +48,19 @@ function Sender:__gc()
 end
 
 function Sender:close()
-	if self.ready then
-		self:send(nil)
+	error("TODO: Sender:close")
+end
+
+function Sender:take()
+	if self.coro == ffi.NULL then
+		return
 	end
-	self.closed = true
+
+	local co = self.coro
+	self.coro = nil
+
+	self.hub:resume(co, true)
+	return refs.clear(self.data_id)
 end
 
 function Sender:send(data)
@@ -61,17 +68,12 @@ function Sender:send(data)
 		return
 	end
 
-	local co
-
-	if self.ready then
-		co = self.other.coro
-		self.other.coro = nil
-	else
-		co = coro.yield(self)
+	if self.other:give(data) then
+		return true
 	end
 
-	self.hub:resume(co, data)
-	return true
+	self.data_id = refs.new(data)
+	return coro.yield(self)
 end
 
 Sender.allocate = ffi.metatype("LeveeSender", Sender)
@@ -81,9 +83,6 @@ local Recver = {}
 Recver.__index = function(self, key)
 	if key == "hub" then
 		return refs.get(self.hub_id)
-	end
-	if key == "ready" then
-		return self.other ~= ffi.NULL and self.other.coro ~= ffi.NULL
 	end
 	return Recver[key]
 end
@@ -95,14 +94,22 @@ function Recver:__gc()
 end
 
 function Recver:close()
-	if self.ready then
-		self:send(nil)
-	end
-	self.closed = true
+	error("TODO: Recver:close")
 end
 
 function Recver:__call()
 	return self:recv()
+end
+
+function Recver:give(data)
+	if self.coro == ffi.NULL then
+		return
+	end
+
+	local co = self.coro
+	self.coro = nil
+	self.hub:resume(co, data)
+	return true
 end
 
 function Recver:recv()
@@ -110,11 +117,9 @@ function Recver:recv()
 		return
 	end
 
-	if self.ready then
-		local co = self.other.coro
-		self.other.coro = nil
-		self.hub:resume(co, coroutine.running())
-		return coroutine.yield()
+	local data = self.other:take()
+	if data ~= nil then
+		return data
 	end
 
 	return coro.yield(self)

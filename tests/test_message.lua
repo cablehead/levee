@@ -11,14 +11,14 @@ return {
 			-- test recv and then send
 			h:spawn(function() sender:send("1") end)
 			local got = recver:recv()
-			assert(got == "1")
+			assert.equal(got, "1")
 
 			-- test send and then recv
 			local done = h:pipe()
 			h:spawn(
 				function()
 					local got = recver:recv()
-					assert(got == "2")
+					assert.equal(got, "2")
 					done.sender:send(true)
 				end)
 			sender:send("2")

@@ -2,7 +2,7 @@
 
 
 local refs = {}
-setmetatable(refs, {__mode = 'v'})
+-- setmetatable(refs, {__mode = 'v'})
 
 
 return {
@@ -10,7 +10,14 @@ return {
 		table.insert(refs, t)
 		return #refs
 	end,
+
 	get = function(i)
 		return refs[i]
+	end,
+
+	clear = function(i)
+		local data = refs[i]
+		refs[i] = nil
+		return data
 	end,
 }
