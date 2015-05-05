@@ -153,11 +153,20 @@ end
 
 function Time:__add(time)
 	local add = Time.allocate(self.tv_sec + time.tv_sec, self.tv_usec + time.tv_usec)
-	if add.tv_usec >= 1000000ULL then
-		add.tv_sec = add.tv_sec + 1ULL
-		add.tv_usec = add.tv_usec - 1000000ULL
+	if add.tv_usec >= 1000000LL then
+		add.tv_sec = add.tv_sec + 1LL
+		add.tv_usec = add.tv_usec - 1000000LL
 	end
 	return add
+end
+
+function Time:__sub(time)
+	local sub = Time.allocate(self.tv_sec - time.tv_sec, self.tv_usec - time.tv_usec)
+	if sub.tv_usec < 0LL then
+		sub.tv_sec = sub.tv_sec - 1LL
+		sub.tv_usec = sub.tv_usec + 1000000LL
+	end
+	return sub
 end
 
 function Time:__eq(time)
