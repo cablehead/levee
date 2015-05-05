@@ -33,6 +33,7 @@ return {
 		timer:finish()
 		local ms = timer:milliseconds()
 		assert(ms >= 100 and ms <= 110)
-		assert(timer:time():sub(-2) == "ms")
+		-- time will adjust to use the best unit
+		assert(timer:time() == tostring(ms) .. "ms")
 	end
 }

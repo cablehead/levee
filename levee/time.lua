@@ -303,11 +303,11 @@ end
 function Timer:time()
 	local ns = self:nanoseconds()
 	if ns >= 1000000000ULL then
-		return string.format("%gs", tonumber(ns) / 1000000000.0)
+		return string.format("%fs", tonumber(ns) / 1000000000.0)
 	elseif ns >= 1000000ULL then
-		return string.format("%gms", tonumber(ns) / 1000000.0)
+		return string.format("%fms", tonumber(ns) / 1000000.0)
 	elseif ns >= 1000ULL then
-		return string.format("%gμs", tonumber(ns) / 1000.0)
+		return string.format("%fμs", tonumber(ns) / 1000.0)
 	else
 		return string.format("%dns", tonumber(ns))
 	end
