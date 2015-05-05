@@ -323,10 +323,10 @@ Timer.allocate = ffi.metatype("struct LeveeTimer", Timer)
 
 return {
 	Time = time_seconds,
-	now = time_now,
-	utcdate = function() return time_now():utcdate() end,
-	localdate = function() return time_now():localdate() end,
 	Timer = function()
 		return Timer.allocate():start()
 	end,
+	now = time_now,
+	utcdate = function() return time_now():utcdate() end,
+	localdate = function() return time_now():localdate() end
 }
