@@ -5,6 +5,11 @@ struct timeval {
 	time_t tv_usec;
 };
 
+struct timespec {
+	time_t tv_sec;
+	long tv_nsec;
+};
+
 struct tm {
 	int	tm_sec;		/* seconds after the minute [0-60] */
 	int	tm_min;		/* minutes after the hour [0-59] */
