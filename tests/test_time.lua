@@ -22,5 +22,17 @@ return {
 
 		local d2 = time.localdate()
 		assert(math.floor(d2:time():seconds()) == math.floor(time.now():seconds()))
+	end,
+	test_timer = function()
+		local time = require("levee.time")
+		local ffi = require("ffi")
+		ffi.cdef[[int usleep(unsigned long);]]
+
+		local timer = time.Timer()
+		ffi.C.usleep(100000)
+		timer:finish()
+		local ms = timer:milliseconds()
+		assert(ms >= 100 and ms <= 110)
+		assert(timer:time():sub(-2) == "ms")
 	end
 }

@@ -236,7 +236,7 @@ Timer.__index = Timer
 if ffi.os == "OSX" then
 	ffi.cdef[[
 	struct LeveeTimer {
-		uint64_t time;
+		uint64_t _start, _end;
 	};
 	]]
 
@@ -245,42 +245,76 @@ if ffi.os == "OSX" then
 
 	if info.numer == info.denom then
 		info = nil
-		function Timer:next()
-			local now = C.mach_absolute_time()
-			local nsec = now - self.time
-			self.time = now
-			return nsec
+		function Timer:nanoseconds()
+			return self._start - self._end
 		end
 	else
-		function Timer:next()
-			local now = C.mach_absolute_time()
-			local nsec = (now - self.time) * info.numer / info.denom
-			self.time = now
-			return nsec
+		function Timer:nanoseconds()
+			return (self._start - self._end) * info.numer / info.denom
 		end
 	end
 
-	function Timer:reset()
-		self.time = C.mach_absolute_time()
+	function Timer:start()
+		self._end = C.mach_absolute_time()
+		self._start = self._end
+		return self
+	end
+
+	function Timer:finish()
+		self._start = C.mach_absolute_time()
 		return self
 	end
 else
 	ffi.cdef[[
 	struct LeveeTimer {
-		struct timespec ts;
+		struct timespec _start, _end;
 	};
 	]]
 
-	function Timer:next()
-		local old = self.ts.tv_sec * 100000000ULL + self.ts.tv_nsec
-		self:reset()
-		return (self.ts.tv_sec * 100000000ULL + self.ts.tv_nsec) - old
+	function Timer:nanoseconds()
+		return (self._start.tv_sec * 1000000000ULL + self._start.tv_nsec) -
+			(self._end.tv_sec * 1000000000ULL + self._end.tv_nsec)
 	end
 
-	function Timer:reset()
-		C.clock_gettime(C.CLOCK_MONOTONIC_RAW, self.ts)
+	function Timer:start()
+		C.clock_gettime(C.CLOCK_MONOTONIC_RAW, self._end)
+		C.memcpy(self._start, self._end, ffi.sizeof(self._end))
 		return self
 	end
+
+	function Timer:finish()
+		C.clock_gettime(C.CLOCK_MONOTONIC_RAW, self._start)
+		return self
+	end
+end
+
+function Timer:microseconds()
+	return tonumber(self:nanoseconds()) / 1000.0
+end
+
+function Timer:milliseconds()
+	return tonumber(self:nanoseconds()) / 1000000.0
+end
+
+function Timer:seconds()
+	return tonumber(self:nanoseconds()) / 1000000000.0
+end
+
+function Timer:time()
+	local ns = self:nanoseconds()
+	if ns >= 1000000000ULL then
+		return string.format("%gs", tonumber(ns) / 1000000000.0)
+	elseif ns >= 1000000ULL then
+		return string.format("%gms", tonumber(ns) / 1000000.0)
+	elseif ns >= 1000ULL then
+		return string.format("%gμs", tonumber(ns) / 1000.0)
+	else
+		return string.format("%dns", tonumber(ns))
+	end
+end
+
+function Timer:__tostring()
+	return string.format("levee.Timer: %s", self:time())
 end
 
 Timer.allocate = ffi.metatype("struct LeveeTimer", Timer)
@@ -293,6 +327,6 @@ return {
 	utcdate = function() return time_now():utcdate() end,
 	localdate = function() return time_now():localdate() end,
 	Timer = function()
-		return Timer.allocate():reset()
+		return Timer.allocate():start()
 	end,
 }
