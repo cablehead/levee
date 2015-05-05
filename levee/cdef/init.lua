@@ -37,6 +37,8 @@ end
 
 include("std", arch)
 include("std", "std")
+include("time", "time")
+include("math", "math")
 include("socket", "socket")
 include("socket", os)
 include("fcntl", os)
