@@ -1,6 +1,10 @@
 require("levee.cdef")
 
+local jit = require('jit')
 local ffi = require('ffi')
+local C = ffi.C
+
+local Stats = require('levee.stats')
 
 ffi.cdef[[
 struct LeveeDate {
@@ -8,8 +12,6 @@ struct LeveeDate {
 	struct timeval tv;
 };
 ]]
-
-local C = ffi.C
 
 
 
@@ -321,12 +323,43 @@ Timer.allocate = ffi.metatype("struct LeveeTimer", Timer)
 
 
 
+function profile_unit(us)
+	if us >= 1000000 then
+		return string.format("%fs", us / 1000000.0)
+	elseif us >= 1000 then
+		return string.format("%fms", us / 1000.0)
+	else
+		return string.format("%fμs", us)
+	end
+end
+
 return {
 	Time = time_seconds,
 	Timer = function()
 		return Timer.allocate():start()
 	end,
+
 	now = time_now,
 	utcdate = function() return time_now():utcdate() end,
-	localdate = function() return time_now():localdate() end
+	localdate = function() return time_now():localdate() end,
+
+	profile = function(name, n, fn, ...)
+		n = n or 1000
+		local timer = Timer.allocate()
+		local stats = Stats()
+		jit.on(fn, true)
+		jit.flush(fn, true)
+		for i=1,(n/10) do fn(...) end
+		for i=1,n do
+			timer:start()
+			fn(...)
+			timer:finish()
+			stats:add(timer:microseconds())
+		end
+		print(string.format("%s: avg=%s, stdev=%s, max=%s",
+			name,
+			profile_unit(stats:mean()),
+			profile_unit(stats:stdev()),
+			profile_unit(stats:max())))
+	end
 }
