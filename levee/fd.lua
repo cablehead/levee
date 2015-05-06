@@ -11,6 +11,7 @@ struct LeveeFD {
 local C = ffi.C
 
 local FD = {}
+FD.__index = FD
 
 
 function FD:new(no)
@@ -76,7 +77,6 @@ function FD:write(buf, len)
 end
 
 
-FD.__index = FD
 FD.allocate = ffi.metatype("struct LeveeFD", FD)
 
 return FD

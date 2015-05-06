@@ -18,6 +18,7 @@ struct LeveePoller {
 local C = ffi.C
 
 local Poller = {}
+Poller.__index = Poller
 
 
 function Poller:new()
@@ -71,7 +72,6 @@ function Poller:poll()
 end
 
 
-Poller.__index = Poller
 Poller.allocate = ffi.metatype("struct LeveePoller", Poller)
 
 return Poller

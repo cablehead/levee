@@ -1,4 +1,5 @@
 local Stats = {}
+Stats.__index = Stats
 
 local function update(self)
 	if self.sortn ~= #self.vals then
@@ -80,8 +81,6 @@ function Stats:max()
 	update(self)
 	return self.vals[#self.vals]
 end
-
-Stats.__index = Stats
 
 return function()
 	return setmetatable({vals={}}, Stats)
