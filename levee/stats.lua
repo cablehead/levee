@@ -1,5 +1,4 @@
 local Stats = {}
-Stats.__index = Stats
 
 local function update(self)
 	if self.sortn ~= #self.vals then
@@ -26,8 +25,9 @@ function Stats:sum()
 	if #self.vals == 0 then return 0.0 end
 	if update(self) or not self._mean then
 		local sum = 0.0
-		for i,v in ipairs(self.vals) do
-			sum = sum + v
+		local vals = self.vals
+		for i=1,#vals do
+			sum = sum + vals[i]
 		end
 		self._sub = sum
 	end
@@ -59,9 +59,10 @@ function Stats:stdev()
 	if update(self) or not self._stdev then
 		local mean = self:mean()
 		local sum = 0
-		for i,v in ipairs(self.vals) do
-			local diff = v - mean
-			sum = sum + (diff * diff)
+		local vals = self.vals
+		local pow = math.pow
+		for i=1,#vals do
+			sum = sum + pow(vals[i] - mean, 2)
 		end
 		self._stdev = math.sqrt(sum / (#self.vals-1))
 	end
@@ -79,6 +80,8 @@ function Stats:max()
 	update(self)
 	return self.vals[#self.vals]
 end
+
+Stats.__index = Stats
 
 return function()
 	return setmetatable({vals={}}, Stats)

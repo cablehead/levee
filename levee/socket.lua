@@ -18,7 +18,6 @@ struct LeveeSocket {
 local C = ffi.C
 
 local Socket = {}
-Socket.__index = Socket
 
 
 local sockaddr_in = ffi.typeof("struct sockaddr_in")
@@ -120,6 +119,7 @@ function Socket:write(buf, len)
 end
 
 
+Socket.__index = Socket
 Socket.allocate = ffi.metatype("struct LeveeSocket", Socket)
 
 return Socket

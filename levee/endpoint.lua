@@ -17,7 +17,6 @@ struct LeveeEndpoint {
 local C = ffi.C
 
 local Endpoint = {}
-Endpoint.__index = Endpoint
 
 
 function Endpoint:new()
@@ -69,6 +68,7 @@ function Endpoint:__tostring()
 end
 
 
+Endpoint.__index = Endpoint
 Endpoint.allocate = ffi.metatype("struct LeveeEndpoint", Endpoint)
 
 return Endpoint

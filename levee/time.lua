@@ -35,7 +35,6 @@ local weekdays_abbr = {
 
 
 local Date = {}
-Date.__index = Date
 
 function Date:copy()
 	local new = Date.allocate(self)
@@ -143,12 +142,12 @@ function Date:__le(date)
 	return self.tv <= date.tv
 end
 
+Date.__index = Date
 Date.allocate = ffi.metatype("struct LeveeDate", Date)
 
 
 
 local Time = {}
-Time.__index = Time
 
 local function time_seconds(sec, usec)
 	if not usec then
@@ -244,12 +243,12 @@ function Time:__le(time)
 	return self.tv_sec < time.tv_sec or (self.tv_sec == time.tv_sec and self.tv_usec <= time.tv_usec)
 end
 
+Time.__index = Time
 Time.allocate = ffi.metatype("struct timeval", Time)
 
 
 
 local Timer = {}
-Timer.__index = Timer
 
 if ffi.os == "OSX" then
 	ffi.cdef[[
@@ -335,6 +334,7 @@ function Timer:__tostring()
 	return string.format("levee.Timer: %s", self:time())
 end
 
+Timer.__index = Timer
 Timer.allocate = ffi.metatype("struct LeveeTimer", Timer)
 
 

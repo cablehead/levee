@@ -94,6 +94,7 @@ function Hub:main()
 		local id, avail = self.poller:poll()
 		print(string.format("id=%d, size=%d", id, tonumber(avail)))
 
+		-- TODO: can we get rid of this spawn?
 		self:spawn(function(p)
 			p:send(true)
 		end, self.registered[id])

@@ -15,7 +15,6 @@ struct LeveeBuffer {
 local C = ffi.C
 
 local Buffer = {}
-Buffer.__index = Buffer
 
 
 function Buffer:new(hint)
@@ -137,6 +136,7 @@ function Buffer:take()
 end
 
 
+Buffer.__index = Buffer
 Buffer.allocate = ffi.metatype("struct LeveeBuffer", Buffer)
 
 return Buffer
