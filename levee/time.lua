@@ -8,8 +8,8 @@ local Stats = require('levee.stats')
 
 ffi.cdef[[
 struct LeveeDate {
-	struct tm base;
 	struct timeval tv;
+	struct tm base;
 };
 ]]
 
@@ -103,7 +103,19 @@ function Date:time()
 	return self.tv:copy()
 end
 
-function Date:__tostring()
+function Date:http()
+	local date = self:utcdate()
+	return string.format("%s, %02d %s %d %d:%02d:%02d GMT",
+		date:weekday_abbr(),
+		date:day(),
+		date:month_abbr(),
+		date:year(),
+		date:hour(),
+		date:minute(),
+		date:second())
+end
+
+function Date:iso8601()
 	local tz
 	if self:isutc() then
 		tz = "Z"
@@ -113,6 +125,10 @@ function Date:__tostring()
 	return string.format("%04d-%02d-%02dT%02d:%02d:%02d.%06d%s",
 		self:year(), self:month(), self:day(),
 		self:hour(), self:minute(), self:second(), tonumber(self.tv.tv_usec), tz)
+end
+
+function Date:__tostring()
+	return self:http()
 end
 
 function Date:__eq(date)
@@ -333,16 +349,96 @@ function profile_unit(us)
 	end
 end
 
+local function try_http(self, str)
+	if C.strptime (str, "%a, %d %b %Y %H:%M:%S %Z", self.base) ~= nil then
+		self.tv.tv_sec = C.mktime(self.base)
+		self.base.tm_isdst = -1
+		C.gmtime_r(ffi.cast('time_t *', self), self.base)
+		return true
+	end
+	return false
+end
+
+local function try_iso8601(self, str)
+	local yr, mo, day, hr, min, sec, usec, tzh, tzm
+
+	yr, mo, day, hr, min, sec, usec =
+		str:match("^(%d%d%d%d)-(%d%d)-(%d%d)T(%d%d):(%d%d):(%d%d).(%d+)Z$")
+	if yr then goto out end
+
+	yr, mo, day, hr, min, sec =
+		str:match("^(%d%d%d%d)-(%d%d)-(%d%d)T(%d%d):(%d%d):(%d%d)Z$")
+	if yr then goto out end
+
+	yr, mo, day, hr, min, sec, usec, tzh, tzm =
+		str:match("^(%d%d%d%d)-(%d%d)-(%d%d)T(%d%d):(%d%d):(%d%d).(%d+)([-+]%d%d):?(%d%d)$")
+	if yr then goto out end
+
+	yr, mo, day, hr, min, sec, tzh, tzm =
+		str:match("^(%d%d%d%d)-(%d%d)-(%d%d)T(%d%d):(%d%d):(%d%d)([-+]%d%d):?(%d%d)$")
+	if yr then goto out end
+
+	if not yr then return false end
+
+	::out::
+	self.base.tm_year = tonumber(yr) - 1900
+	self.base.tm_mon = tonumber(mo) - 1
+	self.base.tm_mday = tonumber(day)
+	self.base.tm_hour = tonumber(hr)
+	self.base.tm_min = tonumber(min)
+	self.base.tm_sec = tonumber(sec)
+	self.base.tm_isdst = -1
+	if tzh and tzm then
+		self.base.tm_gmtoff = tonumber(tzh)*60*60 + tonumber(tzm)*60
+		self.tv.tv_sec = C.mktime(self.base)
+	else
+		self.base.tm_gmtoff = 0
+		-- TODO improve timegm usage
+		self.tv.tv_sec = C.timegm(self.base)
+	end
+	self.tv.tv_usec = tonumber(usec) or 0
+	return true
+end
+
 return {
+	Date = function(yr, mo, day, hr, min, sec, usec)
+		local self = Date.allocate()
+		self.base.tm_year = (yr or 1900) - 1900
+		self.base.tm_mon = (mo or 1) - 1
+		self.base.tm_mday = day or 1
+		self.base.tm_hour = hr or 0
+		self.base.tm_min = min or 0
+		self.base.tm_sec = sec or 0
+		self.tv.tv_usec = usec or 0
+		-- TODO improve timegm usage
+		self.tv.tv_sec = C.timegm(self.base)
+		return self
+	end,
+	utcdate = function() return time_now():utcdate() end,
+	localdate = function() return time_now():localdate() end,
+	http = function(str)
+		local self = Date.allocate()
+		if try_http(self, str) then return self end
+		return nil
+	end,
+	iso8601 = function(str)
+		local self = Date.allocate()
+		if try_iso8601(self, str) then return self end
+		return nil
+	end,
+	parse = function(str)
+		local self = Date.allocate()
+		if try_http(self, str) then return self end
+		if try_iso8601(self, str) then return self end
+		return nil
+	end,
+
 	Time = time_seconds,
+	now = time_now,
+
 	Timer = function()
 		return Timer.allocate():start()
 	end,
-
-	now = time_now,
-	utcdate = function() return time_now():utcdate() end,
-	localdate = function() return time_now():localdate() end,
-
 	profile = function(name, n, fn, ...)
 		n = n or 1000
 		local timer = Timer.allocate()
