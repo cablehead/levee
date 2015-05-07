@@ -439,7 +439,7 @@ return {
 	Timer = function()
 		return Timer.allocate():start()
 	end,
-	profile = function(name, n, fn, ...)
+	benchmark = function(name, n, fn, ...)
 		n = n or 1000
 		local timer = Timer.allocate()
 		local stats = Stats()

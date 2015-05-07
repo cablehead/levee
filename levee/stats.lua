@@ -1,85 +1,71 @@
 local Stats = {}
 Stats.__index = Stats
 
-local function update(self)
-	if self.sortn ~= #self.vals then
-		table.sort(self.vals)
-		self.sortn = #self.vals
-		self._mean = nil
-		self._median = nil
-		self._stdev = nil
-		return true
-	end
-	return false
-end
-
 function Stats:add(val)
 	table.insert(self.vals, val)
 end
 
 function Stats:clear()
 	self.vals = {}
-	self.sortn = nil
+	self.valn = nil
 end
 
-function Stats:sum()
-	if #self.vals == 0 then return 0.0 end
-	if update(self) or not self._mean then
-		local sum = 0.0
-		local vals = self.vals
-		for i=1,#vals do
-			sum = sum + vals[i]
-		end
-		self._sub = sum
+function Stats:stats()
+	local vals = self.vals
+
+	if #vals == self.valn and self.cache ~= nil then
+		return self.cache
 	end
-	return self._sub
-end
 
-function Stats:mean()
-	if #self.vals == 0 then return 0.0 end
-	if update(self) or not self._mean then
-		self._mean = self:sum() / #self.vals
+	table.sort(vals)
+
+	local n = #vals
+	local sum = 0.0
+	local sq_sum = 0.0
+	local pow = math.pow
+	for i=1,n do
+		sum = sum + vals[i]
+		sq_sum = sq_sum + pow(vals[i], 2)
 	end
-	return self._mean
-end
 
-function Stats:median()
-	if #self.vals == 0 then return 0.0 end
-	if update(self) or not self._median then
-		if math.fmod(#self.vals, 2) == 0 then
-			self._median = (self.vals[#self.vals/2] + self.vals[(#self.vals/2)+1]) / 2
-		else
-			self._median = self.vals[math.ceil(#self.vals/2)]
-		end
+	local mean = sum / n
+
+	local median
+	if math.fmod(n, 2) == 0 then
+		median = (vals[n/2] + vals[(n/2)+1]) / 2
+	else
+		median = vals[math.ceil(n/2)]
 	end
-	return self._median
+
+	local variance = sq_sum / n - pow(mean, 2)
+	local stdev = math.sqrt(variance)
+
+	local result = {
+		sum = sum,
+		count = n,
+		mean = mean,
+		median = median,
+		variance = variance,
+		stdev = stdev,
+		min = vals[1],
+		max = vals[n]
+	}
+
+	self.cache = result
+	self.valn = n
+	return result
 end
 
-function Stats:stdev()
-	if #self.vals == 0 then return 0.0 end
-	if update(self) or not self._stdev then
-		local mean = self:mean()
-		local sum = 0
-		local vals = self.vals
-		local pow = math.pow
-		for i=1,#vals do
-			sum = sum + pow(vals[i] - mean, 2)
-		end
-		self._stdev = math.sqrt(sum / (#self.vals-1))
-	end
-	return self._stdev
-end
+function Stats:sum()    return self:stats().sum    end
+function Stats:mean()   return self:stats().mean   end
+function Stats:median() return self:stats().median end
+function Stats:stdev()  return self:stats().stdev  end
+function Stats:min()    return self:stats().min    end
+function Stats:max()    return self:stats().max    end
 
-function Stats:min()
-	if #self.vals == 0 then return 0.0 end
-	update(self)
-	return self.vals[1]
-end
-
-function Stats:max()
-	if #self.vals == 0 then return 0.0 end
-	update(self)
-	return self.vals[#self.vals]
+function Stats:zscore(val)
+	local stats = self:stats()
+	return (val - stats.mean) / stats.stdev
 end
 
 return function()
