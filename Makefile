@@ -59,6 +59,6 @@ $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a: $(LUAJIT_SRC)/Makefile
 
 clean:
 	rm -rf $(BUILD)
-	#cd $(LUAJIT_SRC) && git clean -xdf
+	cd $(LUAJIT_SRC) && git clean -xdf
 
 .PHONY: clean
