@@ -38,6 +38,9 @@ $(OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(OBJ)
 	$(CC) $(CFLAGS) -MMD -MT $@ -MF $@.d -c $< -o $@
 
+$(LUAJIT_SRC)/Makefile:
+	git submodule update --init $(LUAJIT_SRC)
+
 $(LUAJIT_DST)/lib/libluajit-5.1.a: $(LUAJIT_SRC)/Makefile
 	@mkdir -p $(LUAJIT_DST)
 	$(MAKE) -C $(LUAJIT_SRC) amalg $(LUAJIT_ARG) PREFIX=$(PREFIX)
