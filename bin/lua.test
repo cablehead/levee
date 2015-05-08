@@ -1,4 +1,4 @@
-#!/usr/bin/env luajit
+#!./build/bin/levee
 
 
 function dirname(str)

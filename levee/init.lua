@@ -2,6 +2,7 @@ local ffi = require("ffi")
 
 local message = require("levee.message")
 local refs = require("levee.refs")
+local task = require("levee.task")
 
 local Poller = require("levee.poller." .. ffi.os:lower())
 
@@ -71,14 +72,14 @@ function Hub:main()
 	while true do
 
 		while self.ready:length() > 0 do
-			local task = self.ready:pop()
+			local work = self.ready:pop()
 
 			-- TODO: is the comparison everytime a performance concern?
 			local status, message
-			if type(task.co) == "thread" then
-				status, message = coroutine.resume(task.co, unpack(task.a))
+			if type(work.co) == "thread" then
+				status, message = coroutine.resume(work.co, unpack(work.a))
 			else
-				status, message = coro.resume(task.co, unpack(task.a))
+				status, message = task.resume(work.co, unpack(work.a))
 			end
 
 			if not status then

@@ -55,7 +55,7 @@ return {
 
 	test_coro = function()
 		local ffi = require("ffi")
-		local coro = require("coro")
+		local task = require("levee.task")
 
 		ffi.cdef[[
 			typedef struct lua_State lua_State;
@@ -76,10 +76,10 @@ return {
 
 		local co = coroutine.create(
 			function()
-				local got = pack(coro.yield(stash, "1.1", "1.2"))
+				local got = pack(task.yield(stash, "1.1", "1.2"))
 				assert.same(got, {"2.1", "2.2"})
 
-				got = pack(coro.yield(stash, "3.1", "3.2"))
+				got = pack(task.yield(stash, "3.1", "3.2"))
 				assert.same(got, {"4.1", "4.2"})
 
 				return "5.1", "5.2"
@@ -88,10 +88,10 @@ return {
 		local got = pack(coroutine.resume(co))
 		assert.same(got, {true, "1.1", "1.2"})
 
-		got = pack(coro.resume(stash, "2.1", "2.2"))
+		got = pack(task.resume(stash, "2.1", "2.2"))
 		assert.same(got, {true, "3.1", "3.2"})
 
-		got = pack(coro.resume(stash, "4.1", "4.2"))
+		got = pack(task.resume(stash, "4.1", "4.2"))
 		assert.same(got, {true, "5.1", "5.2"})
 	end,
 }

@@ -1,8 +1,8 @@
 require("levee.cdef")
 
 local ffi = require("ffi")
-local coro = require("coro")
 
+local task = require("levee.task")
 local refs = require("levee.refs")
 
 
@@ -73,7 +73,7 @@ function Sender:send(data)
 	end
 
 	self.data_id = refs.new(data)
-	return coro.yield(self)
+	return task.yield(self)
 end
 
 Sender.allocate = ffi.metatype("LeveeSender", Sender)
@@ -122,7 +122,7 @@ function Recver:recv()
 		return data
 	end
 
-	return coro.yield(self)
+	return task.yield(self)
 end
 
 Recver.allocate = ffi.metatype("LeveeRecver", Recver)
