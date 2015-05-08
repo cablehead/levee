@@ -6,6 +6,7 @@ BUILD ?= $(PROJECT)/build
 SRC := $(PROJECT)/src
 OBJ := $(BUILD)/obj
 BIN := $(BUILD)/bin
+TMP := $(BUILD)/tmp
 
 CFLAGS:= -Wall -Wextra -Werror -pedantic -Os
 ifeq (osx,$(OS))
@@ -21,16 +22,18 @@ LUAJIT_ARG :=
 	BUILDMODE=static \
 	INSTALL_TNAME=luajit \
 
+LUAJIT := $(LUAJIT_DST)/bin/luajit
+
 all: $(BIN)/levee
 
 test: $(BIN)/levee
 	$(PROJECT)/bin/lua.test $(PROJECT)/tests
 
-luajit: $(LUAJIT_DST)/lib/libluajit-5.1.a
+luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 -include $(wildcard $(OBJ)/*.d)
 
-$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJ)/task.o $(OBJ)/levee.o
+$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJ)/task.o $(OBJ)/liblevee.o $(OBJ)/levee.o
 	@mkdir -p $(BIN)
 	$(CC) $(LDFLAGS) $^ -o $@
 
@@ -38,16 +41,24 @@ $(OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(OBJ)
 	$(CC) $(CFLAGS) -MMD -MT $@ -MF $@.d -c $< -o $@
 
+$(OBJ)/%.o: $(TMP)/%.c
+	@mkdir -p $(OBJ)
+	$(CC) $(CFLAGS) -MMD -MT $@ -MF $@.d -c $< -o $@
+
+$(TMP)/liblevee.c: $(LUAJIT) $(PROJECT)/bin/bundle.lua $(shell find $(PROJECT)/levee -type f)
+	@mkdir -p $(TMP)
+	$(LUAJIT) $(PROJECT)/bin/bundle.lua $(PROJECT) levee > $@
+
 $(LUAJIT_SRC)/Makefile:
 	git submodule update --init $(LUAJIT_SRC)
 
-$(LUAJIT_DST)/lib/libluajit-5.1.a: $(LUAJIT_SRC)/Makefile
+$(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a: $(LUAJIT_SRC)/Makefile
 	@mkdir -p $(LUAJIT_DST)
 	$(MAKE) -C $(LUAJIT_SRC) amalg $(LUAJIT_ARG) PREFIX=$(PREFIX)
 	$(MAKE) -C $(LUAJIT_SRC) install $(LUAJIT_ARG) PREFIX=$(LUAJIT_DST)
 
 clean:
 	rm -rf $(BUILD)
-	cd $(LUAJIT_SRC) && git clean -xdf
+	#cd $(LUAJIT_SRC) && git clean -xdf
 
 .PHONY: clean

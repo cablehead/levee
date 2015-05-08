@@ -5,6 +5,9 @@
 #include "levee.h"
 #include "task.h"
 
+extern int
+luaopen_levee (lua_State *L);
+
 static void
 message (const char *pname, const char *msg)
 {
@@ -36,6 +39,7 @@ main (int argc, const char *argv[])
 	}
 
 	luaL_openlibs (L);
+	luaopen_levee (L);
 	luaL_findtable (L, LUA_REGISTRYINDEX, "_PRELOAD", 16);
 	lua_pushcfunction (L, luaopen_task);
 	lua_setfield (L, -2, "levee.task");

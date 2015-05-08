@@ -3,7 +3,7 @@ require("levee.cdef")
 local ffi = require("ffi")
 local C = ffi.C
 
-local FD = require("levee/fd")
+local FD = require("levee.fd")
 
 
 local Socket = {}
