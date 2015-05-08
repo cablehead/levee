@@ -20,9 +20,9 @@ function try_include(full)
 	if not fh then return false end
 	local header = fh:read("*all")
 	fh:close()
-	local ok, msg = pcall(ffi.cdef,header)
+	local ok, msg = pcall(ffi.cdef, header)
 	if ok then
-		return true
+		return header
 	else
 		error(string.format("%s: %s", full, msg), 2)
 	end
@@ -30,18 +30,18 @@ end
 
 function include(name, ...)
 	local full = path.."/"..name.."/"..table.concat({...}, "-")..".h"
-	if not try_include(full) then
-		error("failed to load header: " .. full, 2)
-	end
+	return try_include(full)
 end
 
-include("std", arch)
-include("std", "std")
-include("time", "time")
-include("time", os)
-include("math", "math")
-include("socket", "socket")
-include("socket", os)
-include("fcntl", os)
-include("ioctl", os)
-include("poller", os)
+return {
+	include("std", arch),
+	include("std", "std"),
+	include("time", "time"),
+	include("time", os),
+	include("math", "math"),
+	include("socket", "socket"),
+	include("socket", os),
+	include("fcntl", os),
+	include("ioctl", os),
+	include("poller", os),
+}
