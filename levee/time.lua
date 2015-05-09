@@ -445,17 +445,18 @@ return {
 		local stats = Stats()
 		jit.on(fn, true)
 		jit.flush(fn, true)
-		for i=1,(n/10) do fn(...) end
 		for i=1,n do
 			timer:start()
 			fn(...)
 			timer:finish()
 			stats:add(timer:microseconds())
 		end
-		print(string.format("%s: avg=%s, stdev=%s, max=%s",
+		print(string.format("%s: avg=%s, stdev=%s, max=%s (%f/sec)",
 			name,
 			profile_unit(stats:mean()),
 			profile_unit(stats:stdev()),
-			profile_unit(stats:max())))
+			profile_unit(stats:max()),
+			(n * 1000000) / stats:sum()
+		))
 	end
 }
