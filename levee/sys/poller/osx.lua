@@ -26,8 +26,8 @@ function Event:value()
 	local fd = tonumber(self.ident)
 	local r = self.filter == C.EVFILT_READ
 	local w = self.filter == C.EVFILT_WRITE
-	local err = bit.band(self.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0
-	return fd, r, w, err
+	local e = bit.band(self.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0
+	return fd, r, w, e
 end
 
 ffi.metatype("LeveePollerEvent", Event)

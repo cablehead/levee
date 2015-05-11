@@ -3,6 +3,9 @@ local Errno = require('levee.errno')
 
 ffi.cdef[[
 static const int EV_POLL_OUT_MAX = 64;
+
+typedef struct epoll_event LeveePollerEvent;
+
 struct LeveePoller {
 	int fd;
 	int tmp[1];
@@ -12,13 +15,23 @@ struct LeveePoller {
 
 local C = ffi.C
 
+
+local Event = {}
+Event.__index = Event
+
+function Event:value()
+	local fd = tonumber(self.data.fd)
+	local r = bit.band(self.events, C.EPOLLIN) > 0
+	local w = bit.band(self.events, C.EPOLLOUT) > 0
+	local e = bit.band(self.events, bit.bor(C.EPOLLERR, C.EPOLLHUP)) > 0
+	return fd, r, w, e
+end
+
+ffi.metatype("LeveePollerEvent", Event)
+
+
 local Poller = {}
 Poller.__index = Poller
-
-
-local POLLIN = 1
-local POLLOUT = 2
-local POLLERR = 3
 
 
 function Poller:__new()
@@ -65,20 +78,7 @@ function Poller:poll()
 	--local n = C.epoll_wait(self.fd, self.ev, EV_POLL_OUT_MAX, -1)
 	local n = C.epoll_wait(self.fd, self.ev, 1, -1)
 	if n < 0 then Errno:error("epoll_wait") end
-
-	local fd = tonumber(self.ev[0].data.fd)
-
-	if bit.band(self.ev[0].events, bit.bor(C.EPOLLERR, C.EPOLLHUP)) > 0 then
-		return fd, POLLERR
-	end
-
-	if bit.band(self.ev[0].events, C.EPOLLIN) > 0 then
-		return fd, POLLIN
-	end
-
-	if bit.band(self.ev[0].events, C.EPOLLOUT) > 0 then
-		return fd, POLLOUT
-	end
+	return self.ev[0]
 end
 
 

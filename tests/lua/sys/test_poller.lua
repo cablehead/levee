@@ -11,8 +11,13 @@ return {
 		assert.same({w, false, true, false}, {poller:poll():value()})
 
 		sys.os.write(w, "foo")
-		assert.same({w, false, true, false}, {poller:poll():value()})
-		assert.same({r, true, false, false}, {poller:poll():value()})
+
+		local fd, r_ev, w_ev, e_ev
+		fd, r_ev, w_ev, e_ev = poller:poll():value()
+		if fd == w then
+			fd, r_ev, w_ev, e_ev = poller:poll():value()
+		end
+		assert.same({r, true, false, false}, {fd, r_ev, w_ev, e_ev})
 
 		sys.os.close(w)
 		assert.same({r, true, false, true}, {poller:poll():value()})
