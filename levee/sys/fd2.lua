@@ -59,6 +59,9 @@ local function write(no, buf, len)
 	end
 end
 
+local function close(fd)
+	return C.close(fd)
+end
 
 local function pipe()
 	local fds = ffi.new("int[2]")
@@ -72,5 +75,6 @@ return {
 	read = read,
 	reads = reads,
 	write = write,
+	close = close,
 	pipe = pipe,
 }
