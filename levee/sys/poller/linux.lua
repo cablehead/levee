@@ -75,10 +75,10 @@ end
 
 
 function Poller:poll()
-	--local n = C.epoll_wait(self.fd, self.ev, EV_POLL_OUT_MAX, -1)
+	-- local n = C.epoll_wait(self.fd, self.ev, C.EV_POLL_OUT_MAX, -1)
 	local n = C.epoll_wait(self.fd, self.ev, 1, -1)
 	if n < 0 then Errno:error("epoll_wait") end
-	return self.ev[0]
+	return self.ev, n
 end
 
 
