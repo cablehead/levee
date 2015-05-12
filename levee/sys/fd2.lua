@@ -16,6 +16,14 @@ local function nonblock(no)
 end
 
 
+local nonblock_child
+
+if ffi.os:lower() == "linux" then
+	nonblock_child = nonblock
+else
+	nonblock_child = function() end
+end
+
 local function read(no, buf, len)
 	if not len then len = ffi.sizeof(buf) end
 	local len = C.read(no, buf, len)
@@ -66,6 +74,7 @@ end
 
 return {
 	nonblock = nonblock,
+	nonblock_child = nonblock_child,
 	read = read,
 	reads = reads,
 	write = write,
