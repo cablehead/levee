@@ -17,15 +17,16 @@ struct LeveeSocket {
 
 local C = ffi.C
 
-local Socket = {}
-Socket.__index = Socket
-
 
 local sockaddr_in = ffi.typeof("struct sockaddr_in")
 
 
-function Socket:new(no, listening)
-	local sock = self.allocate()
+local Socket = {}
+Socket.__index = Socket
+
+
+function Socket:__new(no, listening)
+	local sock = ffi.new(self)
 	sock.base.no = no
 	sock.listening = listening
 	sock.base:nonblock(true)
@@ -45,7 +46,7 @@ function Socket:connect(port, host)
 	local rc = C.connect(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
 	if rc < 0 then return nil, ffi.errno() end
 
-	return self:new(no, false), 0
+	return Socket.__new(self, no, false), 0
 end
 
 
@@ -67,20 +68,18 @@ function Socket:listen(port, host, backlog)
 	rc = C.listen(no, backlog or 256)
 	if rc < 0 then return nil, ffi.errno() end
 
-	return self:new(no, true), 0
+	return Socket.__new(self, no, true), 0
 end
 
 
 function Socket:__tostring()
 	local sock = Endpoint:sockname(self.base.no)
-
 	if self.listening then
 		return string.format("levee.Socket: %d, %s", self.base.no, sock)
 	else
 		local peer = Endpoint:peername(self.base.no)
 		return string.format("levee.Socket: %d, %s->%s", self.base.no, sock, peer)
 	end
-
 end
 
 
@@ -95,7 +94,7 @@ function Socket:accept()
 	if no < 0 then
 		return nil, ffi.errno()
 	end
-	return Socket:new(no, false)
+	return Socket(no, false)
 end
 
 
@@ -120,6 +119,4 @@ function Socket:write(buf, len)
 end
 
 
-Socket.allocate = ffi.metatype("struct LeveeSocket", Socket)
-
-return Socket
+return ffi.metatype("struct LeveeSocket", Socket)

@@ -18,8 +18,8 @@ local Buffer = {}
 Buffer.__index = Buffer
 
 
-function Buffer:new(hint)
-	return self.allocate():ensure(hint or 0)
+function Buffer:__new(hint)
+	return ffi.new(self):ensure(hint or 0)
 end
 
 
@@ -137,6 +137,4 @@ function Buffer:take()
 end
 
 
-Buffer.allocate = ffi.metatype("struct LeveeBuffer", Buffer)
-
-return Buffer
+return ffi.metatype("struct LeveeBuffer", Buffer)

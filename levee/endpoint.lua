@@ -20,14 +20,14 @@ local Endpoint = {}
 Endpoint.__index = Endpoint
 
 
-function Endpoint:new()
+function Endpoint:__new()
 	-- TODO add URI endpoint to sockaddr
-	return self.allocate()
+	return ffi.new(self)
 end
 
 
 function Endpoint:sockname(fd)
-	local ep = self.allocate()
+	local ep = ffi.new(self)
 	local len = ffi.new("socklen_t[1]")
 	len[0] = ffi.sizeof(ep)
 	local rc = C.getsockname(fd, ep.addr.sa, len)
@@ -39,7 +39,7 @@ end
 
 
 function Endpoint:peername(fd)
-	local ep = self.allocate()
+	local ep = ffi.new(self)
 	local len = ffi.new("socklen_t[1]")
 	len[0] = ffi.sizeof(ep)
 	local rc = C.getpeername(fd, ep.addr.sa, len)
@@ -69,6 +69,4 @@ function Endpoint:__tostring()
 end
 
 
-Endpoint.allocate = ffi.metatype("struct LeveeEndpoint", Endpoint)
-
-return Endpoint
+return ffi.metatype("struct LeveeEndpoint", Endpoint)

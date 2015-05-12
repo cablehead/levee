@@ -1,6 +1,10 @@
 local Stats = {}
 Stats.__index = Stats
 
+function Stats:__call()
+	return setmetatable({vals={}}, Stats)
+end
+
 function Stats:add(val)
 	table.insert(self.vals, val)
 end
@@ -68,6 +72,4 @@ function Stats:zscore(val)
 	return (val - stats.mean) / stats.stdev
 end
 
-return function()
-	return setmetatable({vals={}}, Stats)
-end
+return Stats

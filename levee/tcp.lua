@@ -62,7 +62,7 @@ function Conn(hub, no)
 
 	local M = {
 		no = no,
-		fd = FD:new(no),
+		fd = FD(no),
 		pollin = hub:register(no),
 		recver = hub:pipe(),
 	}
