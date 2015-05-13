@@ -136,7 +136,8 @@ end
 
 
 local function bundle(root, sub)
-	local files = loadall(root, sub)
+	-- TODO: make debug mode externally configurable
+	local files = loadall(root, sub, true)
 	for i,file in ipairs(files) do
 		print(loader_function(file))
 	end
