@@ -40,9 +40,7 @@ function Hub:main()
 
 	while true do
 
-		while #self.ready > 0 do
-			local work = self.ready:pop()
-
+		for work in self.ready:iter() do
 			-- TODO: is the comparison everytime a performance concern?
 			local status, message
 			if type(work.co) == "thread" then

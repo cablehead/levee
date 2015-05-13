@@ -14,7 +14,7 @@ function FIFO:pop()
 	if head > tail then error("empty") end
 	local v = self[head]
 	self[head] = nil
-	if self.head == self.tail then
+	if head == tail then
 		self.head = 1
 		self.tail = 0
 	else
@@ -24,7 +24,40 @@ function FIFO:pop()
 end
 
 
-function FIFO:__len()
+function FIFO:peek()
+	local head, tail = self.head, self.tail
+	if head > tail then error("empty") end
+	return self[head]
+end
+
+
+function FIFO:iter()
+	local fifo = self
+	return function()
+		if #fifo > 0 then
+			return fifo:pop()
+		end
+	end
+end
+
+
+function FIFO:peekiter()
+	local fifo = self
+	local first = true
+	return function()
+		if first then
+			first = false
+		else
+			fifo:pop()
+		end
+		if #fifo > 0 then
+			return fifo:peek()
+		end
+	end
+end
+
+
+function FIFO:count()
 	return self.tail - self.head + 1
 end
 
