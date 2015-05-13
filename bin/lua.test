@@ -77,7 +77,6 @@ function main(argv)
 			if argv.match and not string.find(name, argv.match) then
 				print(' SKIP')
 			else
-				io.write(('%s::%s'):format(script, name))
 				local success = xpcall(M[name],
 					function(err)
 						print(' FAIL')
