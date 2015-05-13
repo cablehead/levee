@@ -26,6 +26,43 @@ return {
 		end)
 	end,
 
+	test_switch = function()
+		local levee = require("levee")
+
+		levee.run(function(h)
+			local sender, recver = unpack(h:switch())
+
+			local state = 0
+
+			h:spawn(function()
+				while true do
+					local got = recver:recv()
+					assert.equal(got, true)
+					state = state + 1
+					h:pause()
+				end
+			end)
+
+			-- switch closed
+			h:pause()
+			assert.equal(state, 0)
+
+			-- open switch
+			sender:send(true)
+			h:pause()
+			assert.equal(state, 1)
+
+			-- switch stays open
+			h:pause()
+			assert.equal(state, 2)
+
+			-- close switch
+			sender:send(false)
+			h:pause()
+			assert.equal(state, 2)
+		end)
+	end,
+
 	test_gc = function()
 		local ffi = require("ffi")
 

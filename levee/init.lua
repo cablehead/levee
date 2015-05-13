@@ -42,6 +42,7 @@ function Hub:main()
 
 		for work in self.ready:popiter() do
 			local status, message
+
 			if type(work.co) == "thread" then
 				status, message = coroutine.resume(work.co, unpack(work.a))
 			else
@@ -75,14 +76,21 @@ function Hub:spawn(f, ...)
 	self.ready:push({co=coroutine.create(f), a={...}})
 end
 
-
 function Hub:resume(co, ...)
 	self.ready:push({co=co, a={...}})
 end
 
+function Hub:pause(m)
+	self:resume(coroutine.running())
+	coroutine.yield()
+end
 
 function Hub:pipe()
 	return message.Pipe(self)
+end
+
+function Hub:switch()
+	return message.Switch(self)
 end
 
 
