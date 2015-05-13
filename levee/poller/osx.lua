@@ -21,8 +21,8 @@ local Poller = {}
 Poller.__index = Poller
 
 
-function Poller:new()
-	local self = self.allocate(C.kqueue(), 0, 0)
+function Poller:__new()
+	local self = ffi.new(self, C.kqueue(), 0, 0)
 	if self.fd < 0 then Errno:error("kqueue") end
 	return self
 end
@@ -72,6 +72,4 @@ function Poller:poll()
 end
 
 
-Poller.allocate = ffi.metatype("struct LeveePoller", Poller)
-
-return Poller
+return ffi.metatype("struct LeveePoller", Poller)

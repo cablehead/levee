@@ -3,40 +3,9 @@ local ffi = require("ffi")
 local message = require("levee.message")
 local refs = require("levee.refs")
 local task = require("levee.task")
+local FIFO = require("levee.fifo")
 
 local Poller = require("levee.poller." .. ffi.os:lower())
-
-
--- TODO: need a decent structure here
-local FIFO = {}
-FIFO.__index = FIFO
-
-
-function FIFO:new(hub)
-	local T = {head = 1, tail = 0}
-	setmetatable(T, self)
-	return T
-end
-
-
-function FIFO:push(v)
-	self.tail = self.tail + 1
-	self[self.tail] = v
-end
-
-
-function FIFO:pop()
-	local head, tail = self.head, self.tail
-	if head > tail then error("empty") end
-	local v = self[head]
-	self[head] = nil
-	self.head = head + 1
-	return v
-end
-
-function FIFO:length()
-	return self.tail - self.head + 1
-end
 
 
 local Hub = {}
@@ -49,10 +18,10 @@ function Hub:new()
 
 	hub.id = refs.new(hub)
 
-	hub.ready = FIFO:new()
+	hub.ready = FIFO()
 
 	hub.registered = {}
-	hub.poller = Poller:new()
+	hub.poller = Poller()
 
 	hub.tcp = require("levee.tcp")(hub)
 	return hub
@@ -71,7 +40,7 @@ function Hub:main()
 
 	while true do
 
-		while self.ready:length() > 0 do
+		while #self.ready > 0 do
 			local work = self.ready:pop()
 
 			-- TODO: is the comparison everytime a performance concern?
