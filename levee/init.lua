@@ -41,7 +41,6 @@ function Hub:main()
 	while true do
 
 		for work in self.ready:popiter() do
-			-- TODO: is the comparison everytime a performance concern?
 			local status, message
 			if type(work.co) == "thread" then
 				status, message = coroutine.resume(work.co, unpack(work.a))
