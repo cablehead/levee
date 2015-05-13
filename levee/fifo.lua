@@ -14,7 +14,12 @@ function FIFO:pop()
 	if head > tail then error("empty") end
 	local v = self[head]
 	self[head] = nil
-	self.head = head + 1
+	if self.head == self.tail then
+		self.head = 1
+		self.tail = 0
+	else
+		self.head = head + 1
+	end
 	return v
 end
 
