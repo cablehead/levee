@@ -2,15 +2,15 @@ return {
 	test_push_pop = function()
 		local FIFO = require('levee.fifo')
 		local f = FIFO()
-		assert.equals(0, f:count())
+		assert.equals(0, #f)
 		f:push(1)
-		assert.equals(1, f:count())
+		assert.equals(1, #f)
 		f:push(2)
-		assert.equals(2, f:count())
+		assert.equals(2, #f)
 		assert.equals(1, f:pop())
-		assert.equals(1, f:count())
+		assert.equals(1, #f)
 		assert.equals(2, f:pop())
-		assert.equals(0, f:count())
+		assert.equals(0, #f)
 	end,
 
 	test_peek = function()
@@ -31,10 +31,10 @@ return {
 		f:push(2)
 		f:push(3)
 		f:remove(2)
-		assert.equals(1, f:count())
+		assert.equals(1, #f)
 		assert.equals(3, f:peek())
 		f:remove(1)
-		assert.equals(0, f:count())
+		assert.equals(0, #f)
 	end,
 
 	test_iter = function()
@@ -60,7 +60,7 @@ return {
 			assert.equals(i, v)
 			i = i + 1
 		end
-		assert.equals(0, f:count())
+		assert.equals(0, #f)
 	end,
 
 	test_popiter_break = function()
@@ -71,7 +71,7 @@ return {
 		for v in f:popiter() do
 			break
 		end
-		assert.equals(1, f:count())
+		assert.equals(1, #f)
 	end,
 
 	test_peekiter = function()
@@ -84,7 +84,7 @@ return {
 			assert.equals(i, v)
 			i = i + 1
 		end
-		assert.equals(0, f:count())
+		assert.equals(0, #f)
 	end,
 
 	test_peekiter_break = function()
@@ -95,6 +95,6 @@ return {
 		for v in f:peekiter() do
 			break
 		end
-		assert.equals(2, f:count())
+		assert.equals(2, #f)
 	end,
 }

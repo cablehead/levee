@@ -33,7 +33,7 @@ end
 
 function FIFO:remove(n)
 	local head, tail = self.head, self.tail
-	if n > self:count() then error("range") end
+	if n > #self then error("range") end
 	for i=head,head+n-1 do
 		self[i] = nil
 	end
@@ -48,7 +48,6 @@ end
 
 
 function FIFO:iter()
-	local fifo = self
 	local i = 0
 	return function()
 		local n = self.head + i
@@ -61,32 +60,30 @@ end
 
 
 function FIFO:popiter()
-	local fifo = self
 	return function()
-		if #fifo > 0 then
-			return fifo:pop()
+		if #self > 0 then
+			return self:pop()
 		end
 	end
 end
 
 
 function FIFO:peekiter()
-	local fifo = self
 	local first = true
 	return function()
 		if first then
 			first = false
 		else
-			fifo:pop()
+			self:pop()
 		end
-		if #fifo > 0 then
-			return fifo:peek()
+		if #self > 0 then
+			return self:peek()
 		end
 	end
 end
 
 
-function FIFO:count()
+function FIFO:__len()
 	return self.tail - self.head + 1
 end
 
