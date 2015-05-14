@@ -67,7 +67,7 @@ return {
 		local levee = require("levee")
 
 		levee.run(function(h)
-			local sender, recver = unpack(h:switch({clear_on_recv=true}))
+			local sender, recver = unpack(h:switch(true))
 
 			local state = 0
 

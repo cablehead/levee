@@ -228,12 +228,11 @@ return {
 		return Pair.new(sender, recver)
 	end,
 
-	Switch = function(hub, options)
-		options = options or {}
+	Switch = function(hub, clear_on_recv)
 		local sender = Switch.allocate()
 		local recver = Recver.allocate()
 		sender.closed, sender.other, sender.on = false, recver, false
-		sender.clear_on_recv = options.clear_on_recv or false
+		sender.clear_on_recv = clear_on_recv or false
 		recver.hub_id, recver.closed, recver.other_ = hub.id, false, sender
 		recver.other_t = C.LEVEE_SWITCH
 		return Pair.new(sender, recver)

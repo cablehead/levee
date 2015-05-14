@@ -89,8 +89,8 @@ function Hub:pipe()
 	return message.Pipe(self)
 end
 
-function Hub:switch(options)
-	return message.Switch(self, options)
+function Hub:switch(clear_on_recv)
+	return message.Switch(self, clear_on_recv)
 end
 
 
