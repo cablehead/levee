@@ -24,7 +24,7 @@ OBJS_LEVEE := \
 	$(OBJ)/liblevee.o \
 	$(OBJ)/levee.o
 
-TESTS := $(patsubst $(PROJECT)/tests/%.c,$(TEST_BIN)/%,$(wildcard $(TEST_SRC)/*.c))
+TESTS := $(patsubst $(PROJECT)/tests/%.c,%,$(wildcard $(TEST_SRC)/*.c))
 
 CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src
 ifeq (osx,$(OS))
@@ -43,10 +43,11 @@ LUAJIT := $(LUAJIT_DST)/bin/luajit
 all: $(BIN)/levee
 
 test: $(BIN)/levee
+	@for name in $(TESTS); do $(MAKE) $$name || break; done
 	$(PROJECT)/bin/lua.test $(PROJECT)/tests
 
-testc: $(TESTS)
-	@for name in $(TESTS); do $(TEST_RUN) $$name || break; done
+%: $(TEST_BIN)/%
+	$(TEST_RUN) $<
 
 luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
