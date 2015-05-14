@@ -38,6 +38,7 @@ struct LeveeRecver {
 struct LeveeSwitch {
 	LeveeRecver *other;
 	bool on;
+	bool clear_on_recv;
 	bool closed;
 };
 ]]
@@ -56,7 +57,7 @@ end
 
 function Sender:__gc()
 	if self.other ~= ffi.NULL then
-		self.other.closed, self.other.other_, self.other.other_t = true, nil, nil
+		self.other.closed, self.other.other_ = true, nil
 	end
 end
 
@@ -181,7 +182,7 @@ Switch.__index = Switch
 
 function Switch:__gc()
 	if self.other ~= ffi.NULL then
-		self.other.closed, self.other.other_, self.other.other_t = true, nil, nil
+		self.other.closed, self.other.other_ = true, nil
 	end
 end
 
@@ -193,6 +194,9 @@ function Switch:take()
 	if not self.on then
 		return
 	end
+	if self.clear_on_recv then
+		self.on = false
+	end
 	return true
 end
 
@@ -203,7 +207,9 @@ function Switch:send(on)
 
 	if on then
 		self.on = true
-		self.other:give(true)
+		if self.other:give(true) and self.clear_on_recv then
+			self.on = false
+		end
 	else
 		self.on = false
 	end
@@ -222,10 +228,12 @@ return {
 		return Pair.new(sender, recver)
 	end,
 
-	Switch = function(hub)
+	Switch = function(hub, options)
+		options = options or {}
 		local sender = Switch.allocate()
 		local recver = Recver.allocate()
 		sender.closed, sender.other, sender.on = false, recver, false
+		sender.clear_on_recv = options.clear_on_recv or false
 		recver.hub_id, recver.closed, recver.other_ = hub.id, false, sender
 		recver.other_t = C.LEVEE_SWITCH
 		return Pair.new(sender, recver)

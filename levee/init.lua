@@ -89,8 +89,8 @@ function Hub:pipe()
 	return message.Pipe(self)
 end
 
-function Hub:switch()
-	return message.Switch(self)
+function Hub:switch(options)
+	return message.Switch(self, options)
 end
 
 

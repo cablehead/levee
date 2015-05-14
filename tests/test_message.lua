@@ -63,6 +63,38 @@ return {
 		end)
 	end,
 
+	test_switch_clear_on_recv = function()
+		local levee = require("levee")
+
+		levee.run(function(h)
+			local sender, recver = unpack(h:switch({clear_on_recv=true}))
+
+			local state = 0
+
+			h:spawn(function()
+				while true do
+					local got = recver:recv()
+					assert.equal(got, true)
+					state = state + 1
+					h:pause()
+				end
+			end)
+
+			-- switch closed
+			h:pause()
+			assert.equal(state, 0)
+
+			-- open switch
+			sender:send(true)
+			h:pause()
+			assert.equal(state, 1)
+
+			-- switch should have closed
+			h:pause()
+			assert.equal(state, 1)
+		end)
+	end,
+
 	test_gc = function()
 		local ffi = require("ffi")
 
