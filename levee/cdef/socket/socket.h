@@ -14,6 +14,11 @@ struct in6_addr {
 	} __in6_u;
 };
 
+struct iovec {
+	char   *iov_base;
+	size_t iov_len;
+};
+
 static const int INADDR_ANY = 0x00000000;
 static const int SOMAXCONN = 128;
 
@@ -51,8 +56,10 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
 ssize_t read(int fd, void *buf, size_t count);
+ssize_t readv(int d, const struct iovec *iov, int iovcnt);
 
 ssize_t write(int fd, const void *buf, size_t count);
+ssize_t writev(int fildes, const struct iovec *iov, int iovcnt);
 
 int close(int fd);
 
