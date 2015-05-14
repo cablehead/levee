@@ -44,4 +44,5 @@ return {
 	include("fcntl", os),
 	include("ioctl", os),
 	include("poller", os),
+	include("heap", "heap"),
 }

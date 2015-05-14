@@ -3,12 +3,30 @@ PREFIX := /usr/local
 OS := $(shell luajit -e 'print(require("ffi").os:lower())')
 PROJECT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 BUILD ?= $(PROJECT)/build
+
 SRC := $(PROJECT)/src
 OBJ := $(BUILD)/obj
 BIN := $(BUILD)/bin
 TMP := $(BUILD)/tmp
 
-CFLAGS:= -Wall -Wextra -Werror -pedantic -Os
+TEST_SRC := $(PROJECT)/tests
+TEST_OBJ := $(BUILD)/test
+TEST_BIN := $(BUILD)/test
+VALGRIND := $(shell which valgrind)
+ifneq (,$(VALGRIND))
+	TEST_RUN:= $(VALGRIND) --error-exitcode=2 -q --leak-check=full
+endif
+
+OBJS_COMMON := $(OBJ)/heap.o
+OBJS_LEVEE := \
+	$(OBJS_COMMON) \
+	$(OBJ)/task.o \
+	$(OBJ)/liblevee.o \
+	$(OBJ)/levee.o
+
+TESTS := $(patsubst $(PROJECT)/tests/%.c,$(TEST_BIN)/%,$(wildcard $(TEST_SRC)/*.c))
+
+CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src
 ifeq (osx,$(OS))
 	LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000
 endif
@@ -27,11 +45,14 @@ all: $(BIN)/levee
 test: $(BIN)/levee
 	$(PROJECT)/bin/lua.test $(PROJECT)/tests
 
+testc: $(TESTS)
+	@for name in $(TESTS); do $(TEST_RUN) $$name || break; done
+
 luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 -include $(wildcard $(OBJ)/*.d)
 
-$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJ)/task.o $(OBJ)/liblevee.o $(OBJ)/levee.o
+$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
 	$(CC) $(LDFLAGS) $^ -o $@
 
@@ -55,8 +76,18 @@ $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a: $(LUAJIT_SRC)/Makefile
 	$(MAKE) -C $(LUAJIT_SRC) amalg $(LUAJIT_ARG) PREFIX=$(PREFIX)
 	$(MAKE) -C $(LUAJIT_SRC) install $(LUAJIT_ARG) PREFIX=$(LUAJIT_DST)
 
+$(TEST_OBJ)/%.o: $(TEST_SRC)/%.c
+	@mkdir -p $(TEST_OBJ)
+	$(CC) $(CFLAGS) -MMD -MT $@ -MF $@.d -c $< -o $@
+
+$(TEST_BIN)/%: $(TEST_OBJ)/%.o $(OBJS_COMMON)
+	@mkdir -p $(TEST_BIN)
+	$(CC) $^ -o $@
+
 clean:
 	rm -rf $(BUILD)
 	cd $(LUAJIT_SRC) && git clean -xdf
 
-.PHONY: clean
+.PHONY: test clean
+.SECONDARY:
+
