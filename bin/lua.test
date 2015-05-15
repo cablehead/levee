@@ -15,9 +15,9 @@ local path = dirname(arg[0])
 package.path = string.format(
 	'%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s', path, path, path, package.path)
 
+local math = require('math')
 local io = require('io')
 local os = require('os')
-
 
 -- setup global variables
 assert = require('luassert')
@@ -72,23 +72,35 @@ function main(argv)
 	for script in scan(argv.path) do
 		local traceback
 		local M = assert(loadfile(script))()
-		for name, f in pairs(M) do
-			io.write(('%s::%s'):format(script, name))
+
+		local skipped = 0
+		local longest = 0
+		local to_run = {}
+		for name in pairs(M) do
 			if argv.match and not string.find(name, argv.match) then
-				print(' SKIP')
+				skipped = skipped + 1
 			else
-				local success = xpcall(M[name],
-					function(err)
-						print(' FAIL')
-						print('-----')
-						print(debug.traceback())
-						print(err)
-						print()
-						status = 1
-					end)
-				if success then
-					print(' PASS')
-				end
+				table.insert(to_run, name)
+				longest = math.max(#name, longest)
+			end
+		end
+
+		table.sort(to_run)
+		local pattern = "%s::%-"..longest.."s"
+
+		for i, name in ipairs(to_run) do
+			io.write(pattern:format(script, name))
+			local success = xpcall(M[name],
+				function(err)
+					print(' FAIL')
+					print('-----')
+					print(debug.traceback())
+					print(err)
+					print()
+					status = 1
+				end)
+			if success then
+				print(' PASS')
 			end
 		end
 	end
