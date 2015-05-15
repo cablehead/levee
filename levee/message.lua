@@ -62,7 +62,19 @@ function Sender:__gc()
 end
 
 function Sender:close()
-	error("TODO: Sender:close")
+	self.closed = true
+	if self.other ~= ffi.NULL then
+		self.other:peer_close()
+	end
+end
+
+function Sender:peer_close()
+	self.closed = true
+	if self.coro ~= ffi.NULL then
+		local co = self.coro
+		self.coro = nil
+		self.hub:resume(co, nil)
+	end
 end
 
 function Sender:take()
@@ -109,7 +121,20 @@ function Recver:__gc()
 end
 
 function Recver:close()
-	error("TODO: Recver:close")
+	self.closed = true
+	local other = self:other()
+	if other then
+		other:peer_close()
+	end
+end
+
+function Recver:peer_close()
+	self.closed = true
+	if self.coro ~= ffi.NULL then
+		local co = self.coro
+		self.coro = nil
+		self.hub:resume(co, nil)
+	end
 end
 
 function Recver:__call()

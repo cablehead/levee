@@ -9,21 +9,50 @@ return {
 			assert.equal(recver.hub, h)
 
 			-- test recv and then send
-			h:spawn(function() sender:send("1") end)
+			h:spawn(function() assert.equal(sender:send("1"), true) end)
 			local got = recver:recv()
 			assert.equal(got, "1")
 
 			-- test send and then recv
-			local state = 0
-			h:spawn(
-				function()
-					local got = recver:recv()
-					assert.equal(got, "2")
-					state = 1
-				end)
-			sender:send("2")
+			local state
+			h:spawn(function() state = recver:recv() end)
+			assert.equal(sender:send("2"), true)
 			h:pause()
-			assert.equal(state, 1)
+			assert.equal(state, "2")
+		end)
+	end,
+
+	test_pipe_close = function()
+		local levee = require("levee")
+
+		levee.run(function(h)
+			-- test close sender and then recv
+			local sender, recver = unpack(h:pipe())
+			sender:close()
+			assert.equal(recver:recv(), nil)
+
+			-- test recv and then close sender
+			local state = 'to set'
+			local sender, recver = unpack(h:pipe())
+			h:spawn(function() state = recver:recv() end)
+			h:pause()
+			sender:close()
+			h:pause()
+			assert.equal(state, nil)
+
+			-- test close recver and then send
+			local sender, recver = unpack(h:pipe())
+			recver:close()
+			assert.equal(sender:send("1"), nil)
+
+			-- test send and then close recver
+			local sender, recver = unpack(h:pipe())
+			local state = 'to set'
+			h:spawn(function() state = sender:send("1") end)
+			h:pause()
+			recver:close()
+			h:pause()
+			assert.equal(state, nil)
 		end)
 	end,
 
