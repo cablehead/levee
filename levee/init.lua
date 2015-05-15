@@ -28,18 +28,32 @@ function Hub:new()
 end
 
 
-function Hub:register(no)
-	local pipe = self:pipe()
-	self.poller:register(no)
-	self.registered[no] = pipe
-	return pipe
+function Hub:register(no, r, w)
+	self.poller:register(no, r, w)
+
+	local slots = {false, false}
+
+	if r then
+		slots[1], r = unpack(self:switch(true))
+	end
+
+	if w then
+		slots[2], w = unpack(self:switch(true))
+	end
+
+	self.registered[no] = slots
+	return r, w
+end
+
+
+function Hub:unregister(no)
+	self.poller:unregister(no, self.registered[1], self.registered[2])
+	self.registered[no] = nil
 end
 
 
 function Hub:main()
-
 	while true do
-
 		for work in self.ready:popiter() do
 			local status, message
 
@@ -59,13 +73,23 @@ function Hub:main()
 			-- error("deadlocked")
 		end
 
-		local id, avail = self.poller:poll()
-		print(string.format("id=%d, size=%d", id, tonumber(avail)))
+		-- TODO: move into poller
+		local POLLIN = 1
+		local POLLOUT = 2
+		local POLLERR = 3
 
-		-- TODO: can we get rid of this spawn?
-		self:spawn(function(p)
-			p:send(true)
-		end, self.registered[id])
+		local id, event, flags = self.poller:poll()
+
+		-- print(string.format("id=%d, event=%d", id, event), flags)
+
+		local poll = self.registered[id]
+
+		if event == POLLERR then
+			if poll[1] then poll[1]:close() end
+			if poll[2] then poll[2]:close() end
+		else
+			poll[event]:send(true)
+		end
 	end
 
 	print("peace")

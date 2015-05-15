@@ -51,24 +51,78 @@ local function next_event(self)
 end
 
 
-function Poller:register(fd)
-	local ev = next_event(self)
-	ev.ident = fd
-	ev.filter = C.EVFILT_READ
-	ev.flags = bit.bor(C.EV_ADD, C.EV_CLEAR)
-	ev.fflags = 0
-	ev.data = 0
+function Poller:register(fd, r, w)
+	if r then
+		local ev = next_event(self)
+		ev.ident = fd
+		ev.filter = C.EVFILT_READ
+		ev.flags = bit.bor(C.EV_ADD, C.EV_CLEAR)
+		ev.fflags = 0
+		ev.data = 0
+	end
+
+	if w then
+		local ev = next_event(self)
+		ev.ident = fd
+		ev.filter = C.EVFILT_WRITE
+		ev.flags = bit.bor(C.EV_ADD, C.EV_CLEAR)
+		ev.fflags = 0
+		ev.data = 0
+	end
+end
+
+function Poller:unregister(fd, r, w)
+	if r then
+		local ev = next_event(self)
+		ev.ident = fd
+		ev.filter = C.EVFILT_READ
+		ev.flags = C.EV_DELETE
+		ev.fflags = 0
+		ev.data = 0
+	end
+
+	if w then
+		local ev = next_event(self)
+		ev.ident = fd
+		ev.filter = C.EVFILT_WRITE
+		ev.flags = C.EV_DELETE
+		ev.fflags = 0
+		ev.data = 0
+	end
+
+	-- TODO: shouldn't close until the en_in is flushed
+	C.close(fd)
 end
 
 
+local POLLIN = 1
+local POLLOUT = 2
+local POLLERR = 3
+
+
 function Poller:poll()
-	--local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, nil)
+	--local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out,
+	--	C.EV_POLL_OUT_MAX, nil)
+
 	local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
 	if n < 0 then Errno:error("kevent") end
-	self.ev_in_pos = 0
 
-	print("poll got:", n)
-	return tonumber(self.ev_out[0].ident), self.ev_out[0].data
+	self.ev_in_pos = 0
+	local e = self.ev_out[0]
+
+	if e.filter == C.EVFILT_READ and e.data > 0 then
+		return tonumber(e.ident), POLLIN, e.flags
+	end
+
+	-- it's possible to get an EOF and a WRITE in the same poll
+	if bit.band(e.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0 then
+		return tonumber(e.ident), POLLERR, e.flags
+	end
+
+	if e.filter == C.EVFILT_WRITE then
+		return tonumber(e.ident), POLLOUT, e.flags
+	end
+
 end
 
 
