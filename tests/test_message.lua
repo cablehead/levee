@@ -93,6 +93,31 @@ return {
 		end)
 	end,
 
+	test_switch_close = function()
+		local levee = require("levee")
+
+		levee.run(function(h)
+			-- test close sender and then recv
+			local sender, recver = unpack(h:switch())
+			sender:close()
+			assert.equal(recver:recv(), nil)
+
+			-- test recv and then close sender
+			local state = 'to set'
+			local sender, recver = unpack(h:switch())
+			h:spawn(function() state = recver:recv() end)
+			h:pause()
+			sender:close()
+			h:pause()
+			assert.equal(state, nil)
+
+			-- test close recver and then send
+			local sender, recver = unpack(h:switch())
+			recver:close()
+			assert.equal(sender:send(true), nil)
+		end)
+	end,
+
 	test_switch_clear_on_recv = function()
 		local levee = require("levee")
 

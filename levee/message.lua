@@ -212,7 +212,14 @@ function Switch:__gc()
 end
 
 function Switch:close()
-	error("TODO: Switch:close")
+	self.closed = true
+	if self.other ~= ffi.NULL then
+		self.other:peer_close()
+	end
+end
+
+function Switch:peer_close()
+	self.closed = true
 end
 
 function Switch:take()
