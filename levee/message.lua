@@ -1,5 +1,3 @@
-require("levee.cdef")
-
 local ffi = require("ffi")
 
 local task = require("levee.task")

@@ -1,5 +1,3 @@
-require("levee.cdef")
-
 local ffi = require("ffi")
 local FD = require("levee.fd")
 local Endpoint = require("levee.endpoint")

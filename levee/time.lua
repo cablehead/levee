@@ -1,5 +1,3 @@
-require("levee.cdef")
-
 local jit = require('jit')
 local ffi = require('ffi')
 local C = ffi.C

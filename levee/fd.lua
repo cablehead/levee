@@ -1,5 +1,3 @@
-require("levee.cdef")
-
 local ffi = require("ffi")
 
 ffi.cdef[[
@@ -56,6 +54,16 @@ function FD:read(buf, len)
 		return len, 0
 	else
 		return len, ffi.errno()
+	end
+end
+
+
+function FD:reads(len)
+	len = len or 4096
+	local buf = ffi.new("char[?]", len)
+	local len = self:read(buf, len)
+	if len >= 0 then
+		return ffi.string(buf)
 	end
 end
 

@@ -47,7 +47,7 @@ return {
 
 			assert.True(pollout:recv())
 
-			write(w.no, "x")
+			w:write("x")
 			assert.True(pollin:recv())
 
 			-- trigger EAGAIN on write
@@ -59,7 +59,7 @@ return {
 			end
 			assert.True(pollin:recv())
 
-			read(r.no, 4096)
+			r:read()
 			assert.True(pollout:recv())
 			assert.True(pollin:recv())
 
