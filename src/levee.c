@@ -5,6 +5,8 @@
 #include "levee.h"
 #include "task.h"
 
+#include "levee_cdef.h"
+
 extern int
 luaopen_levee (lua_State *L);
 
@@ -43,6 +45,16 @@ main (int argc, const char *argv[])
 	luaL_findtable (L, LUA_REGISTRYINDEX, "_PRELOAD", 16);
 	lua_pushcfunction (L, luaopen_task);
 	lua_setfield (L, -2, "levee.task");
+
+	// put ffi module on the stack
+	lua_getglobal (L, "require");
+	lua_pushstring (L, "ffi");
+	lua_call (L, 1, 1);
+
+	lua_getfield (L, -1, "cdef");
+	lua_pushstring (L, levee_cdef);
+	lua_call (L, 1, 0);
+	lua_pop (L, 1);  // pop ffi module
 
 	lua_State *task = lua_newthread (L);
 	lua_createtable (task, argc, 0);

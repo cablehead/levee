@@ -33,7 +33,7 @@ function include(name, ...)
 	return try_include(full)
 end
 
-return {
+local headers = {
 	include("std", arch),
 	include("std", "std"),
 	include("time", "time"),
@@ -46,3 +46,5 @@ return {
 	include("poller", os),
 	include("heap", "heap"),
 }
+
+print(table.concat(headers, "\n"))

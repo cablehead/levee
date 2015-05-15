@@ -26,7 +26,7 @@ OBJS_LEVEE := \
 
 TESTS := $(patsubst $(PROJECT)/tests/%.c,%,$(wildcard $(TEST_SRC)/*.c))
 
-CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src
+CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src -I$(TMP)
 ifeq (osx,$(OS))
 	LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000
 endif
@@ -65,9 +65,16 @@ $(OBJ)/%.o: $(TMP)/%.c
 	@mkdir -p $(OBJ)
 	$(CC) $(CFLAGS) -MMD -MT $@ -MF $@.d -c $< -o $@
 
-$(TMP)/liblevee.c: $(LUAJIT) $(PROJECT)/bin/bundle.lua $(shell find $(PROJECT)/levee -type f)
+$(TMP)/liblevee.c: $(LUAJIT) $(TMP)/levee_cdef.h $(PROJECT)/bin/bundle.lua \
+		$(shell find $(PROJECT)/levee -type f)
 	@mkdir -p $(TMP)
 	$(LUAJIT) $(PROJECT)/bin/bundle.lua $(PROJECT) levee > $@
+
+$(TMP)/levee_cdef.h: $(LUAJIT) $(shell find $(PROJECT)/cdef -type f)
+	@mkdir -p $(TMP)
+	echo "const char levee_cdef[] = {" > $@
+	$(LUAJIT) $(PROJECT)/cdef/manifest.lua | xxd -i >> $@
+	echo ", 0};" >> $@
 
 $(LUAJIT_SRC)/Makefile:
 	git submodule update --init $(LUAJIT_SRC)
