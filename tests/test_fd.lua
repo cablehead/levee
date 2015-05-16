@@ -1,12 +1,11 @@
-local fd = require("levee.sys.fd")
-
+local sys = require("levee.sys")
 
 return {
 	test_register = function()
 		local levee = require("levee")
 
 		levee.run(function(h)
-			local r, w = fd.pipe()
+			local r, w = sys.fd.pipe()
 			r:nonblock(true)
 			w:nonblock(true)
 
