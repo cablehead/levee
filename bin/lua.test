@@ -66,6 +66,41 @@ function scan(path)
 end
 
 
+txtblk='\27[0;30m' -- Black - Regular
+txtred='\27[0;31m' -- Red
+txtgrn='\27[0;32m' -- Green
+txtylw='\27[0;33m' -- Yellow
+txtblu='\27[0;34m' -- Blue
+txtpur='\27[0;35m' -- Purple
+txtcyn='\27[0;36m' -- Cyan
+txtwht='\27[0;37m' -- White
+bldblk='\27[1;30m' -- Black - Bold
+bldred='\27[1;31m' -- Red
+bldgrn='\27[1;32m' -- Green
+bldylw='\27[1;33m' -- Yellow
+bldblu='\27[1;34m' -- Blue
+bldpur='\27[1;35m' -- Purple
+bldcyn='\27[1;36m' -- Cyan
+bldwht='\27[1;37m' -- White
+unkblk='\27[4;30m' -- Black - Underline
+undred='\27[4;31m' -- Red
+undgrn='\27[4;32m' -- Green
+undylw='\27[4;33m' -- Yellow
+undblu='\27[4;34m' -- Blue
+undpur='\27[4;35m' -- Purple
+undcyn='\27[4;36m' -- Cyan
+undwht='\27[4;37m' -- White
+bakblk='\27[40m'   -- Black - Background
+bakred='\27[41m'   -- Red
+bakgrn='\27[42m'   -- Green
+bakylw='\27[43m'   -- Yellow
+bakblu='\27[44m'   -- Blue
+bakpur='\27[45m'   -- Purple
+bakcyn='\27[46m'   -- Cyan
+bakwht='\27[47m'   -- White
+txtrst='\27[0m'    -- Text Reset
+
+
 function main(argv)
 	local status = 0
 
@@ -106,7 +141,7 @@ function main(argv)
 			io.write(pattern:format(name))
 			local success = xpcall(M[name],
 				function(err)
-					print(' FAIL')
+					print(txtred..' FAIL'..txtrst)
 					print('-----')
 					print(debug.traceback())
 					print(err)
@@ -114,7 +149,7 @@ function main(argv)
 					status = 1
 				end)
 			if success then
-				print(' PASS')
+				print(txtgrn..' PASS'..txtrst)
 			end
 		end
 	end
