@@ -1,7 +1,7 @@
 return {
 	test_core = function()
-		local Socket = require("levee.socket")
-		local Endpoint = require("levee.endpoint")
+		local Socket = require("levee.sys.socket")
+		local Endpoint = require("levee.sys.endpoint")
 		local l, err = Socket:listen(12345, "127.0.0.1")
 		local c, err = Socket:connect(12345, "127.0.0.1")
 		assert(l ~= nil)

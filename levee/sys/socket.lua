@@ -1,6 +1,7 @@
 local ffi = require("ffi")
-local FD = require("levee.sys.fd").FD
-local Endpoint = require("levee.endpoint")
+local fd = require('levee.sys.fd')
+local Endpoint = require("levee.sys.endpoint")
+
 
 ffi.cdef[[
 struct LeveeSocket {
