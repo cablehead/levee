@@ -63,8 +63,6 @@ function Hub:main()
 				status, message = task.resume(work.co, unpack(work.a))
 			end
 
-			print("BACK", status, message)
-
 			if not status then
 				error(message)
 			end

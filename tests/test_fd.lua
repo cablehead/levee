@@ -4,8 +4,6 @@ local ffi = require("ffi")
 
 ffi.cdef[[
 int pipe(int pipefd[2]);
-int write(int fd, const void *buf, int nbyte);
-int read(int fd, const void *buf, int nbyte);
 ]]
 
 local C = ffi.C
@@ -15,20 +13,6 @@ function pipe()
 	assert(C.pipe(fds) == 0)
 	return fds[0], fds[1]
 end
-
-function write(fd, s)
-	return C.write(fd, s, #s)
-end
-
-function read(fd, n)
-	local buf = ffi.new("char[?]", n)
-	local got = C.read(fd, buf, n)
-	if got <= 0 then
-		return got
-	end
-	return got, ffi.string(buf, got)
-end
-
 
 
 return {
@@ -52,23 +36,21 @@ return {
 
 			-- trigger EAGAIN on write
 			while true do
-				local n = write(w.no, "x")
+				local n = w:write("x")
 				if n == -1 then
 					break
 				end
 			end
 			assert.True(pollin:recv())
 
-			r:read()
+			r:reads()
 			assert.True(pollout:recv())
 			assert.True(pollin:recv())
 
 			-- trigger EAGAIN on read
 			while true do
-				local n = read(r.no, 4096)
-				if n == -1 then
-					break
-				end
+				local n = r:reads()
+				if not n then break end
 			end
 			assert.True(pollout:recv())
 
