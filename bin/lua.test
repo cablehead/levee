@@ -89,7 +89,7 @@ function main(argv)
 		local pattern = "%s::%-"..longest.."s"
 
 		for i, name in ipairs(to_run) do
-			io.write(pattern:format(script, name))
+			io.write(("%-60s"):format(("%s::%s"):format(script, name)))
 			local success = xpcall(M[name],
 				function(err)
 					print(' FAIL')
