@@ -1,7 +1,7 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local FD = require("levee.fd")
+local FD = require("levee.sys.fd").FD
 
 
 local Socket = {}

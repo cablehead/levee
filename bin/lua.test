@@ -103,6 +103,7 @@ txtrst='\27[0m'    -- Text Reset
 
 function main(argv)
 	local status = 0
+	local first = true
 
 	local scripts = {}
 
@@ -132,9 +133,12 @@ function main(argv)
 		end
 
 		table.sort(to_run)
-		local pattern = "  %-40s "
+		local pattern = "    %-40s "
 
-		print()
+		if not first then
+			print()
+		end
+		first = false
 		print(txtblu..script..txtrst)
 
 		for i, name in ipairs(to_run) do

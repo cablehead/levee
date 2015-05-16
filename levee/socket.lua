@@ -1,5 +1,5 @@
 local ffi = require("ffi")
-local FD = require("levee.fd")
+local FD = require("levee.sys.fd").FD
 local Endpoint = require("levee.endpoint")
 
 ffi.cdef[[

@@ -85,4 +85,13 @@ function FD:write(buf, len)
 end
 
 
-return ffi.metatype("struct LeveeFD", FD)
+local allocate = ffi.metatype("struct LeveeFD", FD)
+
+return {
+	FD = allocate,
+	pipe = function()
+		local fds = ffi.new("int[2]")
+		assert(C.pipe(fds) == 0)
+		return allocate(fds[0]), allocate(fds[1])
+	end,
+}

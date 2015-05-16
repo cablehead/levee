@@ -1,18 +1,4 @@
-local FD = require("levee.fd")
-
-local ffi = require("ffi")
-
-ffi.cdef[[
-int pipe(int pipefd[2]);
-]]
-
-local C = ffi.C
-
-function pipe()
-	local fds = ffi.new("int[2]")
-	assert(C.pipe(fds) == 0)
-	return fds[0], fds[1]
-end
+local fd = require("levee.sys.fd")
 
 
 return {
@@ -20,9 +6,7 @@ return {
 		local levee = require("levee")
 
 		levee.run(function(h)
-			local r, w = pipe()
-			r = FD(r)
-			w = FD(w)
+			local r, w = fd.pipe()
 			r:nonblock(true)
 			w:nonblock(true)
 
