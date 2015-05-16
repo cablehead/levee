@@ -2,7 +2,6 @@ local ffi = require('ffi')
 
 return {
 	test_socket = function()
-		require("levee.cdef")
 		assert(ffi.sizeof("struct in_addr") == 4)
 		assert(ffi.sizeof("struct in6_addr") == 16)
 		assert(ffi.sizeof("struct sockaddr") == 16)
