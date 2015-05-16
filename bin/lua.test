@@ -135,7 +135,7 @@ function main(argv)
 		local pattern = "  %-50s "
 
 		print()
-		print(script)
+		print(txtblu..script..txtrst)
 
 		for i, name in ipairs(to_run) do
 			io.write(pattern:format(name))
