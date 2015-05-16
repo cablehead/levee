@@ -132,7 +132,7 @@ function main(argv)
 		end
 
 		table.sort(to_run)
-		local pattern = "  %-50s "
+		local pattern = "  %-40s "
 
 		print()
 		print(txtblu..script..txtrst)
