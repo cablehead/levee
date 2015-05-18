@@ -42,8 +42,12 @@ LUAJIT := $(LUAJIT_DST)/bin/luajit
 
 all: $(BIN)/levee
 
-test: $(BIN)/levee
+test: test-c test-lua
+
+test-c:
 	@for name in $(TESTS); do $(MAKE) $$name || break; done
+
+test-lua:
 	$(PROJECT)/bin/lua.test $(PROJECT)/tests
 
 %: $(TEST_BIN)/%
@@ -96,6 +100,6 @@ clean:
 	rm -rf $(BUILD)
 	cd $(LUAJIT_SRC) && git clean -xdf
 
-.PHONY: test clean
+.PHONY: test test-c test-lua clean
 .SECONDARY:
 
