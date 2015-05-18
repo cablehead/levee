@@ -5,11 +5,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-struct LeveeHeapEntry {
-	int64_t priority; /* sort priority (lowest to highest) */
-	uintptr_t value;  /* user value */
-};
-
 #define ROW_SHIFT   15
 #define ROW_WIDTH   (1 << ROW_SHIFT)
 #define ROW(b, n)   ((b)->entries[(n) >> ROW_SHIFT])
@@ -100,7 +95,7 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 }
 
 uint32_t
-levee_heap_update (const LeveeHeap *self, uint32_t key)
+levee_heap_update (const LeveeHeap *self, uint32_t key, int64_t pri)
 {
 	assert (self != NULL);
 	assert (self->next > LEVEE_HEAP_ROOT_KEY);
@@ -109,19 +104,32 @@ levee_heap_update (const LeveeHeap *self, uint32_t key)
 		return LEVEE_HEAP_NO_KEY;
 	}
 
+	ENTRY (self, key).priority = pri;
+
 	key = move_up (self, key);
 	return move_down (self, key);
 }
 
-uintptr_t
-levee_heap_get (const LeveeHeap *self, uint32_t key, uintptr_t def)
+const LeveeHeapEntry *
+levee_heap_get (const LeveeHeap *self, uint32_t key)
+{
+	assert (self != NULL);
+
+	if (key == 0 || key >= self->next) {
+		return NULL;
+	}
+	return &ENTRY (self, key);
+}
+
+int64_t
+levee_heap_priority (const LeveeHeap *self, uint32_t key, int64_t def)
 {
 	assert (self != NULL);
 
 	if (key == 0 || key >= self->next) {
 		return def;
 	}
-	return ENTRY (self, key).value;
+	return ENTRY (self, key).priority;
 }
 
 uintptr_t

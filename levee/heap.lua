@@ -25,19 +25,22 @@ end
 
 
 function Heap:pop()
-	local id = tonumber(C.levee_heap_remove(self.heap, C.LEVEE_HEAP_ROOT_KEY, 0))
-	if id ~= 0 then
+	local entry = C.levee_heap_get(self.heap, C.LEVEE_HEAP_ROOT_KEY)
+	if entry ~= nil then
+		local prio = entry.priority
+		local id = tonumber(entry.value)
+		C.levee_heap_remove(self.heap, C.LEVEE_HEAP_ROOT_KEY, 0)
 		local val = self.refs[id]
 		self.refs[id] = nil
-		return val
+		return prio, val
 	end
 end
 
 
 function Heap:peek()
-	local id = tonumber(C.levee_heap_get(self.heap, C.LEVEE_HEAP_ROOT_KEY, 0))
-	if id ~= 0 then
-		return self.refs[id]
+	local entry = C.levee_heap_get(self.heap, C.LEVEE_HEAP_ROOT_KEY)
+	if entry ~= nil then
+		return entry.priority, self.refs[tonumber(entry.value)]
 	end
 end
 
