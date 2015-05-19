@@ -35,6 +35,8 @@ main (int argc, const char *argv[])
 		errx (EX_NOINPUT, "script required");
 	}
 
+	signal(SIGPIPE, SIG_IGN);
+
 	lua_State *L = luaL_newstate ();
 	if (L == NULL) {
 		err (EX_SOFTWARE, "failed to create state");
