@@ -2,11 +2,13 @@ return {
 	test_core = function()
 		local levee = require("levee")
 		levee.run(function(h)
-
 			local serve = h.tcp:listen(8000)
 
 			local c1 = h.tcp:connect(8000)
 			local s1 = serve:recv()
+
+			collectgarbage("collect")
+
 			c1:send("m1.1")
 			assert(s1:recv() == "m1.1")
 
@@ -17,8 +19,13 @@ return {
 
 			s1:send("m1.2")
 			assert(c1:recv() == "m1.2")
+
 			s2:send("m2.2")
 			assert(c2:recv() == "m2.2")
+
+			c1:close()
+			c2:close()
+			serve:close()
 		end)
 	end,
 }

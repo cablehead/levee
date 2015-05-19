@@ -190,7 +190,16 @@ Pair.__index = function(self, key)
 end
 
 function Pair:recv()
-	print("oh hai", self)
+	return self.recver:recv()
+end
+
+function Pair:send(s)
+	return self.sender:send(s)
+end
+
+function Pair:close()
+	self.sender:close()
+	self.recver:close()
 end
 
 function Pair.new(sender, recver)
@@ -267,4 +276,6 @@ return {
 		recver.other_t = C.LEVEE_SWITCH
 		return Pair.new(sender, recver)
 	end,
+
+	Pair = Pair.new,
 }

@@ -89,11 +89,13 @@ end
 
 function Socket:accept()
 	local addr = sockaddr_in()
-	local no = C.accept(self.base.no, ffi.cast("struct sockaddr *", addr), self.tmp.socklen)
+	local no = C.accept(
+		self.base.no, ffi.cast("struct sockaddr *", addr), self.tmp.socklen)
 	if no < 0 then
 		return nil, ffi.errno()
 	end
-	return Socket(no, false)
+	-- return Socket(no, false)
+	return no
 end
 
 

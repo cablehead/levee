@@ -1,4 +1,5 @@
 local levee = require("levee")
+local sys = require("levee.sys")
 
 local ffi = require("ffi")
 local C = ffi.C
@@ -10,9 +11,10 @@ local C = ffi.C
 return {
 	test_io_close_read = function()
 		levee.run(function(h)
-			local fds = ffi.new("int[2]")
-			assert(C.pipe(fds) == 0)
-			local r, w = h.io:r(fds[0]), h.io:w(fds[1])
+			local r, w = sys.fd.pipe()
+			local r, w = h.io:r(r), h.io:w(w)
+
+			collectgarbage("collect")
 
 			-- TODO: this is needed as poller doesn't flush en_in before closing fd
 			w:send("foo")
@@ -29,9 +31,10 @@ return {
 
 	test_io_close_write = function()
 		levee.run(function(h)
-			local fds = ffi.new("int[2]")
-			assert(C.pipe(fds) == 0)
-			local r, w = h.io:r(fds[0]), h.io:w(fds[1])
+			local r, w = sys.fd.pipe()
+			local r, w = h.io:r(r), h.io:w(w)
+
+			collectgarbage("collect")
 
 			-- TODO: this is needed as poller doesn't flush en_in before closing fd
 			w:send("foo")

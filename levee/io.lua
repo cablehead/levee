@@ -2,23 +2,24 @@
 -- TODO: what a mess. just bashing this out.
 --
 
+local message = require("levee.message")
 local sys = require("levee.sys")
 
 
-local Recver = function(hub, pollin, fd)
+local Recver = function(hub, pollin, no)
 	local sender, recver = unpack(hub:pipe())
 
 	hub:spawn(function()
 		while true do
 			local got = pollin:recv()
 			if got == nil then
-				hub:unregister(fd.no)
+				hub:unregister(no)
 				sender:close()
 				break
 			end
 
 			while true do
-				local s = fd:reads()
+				local s = sys.fd.reads(no)
 				if s == nil then break end
 				sender:send(s)
 			end
@@ -31,14 +32,14 @@ local Recver = function(hub, pollin, fd)
 		end,
 
 		close = function()
-			hub:unregister(fd.no)
+			hub:unregister(no)
 			return recver:close()
 		end,
 	}
 end
 
 
-local Sender = function(hub, pollout, fd)
+local Sender = function(hub, pollout, no)
 	local sender, recver = unpack(hub:pipe())
 	local gate = hub:switch()
 
@@ -58,12 +59,12 @@ local Sender = function(hub, pollout, fd)
 		while true do
 			local s = recver:recv()
 			if s == nil then
-				hub:unregister(fd.no)
+				hub:unregister(no)
 				break
 			end
-			if fd:write(s) < 0 then
+			if sys.fd.write(no, s) < 0 then
 				recver:close()
-				hub:unregister(fd.no)
+				hub:unregister(no)
 				break
 			end
 		end
@@ -77,21 +78,24 @@ return function(hub)
 	local M = {h=hub}
 
 	function M:r(no)
-		local fd = sys.fd.FD(no)
-		fd:nonblock(true)
+		sys.fd.nonblock(no, true)
 		local pollin = self.h:register(no, true)
-		return Recver(hub, pollin, fd)
+		return Recver(hub, pollin, no)
 	end
 
 	function M:w(no)
-		local fd = sys.fd.FD(no)
-		fd:nonblock(true)
+		sys.fd.nonblock(no, true)
 		local _, pollout = self.h:register(no, nil, true)
-		return Sender(hub, pollout, fd)
+		return Sender(hub, pollout, no)
 	end
 
 
 	function M:rw(no)
+		sys.fd.nonblock(no, true)
+		local pollin, pollout = self.h:register(no, true, true)
+		local recver = Recver(hub, pollin, no)
+		local sender = Sender(hub, pollout, no)
+		return message.Pair(sender, recver)
 	end
 
 	function M:pipe()

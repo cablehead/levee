@@ -100,8 +100,8 @@ end
 local keep = {}
 
 function Hub:spawn(f, ...)
-	self.ready:push({co=coroutine.create(f), a={...}})
-	if true then return end
+	-- self.ready:push({co=coroutine.create(f), a={...}})
+	-- if true then return end
 	-- TODO: we probably need to keep a handle on co
 	local co = coroutine.create(f)
 	table.insert(keep, co)
