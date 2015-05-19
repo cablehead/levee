@@ -23,6 +23,7 @@ function Hub:new()
 	hub.registered = {}
 	hub.poller = Poller()
 
+	hub.io = require("levee.io")(hub)
 	hub.tcp = require("levee.tcp")(hub)
 	return hub
 end
@@ -96,8 +97,15 @@ function Hub:main()
 end
 
 
+local keep = {}
+
 function Hub:spawn(f, ...)
 	self.ready:push({co=coroutine.create(f), a={...}})
+	if true then return end
+	-- TODO: we probably need to keep a handle on co
+	local co = coroutine.create(f)
+	table.insert(keep, co)
+	self.ready:push({co=co, a={...}})
 end
 
 function Hub:resume(co, ...)
