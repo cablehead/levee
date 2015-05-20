@@ -12,12 +12,11 @@ TMP := $(BUILD)/tmp
 TEST_SRC := $(PROJECT)/tests
 TEST_OBJ := $(BUILD)/test
 TEST_BIN := $(BUILD)/test
-VALGRIND := $(shell which valgrind)
-ifneq (,$(VALGRIND))
-	TEST_RUN:= $(VALGRIND) --error-exitcode=2 -q --leak-check=full
+ifneq (,$(MEMCHECK))
+	TEST_RUN:= valgrind --error-exitcode=2 -q --leak-check=full
 endif
 
-OBJS_COMMON := $(OBJ)/heap.o
+OBJS_COMMON := $(OBJ)/heap.o $(OBJ)/http.o
 OBJS_LEVEE := \
 	$(OBJS_COMMON) \
 	$(OBJ)/task.o \

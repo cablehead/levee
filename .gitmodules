@@ -1,3 +1,6 @@
 [submodule "dep/luajit"]
 	path = dep/luajit
 	url = http://luajit.org/git/luajit-2.0.git
+[submodule "src/pcmp"]
+	path = src/pcmp
+	url = git@github.com:imgix/pcmp.git
