@@ -29,6 +29,9 @@ CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src -I$(TMP)
 ifeq (osx,$(OS))
 	LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000
 endif
+ifeq (linux,$(OS))
+	LDFLAGS:= -Wl,-export-dynamic
+endif
 
 LUAJIT_SRC := $(PROJECT)/dep/luajit
 LUAJIT_DST := $(BUILD)/dep/luajit
