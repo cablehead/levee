@@ -4,14 +4,18 @@
 
 local message = require("levee.message")
 local sys = require("levee.sys")
+local Buffer = require("levee.buffer")
 
 
 local Recver = function(hub, pollin, no)
 	local sender, recver = unpack(hub:pipe())
 
+	local buf = Buffer(16384)
+
 	hub:spawn(function()
 		while true do
 			local got = pollin:recv()
+
 			if got == nil then
 				hub:unregister(no)
 				sender:close()
@@ -19,9 +23,11 @@ local Recver = function(hub, pollin, no)
 			end
 
 			while true do
-				local s = sys.fd.reads(no)
-				if s == nil then break end
-				sender:send(s)
+				buf:ensure(4096)
+				local n = sys.fd.read(no, buf:tail())
+				if n <= 0 then break end
+				buf:bump(n)
+				sender:send(buf)
 			end
 		end
 	end)
