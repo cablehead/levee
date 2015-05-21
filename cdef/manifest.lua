@@ -45,6 +45,7 @@ local headers = {
 	include("ioctl", os),
 	include("poller", os),
 	include("heap", "heap"),
+	include("http", "http"),
 }
 
 print(table.concat(headers, "\n"))
