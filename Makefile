@@ -90,7 +90,7 @@ $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a: $(LUAJIT_SRC)/Makefile
 	$(MAKE) -C $(LUAJIT_SRC) amalg $(LUAJIT_ARG) PREFIX=$(PREFIX)
 	$(MAKE) -C $(LUAJIT_SRC) install $(LUAJIT_ARG) PREFIX=$(LUAJIT_DST)
 
-$(TEST_OBJ)/%.o: $(TEST_SRC)/%.c
+$(TEST_OBJ)/%.o: $(TEST_SRC)/c/%.c
 	@mkdir -p $(TEST_OBJ)
 	$(CC) $(CFLAGS) -MMD -MT $@ -MF $@.d -c $< -o $@
 
