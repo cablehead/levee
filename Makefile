@@ -23,7 +23,7 @@ OBJS_LEVEE := \
 	$(OBJ)/liblevee.o \
 	$(OBJ)/levee.o
 
-TESTS := $(patsubst $(PROJECT)/tests/%.c,%,$(wildcard $(TEST_SRC)/*.c))
+TESTS := $(patsubst $(PROJECT)/tests/c/%.c,%,$(wildcard $(TEST_SRC)/c/*.c))
 
 CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src -I$(TMP)
 ifeq (osx,$(OS))
