@@ -25,6 +25,7 @@ function Hub:new()
 
 	hub.io = require("levee.io")(hub)
 	hub.tcp = require("levee.tcp")(hub)
+	hub.http = require("levee.http")(hub)
 	return hub
 end
 
