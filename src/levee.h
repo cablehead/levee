@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#include "../build/luajit/include/luajit-2.0/lua.h"
-#include "../build/luajit/include/luajit-2.0/lauxlib.h"
-#include "../build/luajit/include/luajit-2.0/lualib.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 
 #endif
 
