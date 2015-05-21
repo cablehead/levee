@@ -1,6 +1,6 @@
 PREFIX := /usr/local
 
-OS := $(shell luajit -e 'print(require("ffi").os:lower())')
+OS := $(shell uname)
 PROJECT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 BUILD ?= $(PROJECT)/build
 
@@ -35,11 +35,11 @@ LUAJIT_ARG := \
 LUAJIT := $(LUAJIT_DST)/bin/luajit
 
 CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.0
-ifeq (osx,$(OS))
-	LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000
+ifeq (Darwin,$(OS))
+  LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000
 endif
-ifeq (linux,$(OS))
-	LDFLAGS:= -Wl,-export-dynamic
+ifeq (Linux,$(OS))
+  LDFLAGS:= -Wl,-export-dynamic
 endif
 
 all: $(BIN)/levee
