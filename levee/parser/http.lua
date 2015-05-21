@@ -28,6 +28,11 @@ function HTTPParser:init_request()
 end
 
 
+function HTTPParser:init_response()
+	return C.http_parser_init_response(self.p)
+end
+
+
 function HTTPParser:next(buf, len)
 	return C.http_parser_next(self.p, self.val, buf, len)
 end
@@ -44,6 +49,12 @@ function HTTPParser:value(buf)
 			ffi.string(
 				buf + self.val.as.request.method_off, self.val.as.request.method_len),
 			ffi.string(buf + self.val.as.request.uri_off, self.val.as.request.uri_len),
+			self.val.as.request.version
+	elseif self.val.type == C.HTTP_PARSER_RESPONSE then
+		return
+			self.val.as.response.status,
+			ffi.string(
+				buf + self.val.as.response.reason_off, self.val.as.response.reason_len),
 			self.val.as.request.version
 	elseif self.val.type == C.HTTP_PARSER_HEADER_FIELD then
 		return
