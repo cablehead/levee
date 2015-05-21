@@ -33,8 +33,8 @@ ifeq (linux,$(OS))
 	LDFLAGS:= -Wl,-export-dynamic
 endif
 
-LUAJIT_SRC := $(PROJECT)/dep/luajit
-LUAJIT_DST := $(BUILD)/dep/luajit
+LUAJIT_SRC := $(PROJECT)/src/luajit
+LUAJIT_DST := $(BUILD)/luajit
 LUAJIT_ARG := \
 	XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT \
 	BUILDMODE=static \

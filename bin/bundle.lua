@@ -151,9 +151,9 @@ local function bundle(root, sub)
 	print('}')
 end
 
-print('#include "../dep/luajit/include/luajit-2.0/lua.h"')
-print('#include "../dep/luajit/include/luajit-2.0/lauxlib.h"')
-print('#include "../dep/luajit/include/luajit-2.0/lualib.h"')
+print('#include "../luajit/include/luajit-2.0/lua.h"')
+print('#include "../luajit/include/luajit-2.0/lauxlib.h"')
+print('#include "../luajit/include/luajit-2.0/lualib.h"')
 for i=1,#arg,2 do
 	if not arg[i+1] then break end
 	bundle(arg[i], arg[i+1])
