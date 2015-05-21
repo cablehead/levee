@@ -8,6 +8,7 @@
 #include "pcmp/eq16.h"
 #include "pcmp/leq.h"
 #include "pcmp/leq16.h"
+#include "pcmp/set16.h"
 #include "pcmp/range16.h"
 
 
@@ -49,8 +50,8 @@
 	if (pcmp_unlikely (*end != ch)) {                               \
 		YIELD_ERROR (HTTP_PARSER_EPROTO);                           \
 	}                                                               \
-	size_t scan = end - m - p->off + 1;                             \
-	p->off += scan;                                                 \
+	end++;                                                          \
+	p->off = end - m;                                               \
 } while (0)
 
 #define EXPECT_RANGE(rng) do {                                      \
@@ -59,8 +60,7 @@
 		p->off = len;                                               \
 		return 0;                                                   \
 	}                                                               \
-	size_t scan = end - m - p->off;                                 \
-	p->off += scan;                                                 \
+	p->off = end - m;                                               \
 } while (0)
 
 #define EXPECT_CHAR(ch) do {                                        \
@@ -68,7 +68,8 @@
 	if (pcmp_unlikely (m[p->off] != ch)) {                          \
 		YIELD_ERROR (HTTP_PARSER_EPROTO);                           \
 	}                                                               \
-	p->off += 1;                                                    \
+	end++;                                                          \
+	p->off++;                                                       \
 } while (0)
 
 #define EXPECT_PREFIX(pre, extra) do {                              \
@@ -79,21 +80,24 @@
 		YIELD_ERROR (HTTP_PARSER_EPROTO);                           \
 	}                                                               \
 	end = m + p->off + sizeof pre - 1;                              \
-	size_t scan = (sizeof pre - 1) + extra;                         \
-	p->off += scan;                                                 \
+	p->off += (sizeof pre - 1) + extra;                             \
 } while (0)
 
 #define EXPECT_EOL() do {                                           \
-	end = memmem (m+p->off, len-p->off, crlf, sizeof crlf - 1);     \
+	end = pcmp_set16 (m+p->off, len-p->off, crlf, 1);               \
 	if (end == NULL) {                                              \
-		if (len >= sizeof crlf - 2) {                               \
-			p->off = len - sizeof crlf - 2;                         \
-		}                                                           \
+		p->off = len;                                               \
 		return 0;                                                   \
 	}                                                               \
-	end += sizeof crlf - 1;                                         \
-	size_t scan = end - m - p->off;                                 \
-	p->off += scan;                                                 \
+	if (pcmp_unlikely ((size_t)(end - m) == len - 1)) {             \
+		p->off = len - 1;                                           \
+		return 0;                                                   \
+	}                                                               \
+	if (pcmp_unlikely (end[1] != crlf[1])) {                        \
+		YIELD_ERROR (HTTP_PARSER_EPROTO);                           \
+	}                                                               \
+	end += 2;                                                       \
+	p->off = end - m;                                               \
 } while (0)
 
 
@@ -162,7 +166,7 @@ parse_request_line (HTTPParser *restrict p, const uint8_t *restrict m, size_t le
 
 	out->type = HTTP_PARSER_NONE;
 
-	const uint8_t *end = m;
+	const uint8_t *end;
 
 	switch (p->cs) {
 	case REQ:
@@ -208,7 +212,7 @@ parse_response_line (HTTPParser *restrict p, const uint8_t *restrict m, size_t l
 {
 	out->type = HTTP_PARSER_NONE;
 
-	const uint8_t *end = m;
+	const uint8_t *end;
 
 	switch (p->cs) {
 	case RES:
@@ -267,7 +271,7 @@ parse_field (HTTPParser *restrict p, const uint8_t *restrict m, size_t len, HTTP
 
 	out->type = HTTP_PARSER_NONE;
 
-	const uint8_t *end = m;
+	const uint8_t *end;
 
 	switch (p->cs) {
 	case FLD:
@@ -275,7 +279,7 @@ parse_field (HTTPParser *restrict p, const uint8_t *restrict m, size_t len, HTTP
 			return 0;
 		}
 		if (m[0] == crlf[0] && m[1] == crlf[1]) {
-			end += 2;
+			end = m + 2;
 			YIELD (HTTP_PARSER_HEADER_END, BODY);
 		}
 		p->cs = FLD_KEY;
