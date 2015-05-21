@@ -1,4 +1,5 @@
 local ffi = require('ffi')
+
 local Errno = require('levee.errno')
 
 ffi.cdef[[
@@ -31,11 +32,6 @@ function Buffer:__len()
 end
 
 
-function Buffer:available()
-	return self.cap - (self.off + self.len)
-end
-
-
 function Buffer:ensure(hint)
 	local cap = self.len + hint
 
@@ -57,7 +53,8 @@ function Buffer:ensure(hint)
 		cap = C.LEVEE_BUFFER_MIN_SIZE
 	elseif cap >= C.LEVEE_BUFFER_MAX_BLOCK then
 		-- grow to nearest LEVEE_BUFFER_MAX_BLOCK size with capacity to hold hint
-		cap = (((cap - 1) / C.LEVEE_BUFFER_MAX_BLOCK) + 1) * C.LEVEE_BUFFER_MAX_BLOCK;
+		cap = (
+			((cap - 1) / C.LEVEE_BUFFER_MAX_BLOCK) + 1) * C.LEVEE_BUFFER_MAX_BLOCK
 	else
 		-- grow to nearest power of 2
 		cap = math.pow(2, math.ceil(math.log(cap)/math.log(2)))
@@ -82,6 +79,11 @@ function Buffer:ensure(hint)
 end
 
 
+function Buffer:available()
+	return self.cap - (self.off + self.len)
+end
+
+
 function Buffer:trim(len)
 	if not len or len >= self.len then
 		self.off = 0
@@ -93,27 +95,8 @@ function Buffer:trim(len)
 end
 
 
-function Buffer:read(sock, len)
-	if not len then len = sock:available() end
-	self:ensure(len)
-
-	local read = sock:read(self.buf + self.off + self.len, len)
-	if read > 0 then
-		self.len = self.len + read
-		return read, 0
-	else
-		return -1, ffi.errno()
-	end
-end
-
-
-function Buffer:write(sock, len)
-	if not len then len = self.len end
-	local write = sock:write(self.buf + self.off, len)
-	if write > 0 then
-		self:trim(write)
-	end
-	return write
+function Buffer:bump(len)
+	self.len = self.len + len
 end
 
 
@@ -122,14 +105,19 @@ function Buffer:value()
 end
 
 
-function Buffer:peek()
+function Buffer:tail()
+	return self.buf + self.off + self.len, self:available()
+end
+
+
+function Buffer:peek_s()
 	if self.len == 0ULL then return "" end
 	return ffi.string(self.buf + self.off, self.len)
 end
 
 
-function Buffer:take()
-	local value = self:peek()
+function Buffer:take_s()
+	local value = self:peek_s()
 	self:trim()
 	return value
 end
