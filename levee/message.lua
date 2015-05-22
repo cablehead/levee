@@ -189,6 +189,10 @@ Pair.__index = function(self, key)
 	return Pair[key]
 end
 
+function Pair:__call()
+	return self.recver:recv()
+end
+
 function Pair:recv()
 	return self.recver:recv()
 end
