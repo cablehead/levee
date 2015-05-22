@@ -12,6 +12,7 @@ function Server.new(h, conn)
 
 		function _iter(conn, parser)
 			local buf = conn:recv()
+			if buf == nil then return end
 			local rc
 
 			return function()
@@ -25,20 +26,41 @@ function Server.new(h, conn)
 					if rc > 0 then break end
 					if parser:is_done() then return end
 					buf = conn:recv()
+					if buf == nil then return end
 				end
 
 				return parser:value(buf:value())
 			end
 		end
 
+		local iter = _iter(conn, parser)
+		if iter == nil then
+			conn:close()
+			return
+		end
+
 		while true do
 			parser:init_request()
 
-			local iter = _iter(conn, parser)
-
 			local r = {}
 
+			r.reply = function(status, headers, body)
+				conn:send(("HTTP/1.1 %s %s\r\n"):format(unpack(status)))
+				headers['Date'] = "Fri, 22 May 2015 19:44:50 GMT"
+				headers['Content-Length'] = #body
+				for key, value in pairs(headers) do
+					conn:send(("%s: %s\r\n"):format(key, value))
+				end
+				conn:send("\r\n")
+				conn:send(body)
+			end
+
 			r.method, r.path, r.version = iter()
+			if r.method == nil then
+				conn:close()
+				return
+			end
+
 			r.headers = {}
 
 			while true do
