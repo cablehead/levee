@@ -2,32 +2,40 @@ return {
 	test_core = function()
 		local levee = require("levee")
 		levee.run(function(h)
-			print()
-			print()
-
 			local serve = h.http:listen(8000)
 
-			--[[
-			c1 = h.tcp:connect(8000)
-			c1:send(
-				"GET /path HTTP/1.1\r\n" ..
-				"H1: one\r\n" ..
-				"\r\n")
-			--]]
-			--
+			local c = h.http:connect(8000)
 
-			function handle(conn)
-				while true do
-					local req = conn:recv()
-					req.reply({200, "OK"}, {}, "Hello World\n")
-				end
-			end
+			local response = c:get("/path")
 
-			while true do
-				local conn = serve:recv()
-				h:spawn(handle, conn)
-			end
+			local s = serve:recv()
 
+			local req = s:recv()
+			assert.equal(req.method, "GET")
+			assert.equal(req.path, "/path")
+			assert.equal(req.body, nil)
+			req.reply({200, "OK"}, {}, "Hello World\n")
+
+			response = response:recv()
+			assert.equal(response.code, 200)
+			assert.equal(response.body, "Hello World\n")
+
+			-- make another request on the same connection
+
+			local response = c:get("/path")
+
+			local req = s:recv()
+			assert.equal(req.method, "GET")
+			assert.equal(req.path, "/path")
+			assert.equal(req.body, nil)
+			req.reply({200, "OK"}, {}, "Hello World\n")
+
+			response = response:recv()
+			assert.equal(response.code, 200)
+			assert.equal(response.body, "Hello World\n")
+
+			c:close()
+			serve:close()
 		end)
 	end,
 }
