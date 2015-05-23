@@ -5,9 +5,6 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
-
-
-
 return {
 	test_io_close_read = function()
 		levee.run(function(h)
@@ -18,7 +15,7 @@ return {
 
 			-- TODO: this is needed as poller doesn't flush en_in before closing fd
 			w:send("foo")
-			assert.equal(r:recv(), "foo")
+			assert.equal(r:recv():take_s(), "foo")
 
 			r:close()
 			assert.equal(r:recv(), nil)
@@ -38,7 +35,7 @@ return {
 
 			-- TODO: this is needed as poller doesn't flush en_in before closing fd
 			w:send("foo")
-			assert.equal(r:recv(), "foo")
+			assert.equal(r:recv():take_s(), "foo")
 
 			w:close()
 		end)
