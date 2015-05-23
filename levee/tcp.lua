@@ -15,16 +15,20 @@ return function(hub)
 
 	function M:listen(port, host)
 		local no = sys.socket.listen(port, host)
+		sys.fd.nonblock(no, true)
 
 		local ready = self.hub:register(no, true)
 		local sender, recver = unpack(self.hub:pipe())
 
 		self.hub:spawn(function()
-			while true do
-				ready:recv()
-				local no = sys.socket.accept(no)
-				local conn = hub.io:rw(no)
-				sender:send(conn)
+			for _ in ready do
+				while true do
+					local no, err = sys.socket.accept(no)
+					-- TODO: only break on EAGAIN, should close on other errors
+					if no == nil then break end
+					local conn = hub.io:rw(no)
+					sender:send(conn)
+				end
 			end
 		end)
 
