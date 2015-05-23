@@ -64,4 +64,34 @@ return {
 			serve:close()
 		end)
 	end,
+
+	test_serve = function()
+		local levee = require("levee")
+		levee.run(function(h)
+			local serve = h.http:listen(8000)
+
+			function handle(conn)
+				for req in conn do
+					req.reply({200, "OK"}, {}, "Hello world\n")
+				end
+			end
+
+			h:spawn(function()
+				for conn in serve do
+					h:spawn(handle, conn)
+				end
+			end)
+
+			local c = h.http:connect(8000)
+
+			for _ = 1, 10 do
+				local response = c:get("/path"):recv()
+				assert.equal(response.code, 200)
+				assert.equal(response.body, "Hello world\n")
+			end
+
+			c:close()
+			serve:close()
+		end)
+	end,
 }

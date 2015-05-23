@@ -181,6 +181,11 @@ function Server:close()
 end
 
 
+function Server:__call()
+	return self.requests:recv()
+end
+
+
 function Server:recv()
 	return self.requests:recv()
 end
@@ -236,7 +241,7 @@ return function(h)
 				sender:send(Server.new(h, conn))
 			end
 		end)
-		return {
+		return setmetatable({
 			recv = function()
 				return recver:recv()
 			end,
@@ -244,7 +249,11 @@ return function(h)
 				serve:close()
 				return recver:close()
 			end
-		}
+		}, {
+			__call = function()
+				return recver:recv()
+			end,
+		})
 	end
 
 	return M
