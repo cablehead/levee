@@ -97,10 +97,19 @@ end
 
 function Client:writer()
 	for request in self.requests do
-		method, path, params, headers, data = unpack(request)
+		local method, path, params, headers, data = unpack(request)
+		-- TODO: params
 		self.conn:send(("%s %s %s\r\n"):format(method, path, VERSION))
+
+		headers = self:default_headers(headers)
+		if data then
+			headers["Content-Length"] = #data
+		end
 		send_headers(self.conn, self:default_headers(headers))
-		-- TODO: params, body
+
+		if data then
+			self.conn:send(data)
+		end
 	end
 end
 
@@ -129,13 +138,16 @@ function Client:request(method, path, params, headers, data)
 end
 
 
-function Client:get(path, params, headers)
-	return self:request("GET", path, params, headers)
+function Client:get(path, options)
+	options = options or {}
+	return self:request("GET", path, options.params, options.headers)
 end
 
 
-function Client:post(path, params, headers, data)
-	return self:request("POST", path, params, headers, data)
+function Client:post(path, options)
+	options = options or {}
+	return self:request(
+		"POST", path, options.params, options.headers, options.data)
 end
 
 
