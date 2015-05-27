@@ -27,7 +27,7 @@ end
 
 
 function HTTPParser:next(buf, len)
-	return C.http_parser_next(self, self.val, buf, len)
+	return C.http_parser_next(self, buf, len)
 end
 
 function HTTPParser:is_done()
