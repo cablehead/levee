@@ -50,19 +50,11 @@ return {
 
 		rc = p:next(buf, len)
 		assert(rc > 0)
-		assert.equal(p:is_done(), false)
-		assert.equal(p:value(buf), false)
-		buf = buf + rc
-		len = len - rc
-
-		rc = p:next(buf, len)
-		assert(rc > 0)
 		assert.equal(p:is_done(), true)
-		assert.equal(p:value(buf), "Hello World!\n")
 		buf = buf + rc
 		len = len - rc
 
-		assert.equal(len, 0)
+		assert.equal(ffi.string(buf, len), "Hello World!\n")
 	end,
 
 	test_response = function()
@@ -103,18 +95,10 @@ return {
 
 		rc = p:next(buf, len)
 		assert(rc > 0)
-		assert.equal(p:is_done(), false)
-		assert.equal(p:value(buf), false)
-		buf = buf + rc
-		len = len - rc
-
-		rc = p:next(buf, len)
-		assert(rc > 0)
 		assert.equal(p:is_done(), true)
-		assert.equal(p:value(buf), "Hello World!\n")
 		buf = buf + rc
 		len = len - rc
 
-		assert.equal(len, 0)
+		assert.equal(ffi.string(buf, len), "Hello World!\n")
 	end,
 }

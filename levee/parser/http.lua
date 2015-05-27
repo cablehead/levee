@@ -35,6 +35,16 @@ function HTTPParser:is_done()
 end
 
 
+function HTTPParser:has_value()
+	return
+		self.type == C.HTTP_PARSER_REQUEST or
+		self.type == C.HTTP_PARSER_RESPONSE or
+		self.type == C.HTTP_PARSER_FIELD or
+		self.type == C.HTTP_PARSER_BODY_START or
+		self.type == C.HTTP_PARSER_BODY_CHUNK
+end
+
+
 function HTTPParser:value(buf)
 	if self.type == C.HTTP_PARSER_REQUEST then
 		return
