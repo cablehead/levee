@@ -1,11 +1,9 @@
-local ffi = require("ffi")
-
 local message = require("levee.message")
 local refs = require("levee.refs")
 local task = require("levee.task")
 local FIFO = require("levee.fifo")
 
-local Poller = require("levee.poller." .. ffi.os:lower())
+local Poller = require("levee.poller")
 
 
 local Hub = {}
