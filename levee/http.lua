@@ -24,21 +24,21 @@ function parser_recver(h, conn, parser, init)
 				local rc = parser:next(buf:value())
 				if rc < 0 then error("TODO: parse error") end
 
-				local is_done = parser:is_done()
-
-				-- print("PARSER", rc, is_done)
-
-				if rc > 0 then
+				-- print("PARSER", rc, parser:is_done())
+				if parser:has_value() then
 					sender:send({parser:value(buf:value())})
-					buf:trim(rc)
 				end
 
-				if is_done then
-					if rc == 0 then sender:send({nil}) end
+				if parser:is_done() then
+					sender:send({nil})
 					init()
 				end
 
-				if rc == 0 then break end
+				if rc > 0 then
+					buf:trim(rc)
+				else
+					break
+				end
 			end
 		end
 	end)
