@@ -4,6 +4,27 @@
 #include "http.h"
 #include "mu.h"
 
+typedef struct {
+	union {
+		struct {
+			char method[8];
+			char uri[32];
+			uint8_t version;
+		} request;
+		struct {
+			uint8_t version;
+			uint16_t status;
+			char reason[32];
+		} response;
+	} as;
+	struct {
+		char name[32];
+		char value[64];
+	} fields[16];
+	size_t field_count;
+	char body[256];
+} Message;
+
 static void
 print_string (FILE *out, const void *val, size_t len)
 {
@@ -22,174 +43,444 @@ print_string (FILE *out, const void *val, size_t len)
 	fputc ('\n', out);
 }
 
-static const uint8_t request[] = 
-	"GET /some/path HTTP/1.1\r\n"
-	"Empty:\r\n"
-	"Empty-Space: \r\n"
-	"Space: value\r\n"
-	"No-Space:value\r\n"
-	"Spaces: value with spaces\r\n"
-	"Pre-Spaces:           value with prefix spaces\r\n"
-	"Content-Length: 13\r\n"
-	//"Newlines: stuff\r\n with\r\n newlines\r\n"
-	//"String: stuff\r\n \"with\r\n\\\"strings\\\" and things\r\n\"\r\n"
-	"\r\n"
-	"Hello World!\n"
-	;
-
-static const uint8_t response[] = 
-	"HTTP/1.1 200 OK\r\n"
-	"Empty:\r\n"
-	"Empty-Space: \r\n"
-	"Space: value\r\n"
-	"No-Space:value\r\n"
-	"Spaces: value with spaces\r\n"
-	"Pre-Spaces:           value with prefix spaces\r\n"
-	"Content-Length: 13\r\n"
-	//"Newlines: stuff\r\n with\r\n newlines\r\n"
-	//"String: stuff\r\n \"with\r\n\\\"strings\\\" and things\r\n\"\r\n"
-	"\r\n"
-	"Hello World!\n"
-	;
-
-static void
-test_request_line (HTTPValue *val, const uint8_t *buf)
+static bool
+parse (HTTPParser *p, Message *msg, const uint8_t *in, size_t inlen, ssize_t speed)
 {
-	char str[64]; // only using for string comparisons
+	memset (msg, 0, sizeof *msg);
 
-	memcpy (str, buf + val->as.request.method_off, val->as.request.method_len);
-	str[val->as.request.method_len] = '\0';
-	mu_assert_str_eq ("GET", str);
-
-	memcpy (str, buf + val->as.request.uri_off, val->as.request.uri_len);
-	str[val->as.request.uri_len] = '\0';
-	mu_assert_str_eq ("/some/path", str);
-
-	mu_assert_int_eq (1, val->as.request.version);
-}
-
-static void
-test_next_header_field (HTTPValue *val, const uint8_t *buf, size_t *n)
-{
-	static const char *headers[][2] = {
-		{"Empty", ""},
-		{"Empty-Space", ""},
-		{"Space", "value"},
-		{"No-Space", "value"},
-		{"Spaces", "value with spaces"},
-		{"Pre-Spaces", "value with prefix spaces"},
-		{"Content-Length", "13"}
-	};
-
-	char str[64]; // only using for string comparisons
-
-	memcpy (str, buf + val->as.field.name_off, val->as.field.name_len);
-	str[val->as.field.name_len] = '\0';
-	mu_assert_str_eq (headers[*n][0], str);
-
-	memcpy (str, buf + val->as.field.value_off, val->as.field.value_len);
-	str[val->as.field.value_len] = '\0';
-	mu_assert_str_eq (headers[*n][1], str);
-
-	(*n)++;
-}
-
-static void
-test_next_body (HTTPValue *val, const uint8_t *buf, size_t *off)
-{
-	static const char body[] = "Hello World!\n";
-
-	char str[64], cmp[64]; // only using for string comparisons
-
-	ssize_t rem = sizeof body - 1 - *off;
-	mu_assert_uint_ge (rem, val->as.body.value_len);
-
-	if (rem >= 0 && (size_t)rem >= val->as.body.value_len) {
-		memcpy (str, buf + val->as.body.value_off, val->as.body.value_len);
-		str[val->as.body.value_len] = '\0';
-
-		memcpy (cmp, body + *off, val->as.body.value_len);
-		cmp[val->as.body.value_len] = '\0';
-
-		mu_assert_str_eq (str, cmp);
-
-		*off += val->as.body.value_len;
-	}
-}
-
-static void
-test_message (HTTPParser *p, const uint8_t *msg, size_t mlen, ssize_t chunk)
-{
-	HTTPValue val;
-	const uint8_t *buf = msg;
+	const uint8_t *buf = in;
 	size_t len, trim = 0;
+	size_t body = 0;
+	ssize_t rc;
 
-	if (chunk > 0) {
-		len = chunk;
+	if (speed > 0) {
+		len = speed;
 	}
 	else {
-		len = mlen;
+		len = inlen;
 	}
 
-	bool header_end = false;
-	size_t headern = 0;
-	size_t bodyn = 0;
-
-	while (len > 0 && !http_parser_is_done (p)) {
+	while (body > 0 || !http_parser_is_done (p)) {
 		mu_assert_uint_ge (len, trim);
-		if (len < trim) return;
+		if (len < trim) return false;
 
-		ssize_t rc = http_parser_next (p, &val, buf, len - trim);
+		if (body > 0) {
+			rc = len - trim;
+			if (body < (size_t)rc) {
+				rc = body;
+			}
+			strncat (msg->body, (char *)buf, rc);
+			body -= rc;
+		}
+		else {
+			rc = http_parser_next (p, buf, len - trim);
 
-		// normally rc could equal 0 if a full scan couldn't be completed
-		mu_assert_int_ge (rc, 0);
-		if (rc < 0) {
-			fprintf (stderr, "FAILED PARSING: ");
-			print_string (stderr, buf, len - trim);
-			return;
-		}
+			// normally rc could equal 0 if a full scan couldn't be completed
+			mu_assert_int_ge (rc, 0);
+			if (rc < 0) {
+				fprintf (stderr, "FAILED PARSING: ");
+				print_string (stderr, buf, len - trim);
+				return false;
+			}
 
-		if (val.type == HTTP_PARSER_REQUEST) {
-			test_request_line (&val, buf);
-		}
-		else if (val.type == HTTP_PARSER_HEADER_FIELD) {
-			test_next_header_field (&val, buf, &headern);
-		}
-		else if (val.type == HTTP_PARSER_HEADER_END) {
-			header_end = true;
-		}
-		else if (val.type == HTTP_PARSER_BODY) {
-			test_next_body (&val, buf, &bodyn);
+			if (p->type == HTTP_PARSER_REQUEST) {
+				strncat (msg->as.request.method,
+						(char *)buf + p->as.request.method_off,
+						p->as.request.method_len);
+				strncat (msg->as.request.uri,
+						(char *)buf + p->as.request.uri_off,
+						p->as.request.uri_len);
+				msg->as.request.version = p->as.request.version;
+			}
+			else if (p->type == HTTP_PARSER_RESPONSE) {
+				msg->as.response.version = p->as.response.version;
+				msg->as.response.status = p->as.response.status;
+				strncat (msg->as.response.reason,
+						(char *)buf + p->as.response.reason_off,
+						p->as.response.reason_len);
+			}
+			else if (p->type == HTTP_PARSER_FIELD) {
+				strncat (msg->fields[msg->field_count].name,
+						(char *)buf + p->as.field.name_off,
+						p->as.field.name_len);
+				strncat (msg->fields[msg->field_count].value,
+						(char *)buf + p->as.field.value_off,
+						p->as.field.value_len);
+				msg->field_count++;
+			}
+			else if (p->type == HTTP_PARSER_BODY_START) {
+				if (!p->as.body_start.chunked) {
+					body = p->as.body_start.content_length;
+				}
+			}
+			else if (p->type == HTTP_PARSER_BODY_CHUNK) {
+				body = p->as.body_chunk.length;
+			}
 		}
 
 		// trim the buffer
 		buf += rc;
 		trim += rc;
 
-		if (chunk > 0) {
-			len += chunk;
-			if (len > mlen) {
-				len = mlen;
+		if (speed > 0) {
+			len += speed;
+			if (len > inlen) {
+				len = inlen;
 			}
 		}
+	}
+
+	return true;
+}
+
+static void
+test_request (ssize_t speed)
+{
+	HTTPParser p;
+	http_parser_init_request (&p);
+
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"Empty:\r\n"
+		"Empty-Space: \r\n"
+		"Space: value\r\n"
+		"No-Space:value\r\n"
+		"Spaces: value with spaces\r\n"
+		"Pre-Spaces:           value with prefix spaces\r\n"
+		"Content-Length: 12\r\n"
+		//"Newlines: stuff\r\n with\r\n newlines\r\n"
+		//"String: stuff\r\n \"with\r\n\\\"strings\\\" and things\r\n\"\r\n"
+		"\r\n"
+		"Hello World!"
+		;
+
+	Message msg;
+	if (!parse (&p, &msg, request, sizeof request - 1, speed)) {
+		return;
+	}
+
+	mu_assert_str_eq ("GET", msg.as.request.method);
+	mu_assert_str_eq ("/some/path", msg.as.request.uri);
+	mu_assert_uint_eq (1, msg.as.request.version);
+	mu_assert_uint_eq (7, msg.field_count);
+	mu_assert_str_eq ("Empty", msg.fields[0].name);
+	mu_assert_str_eq ("", msg.fields[0].value);
+	mu_assert_str_eq ("Empty-Space", msg.fields[1].name);
+	mu_assert_str_eq ("", msg.fields[1].value);
+	mu_assert_str_eq ("Space", msg.fields[2].name);
+	mu_assert_str_eq ("value", msg.fields[2].value);
+	mu_assert_str_eq ("No-Space", msg.fields[3].name);
+	mu_assert_str_eq ("value", msg.fields[3].value);
+	mu_assert_str_eq ("Spaces", msg.fields[4].name);
+	mu_assert_str_eq ("value with spaces", msg.fields[4].value);
+	mu_assert_str_eq ("Pre-Spaces", msg.fields[5].name);
+	mu_assert_str_eq ("value with prefix spaces", msg.fields[5].value);
+	mu_assert_str_eq ("Content-Length", msg.fields[6].name);
+	mu_assert_str_eq ("12", msg.fields[6].value);
+	mu_assert_str_eq ("Hello World!", msg.body);
+}
+
+static void
+test_chunked_request (ssize_t speed)
+{
+	HTTPParser p;
+	http_parser_init_request (&p);
+
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"Empty:\r\n"
+		"Empty-Space: \r\n"
+		"Space: value\r\n"
+		"No-Space:value\r\n"
+		"Spaces: value with spaces\r\n"
+		"Pre-Spaces:           value with prefix spaces\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		//"Newlines: stuff\r\n with\r\n newlines\r\n"
+		//"String: stuff\r\n \"with\r\n\\\"strings\\\" and things\r\n\"\r\n"
+		"\r\n"
+		"5\r\n"
+		"Hello"
+		"7\r\n"
+		" World!"
+		"0\r\n"
+		"Trailer: trailer value\r\n"
+		"\r\n"
+		;
+
+	Message msg;
+	if (!parse (&p, &msg, request, sizeof request - 1, speed)) {
+		return;
+	}
+
+	mu_assert_str_eq ("GET", msg.as.request.method);
+	mu_assert_str_eq ("/some/path", msg.as.request.uri);
+	mu_assert_uint_eq (1, msg.as.request.version);
+	mu_assert_uint_eq (8, msg.field_count);
+	mu_assert_str_eq ("Empty", msg.fields[0].name);
+	mu_assert_str_eq ("", msg.fields[0].value);
+	mu_assert_str_eq ("Empty-Space", msg.fields[1].name);
+	mu_assert_str_eq ("", msg.fields[1].value);
+	mu_assert_str_eq ("Space", msg.fields[2].name);
+	mu_assert_str_eq ("value", msg.fields[2].value);
+	mu_assert_str_eq ("No-Space", msg.fields[3].name);
+	mu_assert_str_eq ("value", msg.fields[3].value);
+	mu_assert_str_eq ("Spaces", msg.fields[4].name);
+	mu_assert_str_eq ("value with spaces", msg.fields[4].value);
+	mu_assert_str_eq ("Pre-Spaces", msg.fields[5].name);
+	mu_assert_str_eq ("value with prefix spaces", msg.fields[5].value);
+	mu_assert_str_eq ("Transfer-Encoding", msg.fields[6].name);
+	mu_assert_str_eq ("chunked", msg.fields[6].value);
+	mu_assert_str_eq ("Trailer", msg.fields[7].name);
+	mu_assert_str_eq ("trailer value", msg.fields[7].value);
+	mu_assert_str_eq ("Hello World!", msg.body);
+}
+
+static void
+test_response (ssize_t speed)
+{
+	HTTPParser p;
+	http_parser_init_response (&p);
+
+	static const uint8_t response[] = 
+		"HTTP/1.1 200 OK\r\n"
+		"Empty:\r\n"
+		"Empty-Space: \r\n"
+		"Space: value\r\n"
+		"No-Space:value\r\n"
+		"Spaces: value with spaces\r\n"
+		"Pre-Spaces:           value with prefix spaces\r\n"
+		"Content-Length: 12\r\n"
+		//"Newlines: stuff\r\n with\r\n newlines\r\n"
+		//"String: stuff\r\n \"with\r\n\\\"strings\\\" and things\r\n\"\r\n"
+		"\r\n"
+		"Hello World!"
+		;
+
+	Message msg;
+	if (!parse (&p, &msg, response, sizeof response - 1, speed)) {
+		return;
+	}
+
+	mu_assert_uint_eq (1, msg.as.response.version);
+	mu_assert_uint_eq (200, msg.as.response.status);
+	mu_assert_str_eq ("OK", msg.as.response.reason);
+	mu_assert_uint_eq (7, msg.field_count);
+	mu_assert_str_eq ("Empty", msg.fields[0].name);
+	mu_assert_str_eq ("", msg.fields[0].value);
+	mu_assert_str_eq ("Empty-Space", msg.fields[1].name);
+	mu_assert_str_eq ("", msg.fields[1].value);
+	mu_assert_str_eq ("Space", msg.fields[2].name);
+	mu_assert_str_eq ("value", msg.fields[2].value);
+	mu_assert_str_eq ("No-Space", msg.fields[3].name);
+	mu_assert_str_eq ("value", msg.fields[3].value);
+	mu_assert_str_eq ("Spaces", msg.fields[4].name);
+	mu_assert_str_eq ("value with spaces", msg.fields[4].value);
+	mu_assert_str_eq ("Pre-Spaces", msg.fields[5].name);
+	mu_assert_str_eq ("value with prefix spaces", msg.fields[5].value);
+	mu_assert_str_eq ("Content-Length", msg.fields[6].name);
+	mu_assert_str_eq ("12", msg.fields[6].value);
+	mu_assert_str_eq ("Hello World!", msg.body);
+}
+
+static void
+test_chunked_response (ssize_t speed)
+{
+	HTTPParser p;
+	http_parser_init_response (&p);
+
+	static const uint8_t response[] = 
+		"HTTP/1.1 200 OK\r\n"
+		"Empty:\r\n"
+		"Empty-Space: \r\n"
+		"Space: value\r\n"
+		"No-Space:value\r\n"
+		"Spaces: value with spaces\r\n"
+		"Pre-Spaces:           value with prefix spaces\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		//"Newlines: stuff\r\n with\r\n newlines\r\n"
+		//"String: stuff\r\n \"with\r\n\\\"strings\\\" and things\r\n\"\r\n"
+		"\r\n"
+		"5\r\n"
+		"Hello"
+		"7\r\n"
+		" World!"
+		"0\r\n"
+		"Trailer: trailer value\r\n"
+		"\r\n"
+		;
+
+	Message msg;
+	if (!parse (&p, &msg, response, sizeof response - 1, speed)) {
+		return;
+	}
+
+	mu_assert_uint_eq (1, msg.as.response.version);
+	mu_assert_uint_eq (200, msg.as.response.status);
+	mu_assert_str_eq ("OK", msg.as.response.reason);
+	mu_assert_uint_eq (8, msg.field_count);
+	mu_assert_str_eq ("Empty", msg.fields[0].name);
+	mu_assert_str_eq ("", msg.fields[0].value);
+	mu_assert_str_eq ("Empty-Space", msg.fields[1].name);
+	mu_assert_str_eq ("", msg.fields[1].value);
+	mu_assert_str_eq ("Space", msg.fields[2].name);
+	mu_assert_str_eq ("value", msg.fields[2].value);
+	mu_assert_str_eq ("No-Space", msg.fields[3].name);
+	mu_assert_str_eq ("value", msg.fields[3].value);
+	mu_assert_str_eq ("Spaces", msg.fields[4].name);
+	mu_assert_str_eq ("value with spaces", msg.fields[4].value);
+	mu_assert_str_eq ("Pre-Spaces", msg.fields[5].name);
+	mu_assert_str_eq ("value with prefix spaces", msg.fields[5].value);
+	mu_assert_str_eq ("Transfer-Encoding", msg.fields[6].name);
+	mu_assert_str_eq ("chunked", msg.fields[6].value);
+	mu_assert_str_eq ("Trailer", msg.fields[7].name);
+	mu_assert_str_eq ("trailer value", msg.fields[7].value);
+	mu_assert_str_eq ("Hello World!", msg.body);
+}
+
+static void
+test_invalid_header (void)
+{
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"Header\r\n"
+		"\r\n"
+		;
+
+	HTTPParser p;
+	ssize_t rc;
+
+	http_parser_init_request (&p);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, 25);
+	if (rc > 0) {
+		mu_assert_int_eq (p.type, HTTP_PARSER_REQUEST);
+		rc = http_parser_next (&p, request + rc, sizeof request - 1 - rc);
+		mu_assert_int_eq (rc, HTTP_PARSER_EPROTO);
 	}
 }
 
 static void
-test_request (ssize_t chunk)
+test_limit_method_size (void)
 {
+	static const uint8_t request[] = 
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX /some/path HTTP/1.1\r\n"
+		"\r\n"
+		"\r\n"
+		;
+
 	HTTPParser p;
+	ssize_t rc;
+
 	http_parser_init_request (&p);
-	test_message (&p, request, sizeof request - 1, chunk);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, 54);
 }
 
 static void
-test_response (ssize_t chunk)
+test_exceed_method_size (void)
 {
+	static const uint8_t request[] = 
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX /some/path HTTP/1.1\r\n"
+		"\r\n"
+		"\r\n"
+		;
+
 	HTTPParser p;
-	http_parser_init_response (&p);
-	test_message (&p, response, sizeof response - 1, chunk);
+	ssize_t rc;
+
+	http_parser_init_request (&p);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, HTTP_PARSER_ESIZE);
 }
+
+static void
+test_limit_name_size (void)
+{
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX: value\r\n"
+		"\r\n"
+		;
+
+	HTTPParser p;
+	ssize_t rc;
+
+	http_parser_init_request (&p);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, 25);
+	if (rc > 0) {
+		mu_assert_int_eq (p.type, HTTP_PARSER_REQUEST);
+		rc = http_parser_next (&p, request + rc, sizeof request - 1 - rc);
+		mu_assert_int_eq (rc, 265);
+	}
+}
+
+static void
+test_exceed_name_size (void)
+{
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX: value\r\n"
+		"\r\n"
+		;
+
+	HTTPParser p;
+	ssize_t rc;
+
+	http_parser_init_request (&p);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, 25);
+	if (rc > 0) {
+		mu_assert_int_eq (p.type, HTTP_PARSER_REQUEST);
+		rc = http_parser_next (&p, request + rc, sizeof request - 1 - rc);
+		mu_assert_int_eq (rc, HTTP_PARSER_ESIZE);
+	}
+}
+
+static void
+test_limit_value_size (void)
+{
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"Name:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\r\n"
+		"\r\n"
+		;
+
+	HTTPParser p;
+	ssize_t rc;
+
+	http_parser_init_request (&p);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, 25);
+	if (rc > 0) {
+		mu_assert_int_eq (p.type, HTTP_PARSER_REQUEST);
+		rc = http_parser_next (&p, request + rc, sizeof request - 1 - rc);
+		mu_assert_int_eq (rc, 1031);
+	}
+}
+
+static void
+test_exceed_value_size (void)
+{
+	static const uint8_t request[] = 
+		"GET /some/path HTTP/1.1\r\n"
+		"Name:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\r\n"
+		"\r\n"
+		;
+
+	HTTPParser p;
+	ssize_t rc;
+
+	http_parser_init_request (&p);
+	rc = http_parser_next (&p, request, sizeof request - 1);
+	mu_assert_int_eq (rc, 25);
+	if (rc > 0) {
+		mu_assert_int_eq (p.type, HTTP_PARSER_REQUEST);
+		rc = http_parser_next (&p, request + rc, sizeof request - 1 - rc);
+		mu_assert_int_eq (rc, HTTP_PARSER_ESIZE);
+	}
+}
+
 
 int
 main (void)
@@ -199,10 +490,29 @@ main (void)
 	test_request (2);  // parse 2 bytes at a time
 	test_request (11); // parse 11 bytes at a time
 
+	test_chunked_request (-1); // parse full message
+	test_chunked_request (1);  // parse 1 byte at a time
+	test_chunked_request (2);  // parse 2 bytes at a time
+	test_chunked_request (11); // parse 11 bytes at a time
+
 	test_response (-1); // parse full message
 	test_response (1);  // parse 1 byte at a time
 	test_response (2);  // parse 2 bytes at a time
 	test_response (11); // parse 11 bytes at a time
+
+	test_chunked_response (-1); // parse full message
+	test_chunked_response (1);  // parse 1 byte at a time
+	test_chunked_response (2);  // parse 2 bytes at a time
+	test_chunked_response (11); // parse 11 bytes at a time
+
+	test_invalid_header ();
+
+	test_limit_method_size ();
+	test_exceed_method_size ();
+	test_limit_name_size ();
+	test_exceed_name_size ();
+	test_limit_value_size ();
+	test_exceed_value_size ();
 
 	mu_exit ("http");
 }

@@ -1,13 +1,6 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-ffi.cdef[[
-typedef struct {
-	HTTPParser p;
-	HTTPValue val;
-} LeveeHTTPParser;
-]]
-
 
 local HTTPParser = {}
 HTTPParser.__index = HTTPParser
@@ -24,49 +17,55 @@ end
 
 
 function HTTPParser:init_request()
-	return C.http_parser_init_request(self.p)
+	return C.http_parser_init_request(self)
 end
 
 
 function HTTPParser:init_response()
-	return C.http_parser_init_response(self.p)
+	return C.http_parser_init_response(self)
 end
 
 
 function HTTPParser:next(buf, len)
-	return C.http_parser_next(self.p, self.val, buf, len)
+	return C.http_parser_next(self, self.val, buf, len)
 end
 
-
 function HTTPParser:is_done()
-	return C.http_parser_is_done(self.p)
+	return C.http_parser_is_done(self)
 end
 
 
 function HTTPParser:value(buf)
-	if self.val.type == C.HTTP_PARSER_REQUEST then
+	if self.type == C.HTTP_PARSER_REQUEST then
 		return
 			ffi.string(
-				buf + self.val.as.request.method_off, self.val.as.request.method_len),
-			ffi.string(buf + self.val.as.request.uri_off, self.val.as.request.uri_len),
-			self.val.as.request.version
-	elseif self.val.type == C.HTTP_PARSER_RESPONSE then
+				buf + self.as.request.method_off, self.as.request.method_len),
+			ffi.string(buf + self.as.request.uri_off, self.as.request.uri_len),
+			self.as.request.version
+	elseif self.type == C.HTTP_PARSER_RESPONSE then
 		return
-			self.val.as.response.status,
+			self.as.response.status,
 			ffi.string(
-				buf + self.val.as.response.reason_off, self.val.as.response.reason_len),
-			self.val.as.request.version
-	elseif self.val.type == C.HTTP_PARSER_HEADER_FIELD then
+				buf + self.as.response.reason_off, self.as.response.reason_len),
+			self.as.request.version
+	elseif self.type == C.HTTP_PARSER_FIELD then
 		return
-			ffi.string(buf + self.val.as.field.name_off, self.val.as.field.name_len),
-			ffi.string(buf + self.val.as.field.value_off, self.val.as.field.value_len)
-	elseif self.val.type == C.HTTP_PARSER_HEADER_END then
-		return false
-	elseif self.val.type == C.HTTP_PARSER_BODY then
+			ffi.string(buf + self.as.field.name_off, self.as.field.name_len),
+			ffi.string(buf + self.as.field.value_off, self.as.field.value_len)
+	elseif self.type == C.HTTP_PARSER_BODY_START then
 		return
-			ffi.string(buf + self.val.as.body.value_off, self.val.as.body.value_len)
+			self.as.body_start.chunked,
+			self.as.body_start.content_length
+	elseif self.type == C.HTTP_PARSER_BODY_CHUNK then
+		return
+			true,
+			self.as.body_chunk.length
+	elseif self.type == C.HTTP_PARSER_BODY_END then
+		return
+			false,
+			0
 	end
 end
 
 
-return ffi.metatype("LeveeHTTPParser", HTTPParser)
+return ffi.metatype("HTTPParser", HTTPParser)
