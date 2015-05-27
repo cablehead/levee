@@ -63,9 +63,9 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 -include $(wildcard $(OBJ)/*.d)
 
-$(BIN)/levee: $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a
+$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(OBJ)
