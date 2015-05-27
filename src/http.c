@@ -40,7 +40,7 @@
 
 
 #define EXPECT_MAX_OFFSET(max) do {                                 \
-	if (pcmp_unlikely (p->off > max)) {                             \
+	if (pcmp_unlikely (p->off > (size_t)max)) {                     \
 		YIELD_ERROR (HTTP_PARSER_ESIZE);                            \
 	}                                                               \
 } while (0)
@@ -345,7 +345,7 @@ parse_chunk (HTTPParser *restrict p, const uint8_t *restrict m, size_t len)
 		do {
 			if (p->off == len) return 0;
 			uint8_t c = m[p->off];
-			if (ishexnumber (c)) {
+			if (isxdigit (c)) {
 				p->body_len = (p->body_len << 4) | hex[c];
 				p->off++;
 			}

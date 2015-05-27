@@ -42,7 +42,8 @@ ifeq (Darwin,$(OS))
   LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
 endif
 ifeq (Linux,$(OS))
-  LDFLAGS:= -Wl,-export-dynamic
+  CFLAGS:= $(CFLAGS) -D_BSD_SOURCE
+  LDFLAGS:= -Wl,-export-dynamic -lm -ldl
 endif
 
 all: $(BIN)/levee
@@ -62,7 +63,7 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 -include $(wildcard $(OBJ)/*.d)
 
-$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
+$(BIN)/levee: $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a
 	@mkdir -p $(BIN)
 	$(CC) $(LDFLAGS) $^ -o $@
 

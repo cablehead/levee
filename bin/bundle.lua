@@ -78,10 +78,10 @@ end
 
 
 local loader_call_tmpl = [[
-	static const char buf[] = {
+	static const unsigned char buf[] = {
 		%s
 	};
-	if (luaL_loadbufferx (L, buf, sizeof buf, "%s", "b")) {
+	if (luaL_loadbufferx (L, (const char *)buf, sizeof buf, "%s", "b")) {
 		lua_pop (L, 2);
 		return 0;
 	}

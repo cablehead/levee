@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <err.h>
 #include <sysexits.h>
+#include <signal.h>
 
 #include "levee.h"
 #include "task.h"
@@ -35,7 +36,7 @@ main (int argc, const char *argv[])
 		errx (EX_NOINPUT, "script required");
 	}
 
-	signal(SIGPIPE, SIG_IGN);
+	signal (SIGPIPE, SIG_IGN);
 
 	lua_State *L = luaL_newstate ();
 	if (L == NULL) {
