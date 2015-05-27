@@ -109,16 +109,16 @@ function Poller:poll()
 	local e = self.ev_out[0]
 
 	if e.filter == C.EVFILT_READ and e.data > 0 then
-		return tonumber(e.ident), POLLIN, e.flags
+		return tonumber(e.ident), POLLIN, e.data
 	end
 
 	-- it's possible to get an EOF and a WRITE in the same poll
 	if bit.band(e.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0 then
-		return tonumber(e.ident), POLLERR, e.flags
+		return tonumber(e.ident), POLLERR, e.data
 	end
 
 	if e.filter == C.EVFILT_WRITE then
-		return tonumber(e.ident), POLLOUT, e.flags
+		return tonumber(e.ident), POLLOUT, e.data
 	end
 
 end
