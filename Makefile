@@ -30,11 +30,12 @@ LUAJIT_DST := $(BUILD)/luajit
 LUAJIT_ARG := \
 	XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT \
 	BUILDMODE=static \
-	MACOSX_DEPLOYMENT_TARGET=10.8
+	MACOSX_DEPLOYMENT_TARGET=10.8 \
+	INSTALL_TNAME=luajit
 
 LUAJIT := $(LUAJIT_DST)/bin/luajit
 
-CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.0
+CFLAGS:= -Wall -Wextra -Werror -pedantic -Os -march=native -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.1
 ifeq (Darwin,$(OS))
   LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000
 endif

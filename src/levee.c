@@ -44,7 +44,7 @@ main (int argc, const char *argv[])
 
 	luaL_openlibs (L);
 	luaopen_levee (L);
-	luaL_findtable (L, LUA_REGISTRYINDEX, "_PRELOAD", 16);
+	lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
 	lua_pushcfunction (L, luaopen_task);
 	lua_setfield (L, -2, "levee.task");
 

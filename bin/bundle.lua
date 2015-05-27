@@ -120,8 +120,10 @@ end
 local preload_function_tmpl = [[
 int
 luaopen_%s (lua_State *L) {
-	luaL_findtable (L, LUA_REGISTRYINDEX, "_PRELOAD", %d);
+	lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
+
 %s
+	lua_pop (L, 1);
 	return 0;
 }
 ]]
@@ -131,7 +133,7 @@ local function preload_function(name, files)
 	for i,file in ipairs(files) do
 		table.insert(calls, preload_call(file))
 	end
-	return preload_function_tmpl:format(name, #files, table.concat(calls, "\n"))
+	return preload_function_tmpl:format(name, table.concat(calls, "\n"))
 end
 
 
@@ -141,14 +143,7 @@ local function bundle(root, sub)
 	for i,file in ipairs(files) do
 		print(loader_function(file))
 	end
-	print('int luaopen_' .. sub .. ' (lua_State *L) {')
-	print('	luaL_findtable (L, LUA_REGISTRYINDEX, "_PRELOAD", ' .. #files .. ');')
-	for i,file in ipairs(files) do
-		print('	lua_pushcfunction (L, load_' .. file.fname .. ');')
-		print('	lua_setfield (L, -2, "' .. file.id .. '");')
-	end
-	print('	return 0;')
-	print('}')
+	print(preload_function(sub, files))
 end
 
 print('#include <lua.h>')
