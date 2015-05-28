@@ -3,7 +3,7 @@ local sys = require("levee.sys")
 return {
 	test_core = function()
 		local r, w = sys.os.pipe()
-		local poller = sys.poller.Poller()
+		local poller = sys.poller()
 
 		poller:register(r, true)
 		poller:register(w, false, true)
