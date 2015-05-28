@@ -37,7 +37,7 @@ LUAJIT_ARG := \
 
 LUAJIT := $(LUAJIT_DST)/bin/luajit
 
-CFLAGS:= -Wall -Wextra -Werror -pedantic -std=c99 -O2 -march=native -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.1
+CFLAGS:= -Wall -Wextra -Werror -pedantic -std=c99 -O2 -fomit-frame-pointer -march=native -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.1
 ifeq (Darwin,$(OS))
   LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
 endif
