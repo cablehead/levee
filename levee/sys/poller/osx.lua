@@ -112,14 +112,14 @@ end
 
 
 function Poller:poll()
-	--local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out,
-	--	C.EV_POLL_OUT_MAX, nil)
+	local n = C.kevent(
+		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, nil)
 
-	local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
+	-- local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
 	if n < 0 then Errno:error("kevent") end
 
 	self.ev_in_pos = 0
-	return self.ev_out[0]
+	return self.ev_out, n
 end
 
 
