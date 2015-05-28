@@ -22,8 +22,8 @@ return {
 		assert(utc:time() == loc:time())
 		assert(utc:iso8601() == "2015-05-05T18:51:17.736409Z")
 		assert(loc:utcdate():iso8601() == "2015-05-05T18:51:17.736409Z")
-		assert(time.iso8601("2015-05-05T18:51:17.736409Z") == utc)
-		assert(time.iso8601("2015-05-05T11:51:17.736409-07:00") == loc)
+		assert(time.parse_iso8601("2015-05-05T18:51:17.736409Z") == utc)
+		assert(time.parse_iso8601("2015-05-05T11:51:17.736409-07:00") == loc)
 		assert(time.parse("2015-05-05T18:51:17.736409Z") == utc)
 		assert(time.parse("2015-05-05T11:51:17.736409-07:00") == loc)
 
@@ -32,7 +32,7 @@ return {
 		assert(utc == loc)
 		assert(utc:time() == loc:time())
 		assert(utc:http() == "Tue, 05 May 2015 18:51:17 GMT")
-		assert(time.http("Tue, 05 May 2015 18:51:17 GMT") == utc)
+		assert(time.parse_http("Tue, 05 May 2015 18:51:17 GMT") == utc)
 		assert(time.parse("Tue, 05 May 2015 18:51:17 GMT") == utc)
 	end,
 	test_timer = function()

@@ -25,8 +25,10 @@ struct tm {
 };
 
 int gettimeofday (struct timeval* t, void* tzp);
+time_t time(time_t *tloc);
 struct tm * gmtime_r(const time_t *clock, struct tm *result);
 struct tm * localtime_r(const time_t *clock, struct tm *result);
 char *strptime(const char *s, const char *format, struct tm *tm);
+size_t strftime(char *restrict s, size_t maxsize, const char *restrict format, const struct tm *restrict timeptr);
 time_t timegm(struct tm *timeptr);
 time_t mktime(struct tm *timeptr);
