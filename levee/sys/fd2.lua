@@ -2,16 +2,16 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
-local function nonblock(no, on)
+local function nonblock(no, off)
 	local flags = C.fcntl(no, C.F_GETFL, 0)
 	if flags == -1 then
 		return ffi.errno()
 	end
 
-	if on then
-		flags = bit.bor(flags, C.O_NONBLOCK)
-	else
+	if off then
 		flags = bit.band(flags, bit.xor(C.O_NONBLOCK))
+	else
+		flags = bit.bor(flags, C.O_NONBLOCK)
 	end
 
 	local rc = C.fcntl(no, C.F_SETFL, ffi.new("int", flags))
