@@ -7,6 +7,7 @@ BUILD ?= $(PROJECT)/build
 SRC := $(PROJECT)/src
 OBJ := $(BUILD)/obj
 BIN := $(BUILD)/bin
+LIB := $(BUILD)/lib
 TMP := $(BUILD)/tmp
 
 TEST_SRC := $(PROJECT)/tests
@@ -48,6 +49,8 @@ endif
 
 all: $(BIN)/levee
 
+so: $(LIB)/levee.so
+
 test: test-c test-lua
 
 test-c:
@@ -66,6 +69,10 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 $(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
 	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -o $@
+
+$(LIB)/levee.so: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
+	@mkdir -p $(LIB)
+	$(CC) $(LDFLAGS) -dynamic -lluajit-5.1 $(OBJS_LEVEE) -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(OBJ)
