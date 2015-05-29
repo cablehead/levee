@@ -1,4 +1,15 @@
+local ffi = require('ffi')
+
 local sys = require("levee.sys")
+local time = require("levee.time")
+
+
+local function rel_to_abs(ms)
+		local t = time.now()
+		return ffi.new(
+			"int64_t", (t.tv_sec * 1000ULL) + (t.tv_usec / 1000ULL)) + ms
+end
+
 
 return {
 	test_core = function()
@@ -11,6 +22,9 @@ return {
 		local events, n = poller:poll()
 		assert.equal(n, 1)
 		assert.same({w, false, true, false}, {events[0]:value()})
+
+		local events, n = poller:poll(rel_to_abs(100))
+		assert.equal(n, 0)
 
 		sys.os.write(w, "foo")
 		local events, n = poller:poll()

@@ -11,6 +11,9 @@ struct LeveePoller {
 	int fd;
 	int ev_in_pos;
 	uintptr_t id;
+	struct timeval tv;
+	struct timespec ts;
+	int64_t ms;
 	struct kevent ev_in[EV_POLL_IN_MAX];
 	LeveePollerEvent ev_out[EV_POLL_OUT_MAX];
 };
@@ -111,11 +114,19 @@ function Poller:unregister(fd, r, w)
 end
 
 
-function Poller:poll()
-	local n = C.kevent(
-		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, nil)
+function Poller:poll(timeout)
+	local ts
+	if timeout then
+		C.gettimeofday(self.tv, nil)
+		self.ms = timeout - ((self.tv.tv_sec * 1e3) + (self.tv.tv_usec / 1e3))
+		self.ts.tv_sec = (self.ms / 1e3)
+		self.ts.tv_nsec = (self.ms % 1e3) * 1e6
+		ts = self.ts
+	end
 
-	-- local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
+	local n = C.kevent(
+		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, ts)
+
 	if n < 0 then Errno:error("kevent") end
 
 	self.ev_in_pos = 0
