@@ -130,7 +130,7 @@ function Writer_mt:notfirst(...)
 end
 
 function Writer(verbose)
-	self = setmetatable({}, Writer_mt)
+	local self = setmetatable({}, Writer_mt)
 	self.v = verbose
 	return self
 end
