@@ -47,7 +47,9 @@ ifeq (Linux,$(OS))
   LDFLAGS:= -Wl,-export-dynamic -lm -ldl
 endif
 
-all: $(BIN)/levee $(LIB)/levee.so
+all: $(BIN)/levee
+
+so: $(LIB)/levee.so
 
 test: test-c test-lua
 
@@ -68,7 +70,7 @@ $(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
 	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -o $@
 
-$(LIB)/levee.so: $(OBJS_LEVEE)
+$(LIB)/levee.so: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(LIB)
 	$(CC) $(LDFLAGS) -dynamic -lluajit-5.1 $(OBJS_LEVEE) -o $@
 
