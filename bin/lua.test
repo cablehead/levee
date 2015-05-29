@@ -175,6 +175,8 @@ function main(argv)
 		end
 	end
 
+	if not argv.verbose then io.write('\n') end
+
 	return status
 end
 
