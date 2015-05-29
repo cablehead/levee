@@ -166,13 +166,14 @@ function main(argv)
 			end
 		end
 
-		table.sort(to_run)
-		local pattern = "    %-40s "
-
-		w:notfirst("\n")
-		w(txtblu..script..txtrst..'\n')
+		if #to_run > 0 then
+			table.sort(to_run)
+			w:notfirst("\n")
+			w(txtblu..script..txtrst..'\n')
+		end
 
 		for i, name in ipairs(to_run) do
+			local pattern = "    %-40s "
 			w(pattern:format(name))
 			local success, extra = xpcall(M[name],
 				function(err)
