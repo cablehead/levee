@@ -25,7 +25,7 @@ debug = require('debug')
 
 
 local usage = [[
-Usage: lua.test [-k <match>] <path>]]
+Usage: lua.test [-v] [-k <match>] <path>]]
 
 
 function bad_usage()
@@ -35,28 +35,30 @@ end
 
 
 function parse_argv()
-	local path
-	local match
+	local argv = {}
 
 	local i = 1
 
 	while i <= #arg do
-		if arg[i] == "-k" then
+		if arg[i] == "-v" then
+			argv.verbose = 1
+
+		elseif arg[i] == "-k" then
 			i = i + 1
 			if not arg[i] then bad_usage() end
-			match = arg[i]
+			argv.match = arg[i]
 
 		else
-			if path then bad_usage() end
-			path = arg[i]
+			if argv.path then bad_usage() end
+			argv.path = arg[i]
 		end
 
 		i = i + 1
 	end
 
-	if not path then bad_usage() end
+	if not argv.path then bad_usage() end
 
-	return {path = path, match = match}
+	return argv
 end
 
 
@@ -135,14 +137,20 @@ function main(argv)
 		table.sort(to_run)
 		local pattern = "    %-40s "
 
-		if not first then
-			print()
+		if argv.verbose then
+			if not first then
+				print()
+			end
+			first = false
+			print(txtblu..script..txtrst)
 		end
-		first = false
-		print(txtblu..script..txtrst)
 
 		for i, name in ipairs(to_run) do
-			io.write(pattern:format(name))
+			if argv.verbose then
+				io.write(pattern:format(name))
+			else
+				io.write('.')
+			end
 			local success, extra = xpcall(M[name],
 				function(err)
 					print(txtred..' FAIL'..txtrst)
@@ -153,13 +161,15 @@ function main(argv)
 					status = 1
 				end)
 			if success then
-				if not extra then
-					print(txtgrn..' PASS'..txtrst)
-				else
-					local COLORS = {
-						SKIP = txtylw,
-					}
-					print((COLORS[extra] or txtred)..' '..extra..txtrst)
+				if argv.verbose then
+					if not extra then
+						print(txtgrn..' PASS'..txtrst)
+					else
+						local COLORS = {
+							SKIP = txtylw,
+						}
+						print((COLORS[extra] or txtred)..' '..extra..txtrst)
+					end
 				end
 			end
 		end
