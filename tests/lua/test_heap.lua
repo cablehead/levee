@@ -68,5 +68,23 @@ return {
 		h = nil
 		collectgarbage("collect")
 		assert(freed)
-	end
+	end,
+	test_dense = function()
+		local h = require('levee.heap')()
+
+		h:push(80, "1")
+		h:push(70, "2")
+		h:push(60, "3")
+		h:push(90, "4")
+		assert.equal(#h.refs, 4)
+		assert.equal(#h.avail, 0)
+
+		h:pop()
+		assert.equal(#h.refs, 4)
+		assert.equal(#h.avail, 1)
+
+		h:push(50, "5")
+		assert.equal(#h.refs, 4)
+		assert.equal(#h.avail, 0)
+	end,
 }
