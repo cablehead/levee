@@ -143,7 +143,7 @@ function main(argv)
 
 		for i, name in ipairs(to_run) do
 			io.write(pattern:format(name))
-			local success = xpcall(M[name],
+			local success, extra = xpcall(M[name],
 				function(err)
 					print(txtred..' FAIL'..txtrst)
 					print('-----')
@@ -153,7 +153,14 @@ function main(argv)
 					status = 1
 				end)
 			if success then
-				print(txtgrn..' PASS'..txtrst)
+				if not extra then
+					print(txtgrn..' PASS'..txtrst)
+				else
+					local COLORS = {
+						SKIP = txtylw,
+					}
+					print((COLORS[extra] or txtred)..' '..extra..txtrst)
+				end
 			end
 		end
 	end

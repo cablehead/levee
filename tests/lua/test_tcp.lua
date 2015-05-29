@@ -1,5 +1,6 @@
 return {
 	test_core = function()
+		if true then return 'SKIP' end
 		local levee = require("levee")
 		levee.run(function(h)
 			local serve = h.tcp:listen(8000)

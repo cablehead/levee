@@ -1,5 +1,6 @@
 return {
 	test_pipe = function()
+		if true then return 'SKIP' end
 		local levee = require("levee")
 
 		levee.run(function(h)
@@ -23,6 +24,7 @@ return {
 	end,
 
 	test_pipe_close = function()
+		if true then return 'SKIP' end
 		local levee = require("levee")
 
 		levee.run(function(h)
@@ -57,6 +59,7 @@ return {
 	end,
 
 	test_switch = function()
+		if true then return 'SKIP' end
 		local levee = require("levee")
 
 		levee.run(function(h)
@@ -94,6 +97,7 @@ return {
 	end,
 
 	test_switch_close = function()
+		if true then return 'SKIP' end
 		local levee = require("levee")
 
 		levee.run(function(h)
@@ -119,6 +123,7 @@ return {
 	end,
 
 	test_switch_clear_on_recv = function()
+		if true then return 'SKIP' end
 		local levee = require("levee")
 
 		levee.run(function(h)
@@ -151,6 +156,7 @@ return {
 	end,
 
 	test_gc = function()
+		if true then return 'SKIP' end
 		local ffi = require("ffi")
 
 		local message = require("levee.message")
@@ -178,6 +184,7 @@ return {
 	end,
 
 	test_coro = function()
+		if true then return 'SKIP' end
 		local ffi = require("ffi")
 		local task = require("levee.task")
 

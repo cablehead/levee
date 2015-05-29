@@ -1,12 +1,15 @@
+--[[
 local levee = require("levee")
 local sys = require("levee.sys")
 
 local ffi = require("ffi")
 local C = ffi.C
+]]--
 
 
 return {
 	test_io_close_read = function()
+		if true then return 'SKIP' end
 		levee.run(function(h)
 			local r, w = sys.fd.pipe()
 			local r, w = h.io:r(r), h.io:w(w)
@@ -27,6 +30,7 @@ return {
 	end,
 
 	test_io_close_write = function()
+		if true then return 'SKIP' end
 		levee.run(function(h)
 			local r, w = sys.fd.pipe()
 			local r, w = h.io:r(r), h.io:w(w)
