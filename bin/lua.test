@@ -103,10 +103,42 @@ bakwht='\27[47m'   -- White
 txtrst='\27[0m'    -- Text Reset
 
 
-function main(argv)
-	local status = 0
-	local first = true
+local Writer_mt = {}
+Writer_mt.__index = Writer_mt
 
+function Writer_mt:__call(verbose, terse)
+	if self.v then
+		if verbose then io.write(verbose) end
+	else
+		if terse then io.write(terse) end
+	end
+	io.flush()
+end
+
+function Writer_mt:once(...)
+	if not self.once then
+		self(...)
+		self.once = true
+	end
+end
+
+function Writer_mt:notfirst(...)
+	if self._notfirst then
+		self(...)
+	end
+	self._notfirst = true
+end
+
+function Writer(verbose)
+	self = setmetatable({}, Writer_mt)
+	self.v = verbose
+	return self
+end
+
+
+function main(argv)
+	local w = Writer(argv.verbose)
+	local status = 0
 	local scripts = {}
 
 	local len = 0
@@ -137,45 +169,33 @@ function main(argv)
 		table.sort(to_run)
 		local pattern = "    %-40s "
 
-		if argv.verbose then
-			if not first then
-				print()
-			end
-			first = false
-			print(txtblu..script..txtrst)
-		end
+		w:notfirst("\n")
+		w(txtblu..script..txtrst..'\n')
 
 		for i, name in ipairs(to_run) do
-			if argv.verbose then
-				io.write(pattern:format(name))
-			else
-				io.write('.')
-			end
+			w(pattern:format(name))
 			local success, extra = xpcall(M[name],
 				function(err)
-					print(txtred..' FAIL'..txtrst)
-					print('-----')
-					print(debug.traceback())
-					print(err)
-					print()
+					w(
+						txtred..' FAIL'..txtrst..'\n'..
+						'-----\n'..
+						debug.traceback()..'\n'..
+						err..'\n')
 					status = 1
 				end)
 			if success then
-				if argv.verbose then
-					if not extra then
-						print(txtgrn..' PASS'..txtrst)
-					else
-						local COLORS = {
-							SKIP = txtylw,
-						}
-						print((COLORS[extra] or txtred)..' '..extra..txtrst)
-					end
-				end
+				if not extra then extra = 'PASS' end
+				local COLORS = {
+					PASS = txtgrn,
+					SKIP = txtylw, }
+				w(
+					(COLORS[extra] or txtred)..' '..extra..txtrst..'\n',
+					'.')
 			end
 		end
 	end
 
-	if not argv.verbose then io.write('\n') end
+	w(nil, '\n')
 
 	return status
 end
