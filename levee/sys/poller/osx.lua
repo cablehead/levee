@@ -118,9 +118,13 @@ function Poller:poll(timeout)
 	local ts
 	if timeout then
 		C.gettimeofday(self.tv, nil)
-		self.ms = timeout - ((self.tv.tv_sec * 1e3) + (self.tv.tv_usec / 1e3))
-		self.ts.tv_sec = (self.ms / 1e3)
-		self.ts.tv_nsec = (self.ms % 1e3) * 1e6
+		self.ms = timeout - (
+			(self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
+		if self.ms < 0 then
+			return nil, 0
+		end
+		self.ts.tv_sec = (self.ms / 1000LL)
+		self.ts.tv_nsec = (self.ms % 1000LL) * 1000000LL
 		ts = self.ts
 	end
 
