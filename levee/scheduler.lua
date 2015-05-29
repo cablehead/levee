@@ -17,6 +17,10 @@ function Scheduler_mt:add(ms, co)
 	self.heap:push(self:now() + ms, co)
 end
 
+function Scheduler_mt:peek()
+	return self.heap:peek()
+end
+
 function Scheduler_mt:pop()
 	return self.heap:pop()
 end
