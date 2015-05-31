@@ -1,24 +1,23 @@
 return {
 	test_spawn = function()
-		print()
-		print()
-
 		local h = require("levee").Hub()
 
+		local beats = {}
+
 		h:spawn(function()
-			while true do
-				h:sleep(1000)
-				print("tick")
+			for i = 1, 2 do
+				h:sleep(100)
+				table.insert(beats, "tick")
 			end
 		end)
 
-		h:sleep(500)
+		h:sleep(50)
 
-		while true do
-			h:sleep(1000)
-			print("tock")
+		for i = 1, 2 do
+			h:sleep(100)
+			table.insert(beats, "tock")
 		end
 
-		print()
+		assert.same(beats, {"tick", "tock", "tick", "tock"})
 	end,
 }

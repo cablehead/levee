@@ -23,6 +23,22 @@ local os = require('os')
 assert = require('luassert')
 debug = require('debug')
 
+function repr(x)
+	local s
+	if type(x) == "table" then
+		s = "{"
+		local i, v = next(x)
+		while i do
+			s = s .. repr(i) .. "=" .. repr(v)
+			i, v = next(x, i)
+			if i then s = s .. ", " end
+		end
+		return s .. "}"
+	else
+		return tostring(x)
+	end
+end
+
 
 local usage = [[
 Usage: lua.test [-v] [-k <match>] <path>]]
