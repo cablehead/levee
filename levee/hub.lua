@@ -1,19 +1,35 @@
 local sys = require("levee.sys")
 local Scheduler = require("levee.scheduler")
+local FIFO = require("levee.fifo")
 
 
 local Hub_mt = {}
 Hub_mt.__index = Hub_mt
 
+
+function Hub_mt:resume(co)
+	if co ~= self.parent then return coroutine.resume(co) end
+	return coroutine.yield()
+end
+
+
+function Hub_mt:yield()
+	if coroutine.running() ~= self.parent then return coroutine.yield() end
+	return coroutine.resume(self.loop)
+end
+
+
 function Hub_mt:spawn(f, a)
 	local co = coroutine.create(f)
-	coroutine.resume(co, a)
+	self.ready:push({co, a})
 end
+
 
 function Hub_mt:sleep(ms)
 	self.scheduled:add(ms, coroutine.running())
-	coroutine.yield()
+	self:yield()
 end
+
 
 function Hub_mt:register(no, f, r, w)
 	local co = coroutine.create(f)
@@ -22,17 +38,23 @@ function Hub_mt:register(no, f, r, w)
 	self.poller:register(no, r, w)
 end
 
+
 function Hub_mt:unregister(no, r, w)
 	self.poller:unregister(no, r, w)
 	self.registered[no] = nil
 end
 
-function Hub_mt:loop()
+
+function Hub_mt:pump()
+	for work in self.ready:popiter() do
+		self:resume(work[1])
+	end
+
 	local events, n = self.poller:poll(self.scheduled:peek())
 
 	if n == 0 then
 		local ms, co = self.scheduled:pop()
-		coroutine.resume(co)
+		self:resume(co)
 	end
 
 	for i = 0, n - 1 do
@@ -47,12 +69,29 @@ function Hub_mt:loop()
 	end
 end
 
+
+function Hub_mt:main()
+	coroutine.yield()
+	while true do
+		self:pump()
+	end
+end
+
+
 local function Hub()
 	local self = setmetatable({}, Hub_mt)
+
+	self.ready = FIFO()
 	self.scheduled = Scheduler()
-	self.poller = sys.poller()
 	self.registered = {}
+	self.poller = sys.poller()
+
+	self.parent = coroutine.running()
+	self.loop = coroutine.create(self.main)
+	coroutine.resume(self.loop, self)
+
 	return self
 end
+
 
 return Hub
