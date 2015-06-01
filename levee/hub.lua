@@ -8,14 +8,26 @@ Hub_mt.__index = Hub_mt
 
 
 function Hub_mt:resume(co)
-	if co ~= self.parent then return coroutine.resume(co) end
+	if co ~= self.parent then
+		local status, message = coroutine.resume(co)
+		if not status then
+			error(message)
+		end
+		return message
+	end
+
 	return coroutine.yield()
 end
 
 
 function Hub_mt:yield()
 	if coroutine.running() ~= self.parent then return coroutine.yield() end
-	return coroutine.resume(self.loop)
+
+	local status, message = coroutine.resume(self.loop)
+	if not status then
+		error(message)
+	end
+	return message
 end
 
 
@@ -60,18 +72,20 @@ function Hub_mt:pump()
 	for i = 0, n - 1 do
 		local no, r_ev, w_ev, e_ev = events[i]:value()
 		if self.registered[no] then
+			self:resume(self.registered[no])
+			--[[
 			local status, message = coroutine.resume(
 				self.registered[no], r_ev, w_ev, e_ev)
 			if not status then
 				error(message)
 			end
+			--]]
 		end
 	end
 end
 
 
 function Hub_mt:main()
-	coroutine.yield()
 	while true do
 		self:pump()
 	end
@@ -87,8 +101,7 @@ local function Hub()
 	self.poller = sys.poller()
 
 	self.parent = coroutine.running()
-	self.loop = coroutine.create(self.main)
-	coroutine.resume(self.loop, self)
+	self.loop = coroutine.create(function() self:main() end)
 
 	return self
 end
