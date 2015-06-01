@@ -20,4 +20,15 @@ return {
 
 		assert.same(beats, {"tick", "tock", "tick", "tock"})
 	end,
+
+	test_register = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local r, w = levee.sys.os.pipe()
+
+		local events = h:register(w, false, true)
+		assert.same(events:recv(), {false, true, false})
+	end,
 }

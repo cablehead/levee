@@ -3,20 +3,55 @@ local Scheduler = require("levee.scheduler")
 local FIFO = require("levee.fifo")
 
 
+local State_mt = {}
+State_mt.__index = State_mt
+
+
+function State_mt:recv()
+	if self.value then
+		local value = self.value
+		self.value = nil
+		return value
+	end
+
+	self.co = coroutine.running()
+	return self.hub:yield()
+end
+
+
+function State_mt:send(value)
+	if not self.co then
+		self.value = value
+		return
+	end
+
+	local co = self.co
+	self.co = nil
+	self.hub:resume(co, value)
+end
+
+
+local function State(hub)
+	local self = setmetatable({hub=hub}, State_mt)
+	return self
+end
+
+
+
 local Hub_mt = {}
 Hub_mt.__index = Hub_mt
 
 
-function Hub_mt:resume(co)
+function Hub_mt:resume(co, value)
 	if co ~= self.parent then
-		local status, message = coroutine.resume(co)
+		local status, message = coroutine.resume(co, value)
 		if not status then
 			error(message)
 		end
 		return message
 	end
 
-	return coroutine.yield()
+	return coroutine.yield(value)
 end
 
 
@@ -43,11 +78,10 @@ function Hub_mt:sleep(ms)
 end
 
 
-function Hub_mt:register(no, f, r, w)
-	local co = coroutine.create(f)
-	self.registered[no] = co
-	coroutine.resume(co, self, no)
+function Hub_mt:register(no, r, w)
+	self.registered[no] = State(self)
 	self.poller:register(no, r, w)
+	return self.registered[no]
 end
 
 
@@ -72,14 +106,7 @@ function Hub_mt:pump()
 	for i = 0, n - 1 do
 		local no, r_ev, w_ev, e_ev = events[i]:value()
 		if self.registered[no] then
-			self:resume(self.registered[no])
-			--[[
-			local status, message = coroutine.resume(
-				self.registered[no], r_ev, w_ev, e_ev)
-			if not status then
-				error(message)
-			end
-			--]]
+			self.registered[no]:send({r_ev, w_ev, e_ev})
 		end
 	end
 end
