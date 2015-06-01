@@ -93,7 +93,7 @@ end
 
 function Hub_mt:pump()
 	for work in self.ready:popiter() do
-		self:resume(work[1])
+		self:resume(work[1], work[2])
 	end
 
 	local events, n = self.poller:poll(self.scheduled:peek())
