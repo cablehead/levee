@@ -26,7 +26,7 @@ function Pipe_mt:recv()
 		self.value = nil
 		local co = self.sender
 		self.sender = nil
-		self.hub.ready:push({co, value})
+		self.hub.ready:push({co})
 		return value
 	end
 
