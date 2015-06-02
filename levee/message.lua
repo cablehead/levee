@@ -3,30 +3,34 @@ Pipe_mt.__index = Pipe_mt
 
 
 function Pipe_mt:send(value)
-	if self.co then
-		local co = self.co
-		self.co = nil
+	assert(not self.sender)
+
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
 		self.hub.ready:push({co, value})
 		return
 	end
 
 	self.value = value
-	self.co = coroutine.running()
+	self.sender = coroutine.running()
 	self.hub:yield()
 end
 
 
 function Pipe_mt:recv()
+	assert(not self.recver)
+
 	if self.value then
 		local value = self.value
 		self.value = nil
-		local co = self.co
-		self.co = nil
+		local co = self.sender
+		self.sender = nil
 		self.hub.ready:push({co, value})
 		return value
 	end
 
-	self.co = coroutine.running()
+	self.recver = coroutine.running()
 	return self.hub:yield()
 end
 
