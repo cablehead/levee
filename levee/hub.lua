@@ -1,6 +1,8 @@
 local sys = require("levee.sys")
 local Scheduler = require("levee.scheduler")
 local FIFO = require("levee.fifo")
+local message = require("levee.message")
+
 
 
 local State_mt = {}
@@ -42,6 +44,11 @@ local Hub_mt = {}
 Hub_mt.__index = Hub_mt
 
 
+function Hub_mt:pipe()
+	return message.Pipe(self)
+end
+
+
 function Hub_mt:resume(co, value)
 	if co ~= self.parent then
 		local status, message = coroutine.resume(co, value)
@@ -69,6 +76,12 @@ end
 function Hub_mt:spawn(f, a)
 	local co = coroutine.create(f)
 	self.ready:push({co, a})
+end
+
+
+function Hub_mt:spawn_later(ms, f, a)
+	local co = coroutine.create(f)
+	self.scheduled:add(ms, co)
 end
 
 
