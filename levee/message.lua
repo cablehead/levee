@@ -5,6 +5,10 @@ Pipe_mt.__index = Pipe_mt
 function Pipe_mt:send(value)
 	assert(not self.sender)
 
+	if self.closed then
+		return
+	end
+
 	if self.recver then
 		local co = self.recver
 		self.recver = nil
@@ -21,6 +25,10 @@ end
 function Pipe_mt:recv()
 	assert(not self.recver)
 
+	if self.closed then
+		return
+	end
+
 	if self.value then
 		local value = self.value
 		self.value = nil
@@ -32,6 +40,11 @@ function Pipe_mt:recv()
 
 	self.recver = coroutine.running()
 	return self.hub:_coyield()
+end
+
+
+function Pipe_mt:close()
+	self.closed = true
 end
 
 
