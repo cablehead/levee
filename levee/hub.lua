@@ -33,6 +33,11 @@ function State_mt:send(value)
 end
 
 
+function State_mt:__call(value)
+	return self:recv()
+end
+
+
 local function State(hub)
 	local self = setmetatable({hub=hub}, State_mt)
 	return self
