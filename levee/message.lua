@@ -13,7 +13,7 @@ function Pipe_mt:send(value)
 		local co = self.recver
 		self.recver = nil
 		self.hub.ready:push({co, value})
-		return
+		return true
 	end
 
 	self.value = value
@@ -34,7 +34,7 @@ function Pipe_mt:recv()
 		self.value = nil
 		local co = self.sender
 		self.sender = nil
-		self.hub.ready:push({co})
+		self.hub.ready:push({co, true})
 		return value
 	end
 
@@ -43,8 +43,27 @@ function Pipe_mt:recv()
 end
 
 
+function Pipe_mt:__call()
+	return self:recv()
+end
+
+
 function Pipe_mt:close()
 	self.closed = true
+
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub.ready:push({co})
+		return
+	end
+
+	if self.sender then
+		local co = self.sender
+		self.sender = nil
+		self.hub.ready:push({co})
+		return
+	end
 end
 
 
@@ -55,7 +74,4 @@ end
 
 
 return {
-	Pipe = Pipe,
-}
-
-
+	Pipe = Pipe, }

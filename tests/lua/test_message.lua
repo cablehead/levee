@@ -1,7 +1,6 @@
 return {
 	test_pipe = function()
 		local h = require("levee").Hub()
-
 		local p = h:pipe()
 
 		-- send and then recv
@@ -15,5 +14,24 @@ return {
 		p:send("2")
 		h:sleep(1)
 		assert.equal(state, "2")
+	end,
+
+	test_iter = function()
+		local h = require("levee").Hub()
+		local p = h:pipe()
+
+		h:spawn(
+			function()
+				for i = 1, 3 do
+					p:send(i)
+				end
+				p:close()
+			end)
+
+		local want = 1
+		for i in p do
+			assert.equal(want, i)
+			want = want + 1
+		end
 	end,
 }
