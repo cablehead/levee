@@ -33,4 +33,27 @@ return {
 			want = want + 1
 		end
 	end,
+
+	test_close_recver = function()
+		local h = require("levee").Hub()
+		local p = h:pipe()
+
+		local state
+		h:spawn(
+			function()
+				while true do
+					local ok = p:send("foo")
+					if not ok then break end
+				end
+				state = "done"
+			end)
+
+		assert.equal(p:recv(), "foo")
+		assert.equal(p:recv(), "foo")
+		assert.equal(p:recv(), "foo")
+
+		p:close()
+		h:sleep(1)
+		assert.equal(state, "done")
+	end,
 }
