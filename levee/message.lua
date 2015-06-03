@@ -14,7 +14,7 @@ function Pipe_mt:send(value)
 
 	self.value = value
 	self.sender = coroutine.running()
-	self.hub:yield()
+	self.hub:_coyield()
 end
 
 
@@ -31,7 +31,7 @@ function Pipe_mt:recv()
 	end
 
 	self.recver = coroutine.running()
-	return self.hub:yield()
+	return self.hub:_coyield()
 end
 
 

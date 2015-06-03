@@ -17,7 +17,7 @@ function State_mt:recv()
 	end
 
 	self.co = coroutine.running()
-	return self.hub:yield()
+	return self.hub:_coyield()
 end
 
 
@@ -29,7 +29,7 @@ function State_mt:send(value)
 
 	local co = self.co
 	self.co = nil
-	self.hub:resume(co, value)
+	self.hub:_coresume(co, value)
 end
 
 
@@ -49,7 +49,7 @@ function Hub_mt:pipe()
 end
 
 
-function Hub_mt:resume(co, value)
+function Hub_mt:_coresume(co, value)
 	if co ~= self.parent then
 		local status, message = coroutine.resume(co, value)
 		if not status then
@@ -62,7 +62,7 @@ function Hub_mt:resume(co, value)
 end
 
 
-function Hub_mt:yield()
+function Hub_mt:_coyield()
 	if coroutine.running() ~= self.parent then return coroutine.yield() end
 
 	local status, message = coroutine.resume(self.loop)
@@ -87,7 +87,7 @@ end
 
 function Hub_mt:sleep(ms)
 	self.scheduled:add(ms, coroutine.running())
-	self:yield()
+	self:_coyield()
 end
 
 
@@ -106,14 +106,14 @@ end
 
 function Hub_mt:pump()
 	for work in self.ready:popiter() do
-		self:resume(work[1], work[2])
+		self:_coresume(work[1], work[2])
 	end
 
 	local events, n = self.poller:poll(self.scheduled:peek())
 
 	if n == 0 then
 		local ms, co = self.scheduled:pop()
-		self:resume(co)
+		self:_coresume(co)
 	end
 
 	for i = 0, n - 1 do
