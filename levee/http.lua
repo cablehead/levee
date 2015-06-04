@@ -105,6 +105,12 @@ function Server_mt:loop()
 end
 
 
+function Server_mt:close()
+	self.conn:close()
+	self.recver:close()
+end
+
+
 local function Server(hub, conn)
 	local self = setmetatable({}, Server_mt)
 	self.hub = hub
@@ -131,6 +137,12 @@ function Listener_mt:loop()
 	for conn in self.serve do
 		self.recver:send(Server(self.hub, conn))
 	end
+end
+
+
+function Listener_mt:close()
+	self.serve:close()
+	self.recver:close()
 end
 
 

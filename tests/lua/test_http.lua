@@ -22,6 +22,11 @@ return {
 
 		req:reply("HTTP/1.1 200 OK\r\n", {}, "Hello world\n")
 		assert(#c:recv():take_s() > 0)
+
+		s:close()
+		serve:close()
+		h:sleep(1)
+		assert.same(h.registered, {})
 	end,
 
 	test_core = function()
