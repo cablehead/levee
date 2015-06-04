@@ -1,48 +1,63 @@
 local sys = require("levee.sys")
 
-local ffi = require("ffi")
-local C = ffi.C
+
+local Listener_mt = {}
+Listener_mt.__index = Listener_mt
+
+
+function Listener_mt:loop()
+	for ev in self.r_ev do
+		if ev < -1 then
+			self.hub:unregister(self.no, true)
+			self.recver:close()
+			return
+		end
+
+		while true do
+			local no, err = sys.socket.accept(self.no)
+			-- TODO: only break on EAGAIN, should close on other errors
+			if no == nil then break end
+			self.recver:send(self.hub.io:rw(no))
+		end
+	end
+end
+
+
+function Listener_mt:__call()
+	return self.recver:recv()
+end
+
+
+function Listener_mt:recv()
+	return self.recver:recv()
+end
+
+
+--
+-- TCP module interface
+--
+local TCP_mt = {}
+TCP_mt.__index = TCP_mt
+
+
+function TCP_mt:connect(port, host)
+	local no = sys.socket.connect(port, host or "127.0.0.1")
+	sys.os.nonblock(no)
+	return self.hub.io:rw(no)
+end
+
+
+function TCP_mt:listen(port, host)
+	local no = sys.socket.listen(port, host)
+	sys.os.nonblock(no)
+	local m = setmetatable({hub = self.hub, no = no}, Listener_mt)
+	m.r_ev = self.hub:register(no, true)
+	m.recver = self.hub:pipe()
+	self.hub:spawn(m.loop, m)
+	return m
+end
 
 
 return function(hub)
-	-- todo, turn this into an object, just bashing this out
-	local M = {hub=hub}
-
-	function M:connect(port, host)
-		local no = sys.socket.connect(port, host or "127.0.0.1")
-		return hub.io:rw(no)
-	end
-
-	function M:listen(port, host)
-		local no = sys.socket.listen(port, host)
-		sys.fd.nonblock(no, true)
-
-		local ready = self.hub:register(no, true)
-		local sender, recver = unpack(self.hub:pipe())
-
-		self.hub:spawn(function()
-			for _ in ready do
-				while true do
-					local no, err = sys.socket.accept(no)
-					-- TODO: only break on EAGAIN, should close on other errors
-					if no == nil then break end
-					local conn = hub.io:rw(no)
-					sender:send(conn)
-				end
-			end
-		end)
-
-		return {
-			recv = function()
-				return recver:recv()
-			end,
-
-			close = function()
-				hub:unregister(no)
-				return recver:close()
-			end,
-		}
-	end
-
-	return M
+	return setmetatable({hub = hub}, TCP_mt)
 end

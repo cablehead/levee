@@ -166,6 +166,7 @@ local function Hub()
 	self.loop = coroutine.create(function() self:main() end)
 
 	self.io = require("levee.io")(self)
+	self.tcp = require("levee.tcp")(self)
 
 	return self
 end

@@ -11,5 +11,7 @@ return {
 		w:send(iov)
 		assert.equal(r:recv():take_s(), "foobar")
 		iov:reset()
+
+		-- TODO: check clean up
 	end,
 }
