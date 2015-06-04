@@ -8,6 +8,8 @@ return {
 		w:write("foo")
 		assert.equal(r:recv():take_s(), "foo")
 
-		-- TODO: check clean up
+		r:close()
+		w:close()
+		assert.same(h.registered, {})
 	end,
 }

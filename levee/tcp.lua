@@ -16,8 +16,7 @@ Listener_mt.recv = __recv
 function Listener_mt:loop()
 	for ev in self.r_ev do
 		if ev < -1 then
-			self.hub:unregister(self.no, true)
-			self.recver:close()
+			self:close()
 			return
 		end
 
@@ -28,6 +27,12 @@ function Listener_mt:loop()
 			self.recver:send(self.hub.io:rw(no))
 		end
 	end
+end
+
+
+function Listener_mt:close()
+	self.hub:unregister(self.no, true)
+	self.recver:close()
 end
 
 

@@ -23,8 +23,7 @@ function R_mt:reader()
 		while true do
 			local n = C.read(self.no, self.buf:tail())
 			if n == 0 then
-				self.hub:unregister(self.no, true)
-				self.recver:close()
+				self:close()
 				return
 			end
 			-- read until EAGAIN
@@ -44,6 +43,12 @@ end
 
 function R_mt:recv()
 	return self.recver:recv()
+end
+
+
+function R_mt:close()
+	self.recver:close()
+	self.hub:unregister(self.no, true)
 end
 
 
@@ -71,6 +76,11 @@ function W_mt:writev(iov, n)
 end
 
 
+function W_mt:close()
+	self.hub:unregister(self.no, false, true)
+end
+
+
 --
 -- Read / Write
 --
@@ -82,6 +92,12 @@ RW_mt.__call = R_mt.__call
 RW_mt.recv = R_mt.recv
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
+
+
+function RW_mt:close()
+	self.recver:close()
+	self.hub:unregister(self.no, true, true)
+end
 
 
 --

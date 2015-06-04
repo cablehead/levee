@@ -24,9 +24,10 @@ return {
 		s2:write("m2.2")
 		assert(c2:recv():take_s() == "m2.2")
 
-		-- TODO: check clean up
-		-- c1:close()
-		-- c2:close()
-		-- serve:close()
+		c1:close()
+		c2:close()
+		serve:close()
+		h:sleep(1)
+		assert.same(h.registered, {})
 	end,
 }
