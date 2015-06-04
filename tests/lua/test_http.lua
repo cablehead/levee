@@ -1,4 +1,34 @@
 return {
+	test_basic = function()
+		local request = "" ..
+			"GET /some/path HTTP/1.1\r\n" ..
+			"H1: one\r\n" ..
+			"\r\n"
+
+		local levee = require("levee")
+
+		local h = levee.Hub()
+		local serve = h.http:listen(8000)
+
+		local c = h.tcp:connect(8000)
+
+		local iov = levee.iovec.Iovec(4)
+		iov:write(request)
+		c:send(iov)
+		iov:reset()
+
+		local s = serve:recv()
+
+		local req = s:recv()
+
+		assert.equal(req.method, "GET")
+		assert.equal(req.path, "/some/path")
+		assert.same(req.headers, {H1 = "one"})
+
+		req:reply("HTTP/1.1 200 OK\r\n", {}, "Hello world\n")
+		assert(#c:recv():take_s() > 0)
+	end,
+
 	test_core = function()
 		if true then return 'SKIP' end
 		local levee = require("levee")

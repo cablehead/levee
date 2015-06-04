@@ -65,6 +65,9 @@ http_parser_init_request (HTTPParser *p);
 extern void
 http_parser_init_response (HTTPParser *p);
 
+extern void
+http_parser_reset (HTTPParser *p);
+
 extern ssize_t
 http_parser_next (HTTPParser *p, const void *restrict buf, size_t len);
 

@@ -1,7 +1,7 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local HTTPParser = require("levee.parser.http")
+local parsers = require("levee.parsers")
 
 return {
 	test_request = function()
@@ -17,7 +17,7 @@ return {
 		local len = #request
 
 		local rc
-		local p = HTTPParser()
+		local p = parsers.http.Request()
 		p:init_request()
 
 		rc = p:next(buf, len)
@@ -69,7 +69,7 @@ return {
 		local len = #response
 
 		local rc
-		local p = HTTPParser()
+		local p = parsers.http.Response()
 		p:init_response()
 
 		rc = p:next(buf, len)

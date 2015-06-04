@@ -1,260 +1,164 @@
-local HTTPParser = require("levee.parser.http")
+local parsers = require("levee.parsers")
 local meta = require("levee.meta")
+local iovec = require("levee.iovec")
+
+local time = require("levee.time")
+local Status = require("levee.http.status")
 
 
 local VERSION = "HTTP/1.1"
+local FIELD_SEP = ": "
+local EOL = "\r\n"
 
 
-function send_headers(conn, headers)
-	for key, value in pairs(headers) do
-		conn:send(("%s: %s\r\n"):format(key, value))
-	end
-	conn:send("\r\n")
+local function __recv(self)
+	return self.recver:recv()
 end
 
 
-function parser_recver(h, conn, parser, init)
-	local sender, recver = unpack(h:pipe())
+--
+-- Parser
+--
+local function __parser(hub, conn, parser, recver)
+	for buf in conn do
+		if not buf then recver:close() return end
 
-	init()
+		while true do
+			local n = parser:next(buf:value())
 
-	h:spawn(function()
-		for buf in conn do
-			while true do
-				local rc = parser:next(buf:value())
-				if rc < 0 then error("TODO: parse error") end
+			if n < 0 then error("parse error") end
 
-				-- print("PARSER", rc, parser:is_done())
-				if parser:has_value() then
-					sender:send({parser:value(buf:value())})
-				end
+			if n == 0 then break end
 
-				if parser:is_done() then
-					sender:send({nil})
-					init()
-				end
-
-				if rc > 0 then
-					buf:trim(rc)
-				else
-					break
-				end
+			if n > 0 then
+				recver:send({parser:value(buf:value())})
+				buf:trim(n)
+				if parser:is_done() then parser:reset() end
 			end
 		end
-	end)
+	end
+end
 
+
+local function Parser(hub, conn, parser)
+	local recver = hub:pipe()
+	hub:spawn(function() __parser(hub, conn, parser, recver) end)
 	return recver
 end
 
 
 --
--- HTTP Client
-
-local Client = {}
-Client.__index = Client
-
-
-function Client.new(h, conn)
-	local parser = HTTPParser()
-
-	local self = {
-		h = h,
-		conn = conn,
-		parser = parser_recver(
-			h, conn, parser, function() parser:init_response() end),
-		requests = h:pipe(),
-		responses = h:pipe(),
-	}
-
-	h:spawn(Client.writer, self)
-	h:spawn(Client.reader, self)
-
-	return setmetatable(self, Client)
-end
-
-
-function Client:close()
-	self.conn:close()
-	self.requests:close()
-	self.responses:close()
-end
-
-
-function Client:default_headers(headers)
-	-- TODO: Host
-	local ret = {
-		["User-Agent"] = "levee/" .. meta.version,
-		Accept = "*/*",
-	}
-	if headers then
-		for key, value in pairs(headers) do
-			ret[key] = value
-		end
-	end
-	return ret
-end
-
-
-function Client:writer()
-	for request in self.requests do
-		local method, path, params, headers, data = unpack(request)
-		-- TODO: params
-		self.conn:send(("%s %s %s\r\n"):format(method, path, VERSION))
-
-		headers = self:default_headers(headers)
-		if data then
-			headers["Content-Length"] = #data
-		end
-		send_headers(self.conn, self:default_headers(headers))
-
-		if data then
-			self.conn:send(data)
-		end
-	end
-end
-
-
-function Client:reader()
-	for response in self.responses do
-		local r = {headers={}}
-		r.code, r.reason, r.version = unpack(self.parser:recv())
-		while true do
-			local key, value = unpack(self.parser:recv())
-			if not key then break end
-			r.headers[key] = value
-		end
-		r.body = unpack(self.parser:recv())
-		response:send(r)
-		response:close()
-	end
-end
-
-
-function Client:request(method, path, params, headers, data)
-	local sender, recver = unpack(self.h:pipe())
-	self.requests:send({method, path, params, headers, data})
-	self.responses:send(sender)
-	return recver
-end
-
-
-function Client:get(path, options)
-	options = options or {}
-	return self:request("GET", path, options.params, options.headers)
-end
-
-
-function Client:post(path, options)
-	options = options or {}
-	return self:request(
-		"POST", path, options.params, options.headers, options.data)
-end
-
-
+-- Server
 --
--- HTTP Server
+local Server_mt = {}
+Server_mt.__index = Server_mt
 
-local Server = {}
-Server.__index = Server
+Server_mt.__call = __recv
+Server_mt.recv = __recv
 
 
-function Server.new(h, conn)
-	local parser = HTTPParser()
-
-	local self = {
-		h = h,
-		conn = conn,
-		parser = parser_recver(
-			h, conn, parser, function() parser:init_request() end),
-		requests = h:pipe(),
+function Server_mt:write(status, headers, body)
+	local hdr = {
+		["Date"] = time.httpdate(),
+		["Content-Type"] = "text/plain",
+		["Some-Value"] = "with stuff",
+		["Content-Length"] = "12",
 	}
 
-	h:spawn(Server.reader, self)
+	self.iov:write(Status[200])
+	for k,v in pairs(hdr) do
+		self.iov:write(k)
+		self.iov:write(FIELD_SEP)
+		self.iov:write(v)
+		self.iov:write(EOL)
+	end
+	self.iov:write(EOL)
+	self.iov:write(body)
 
-	return setmetatable(self, Server)
+	self.conn:send(self.iov)
+	self.iov:reset()
 end
 
 
-function Server:close()
-	self.conn:close()
-	self.requests:close()
-end
+function Server_mt:loop()
+	local _next, req
 
-
-function Server:__call()
-	return self.requests:recv()
-end
-
-
-function Server:recv()
-	return self.requests:recv()
-end
-
-
-function Server:reader()
 	while true do
-		local r = {headers={}}
+		_next = self.parser:recv()
+		if not _next then return end
 
-		r.reply = function(status, headers, body)
-			self.conn:send(("%s %s %s\r\n"):format(VERSION, unpack(status)))
-			-- TODO: Date
-			headers['Date'] = "Fri, 22 May 2015 19:44:50 GMT"
-			headers['Content-Length'] = #body
-
-			send_headers(self.conn, headers)
-			self.conn:send(body)
-		end
-
-		r.method, r.path, r.version = unpack(self.parser:recv())
-		if r.method == nil then
-			conn:close()
-			return
+		req = {headers={}, method=_next[1], path=_next[2], version=_next[3]}
+		req.serve = self
+		function req:reply(status, headers, body)
+			self.serve:write(status, headers, body)
 		end
 
 		while true do
-			local key, value = unpack(self.parser:recv())
-			if key == false then break end
-			r.headers[key] = value
+			_next = self.parser:recv()
+			if not _next then return end
+			if not _next[1] then break end
+			req.headers[_next[1]] = _next[2]
 		end
 
-		r.body = unpack(self.parser:recv())
-
-		self.requests:send(r)
+		self.recver:send(req)
 	end
 end
 
 
-return function(h)
-	local M = {}
+local function Server(hub, conn)
+	local self = setmetatable({}, Server_mt)
+	self.hub = hub
+	self.conn = conn
+	self.recver = hub:pipe()
+	self.parser = Parser(hub, conn, parsers.http.Request())
+	self.iov = iovec.Iovec(32)
+	hub:spawn(self.loop, self)
+	return self
+end
 
-	function M:connect(port, host)
-		local conn = h.tcp:connect(port, host)
-		return Client.new(h, conn)
+
+--
+-- Listener
+--
+local Listener_mt = {}
+Listener_mt.__index = Listener_mt
+
+Listener_mt.__call = __recv
+Listener_mt.recv = __recv
+
+
+function Listener_mt:loop()
+	for conn in self.serve do
+		self.recver:send(Server(self.hub, conn))
 	end
+end
 
-	function M:listen(port, host)
-		local serve = h.tcp:listen(port, host)
-		local sender, recver = unpack(h:pipe())
-		h:spawn(function()
-			while true do
-				local conn = serve:recv()
-				sender:send(Server.new(h, conn))
-			end
-		end)
-		return setmetatable({
-			recv = function()
-				return recver:recv()
-			end,
-			close = function()
-				serve:close()
-				return recver:close()
-			end
-		}, {
-			__call = function()
-				return recver:recv()
-			end,
-		})
-	end
 
-	return M
+--
+-- HTTP module interface
+--
+local HTTP_mt = {}
+HTTP_mt.__index = HTTP_mt
+
+
+function HTTP_mt:connect(port, host)
+	local conn = self.hub.tcp:listen(port, host)
+	local m = setmetatable({hub = self.hub, conn = conn}, Client_mt)
+	m.recver = self.hub:pipe()
+	self.hub:spawn(m.loop, m)
+	return m
+end
+
+
+function HTTP_mt:listen(port, host)
+	local serve = self.hub.tcp:listen(port, host)
+	local m = setmetatable({hub = self.hub, serve = serve}, Listener_mt)
+	m.recver = self.hub:pipe()
+	self.hub:spawn(m.loop, m)
+	return m
+end
+
+
+return function(hub)
+	return setmetatable({hub = hub}, HTTP_mt)
 end

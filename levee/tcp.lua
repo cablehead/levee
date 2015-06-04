@@ -1,8 +1,16 @@
 local sys = require("levee.sys")
 
 
+local function __recv(self)
+	return self.recver:recv()
+end
+
+
 local Listener_mt = {}
 Listener_mt.__index = Listener_mt
+
+Listener_mt.__call = __recv
+Listener_mt.recv = __recv
 
 
 function Listener_mt:loop()
@@ -20,16 +28,6 @@ function Listener_mt:loop()
 			self.recver:send(self.hub.io:rw(no))
 		end
 	end
-end
-
-
-function Listener_mt:__call()
-	return self.recver:recv()
-end
-
-
-function Listener_mt:recv()
-	return self.recver:recv()
 end
 
 

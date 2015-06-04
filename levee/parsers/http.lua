@@ -26,6 +26,11 @@ function HTTPParser:init_response()
 end
 
 
+function HTTPParser:reset()
+	return C.http_parser_reset(self)
+end
+
+
 function HTTPParser:next(buf, len)
 	return C.http_parser_next(self, buf, len)
 end
@@ -78,4 +83,19 @@ function HTTPParser:value(buf)
 end
 
 
-return ffi.metatype("HTTPParser", HTTPParser)
+local allocate = ffi.metatype("HTTPParser", HTTPParser)
+
+
+return {
+	Request = function()
+		local p = allocate()
+		p:init_request()
+		return p
+	end,
+
+	Response = function()
+		local p = allocate()
+		p:init_response()
+		return p
+	end,
+}

@@ -3,7 +3,6 @@ return {
 		local levee = require("levee")
 
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
 		local iov = levee.iovec.Iovec(4)
 
 		local serve = h.tcp:listen(8000)

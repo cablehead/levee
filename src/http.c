@@ -388,6 +388,16 @@ http_parser_init_response (HTTPParser *p)
 	p->response = true;
 }
 
+void
+http_parser_reset (HTTPParser *p)
+{
+	if (!p->response) {
+		http_parser_init_request(p);
+		return;
+	}
+	http_parser_init_response(p);
+}
+
 ssize_t
 http_parser_next (HTTPParser *p, const void *restrict buf, size_t len)
 {
