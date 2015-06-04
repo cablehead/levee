@@ -61,8 +61,13 @@ local W_mt = {}
 W_mt.__index = W_mt
 
 
-function W_mt:send(iovec)
-	C.writev(self.no, iovec.iov, iovec.n)
+function W_mt:write(buf, len)
+	sys.os.write(self.no, buf, len)
+end
+
+
+function W_mt:writev(iov, n)
+	C.writev(self.no, iov, n)
 end
 
 
@@ -75,7 +80,8 @@ RW_mt.__index = RW_mt
 RW_mt.reader = R_mt.reader
 RW_mt.__call = R_mt.__call
 RW_mt.recv = R_mt.recv
-RW_mt.send = W_mt.send
+RW_mt.write = W_mt.write
+RW_mt.writev = W_mt.writev
 
 
 --

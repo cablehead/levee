@@ -75,7 +75,7 @@ function Server_mt:write(status, headers, body)
 	self.iov:write(EOL)
 	self.iov:write(body)
 
-	self.conn:send(self.iov)
+	self.conn:writev(self.iov.iov, self.iov.n)
 	self.iov:reset()
 end
 

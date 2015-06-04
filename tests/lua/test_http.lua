@@ -11,14 +11,9 @@ return {
 		local serve = h.http:listen(8000)
 
 		local c = h.tcp:connect(8000)
-
-		local iov = levee.iovec.Iovec(4)
-		iov:write(request)
-		c:send(iov)
-		iov:reset()
+		c:write(request)
 
 		local s = serve:recv()
-
 		local req = s:recv()
 
 		assert.equal(req.method, "GET")
