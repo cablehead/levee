@@ -103,7 +103,7 @@ end
 
 function IO_mt:rw(no)
 	local m = setmetatable({hub = self.hub, no = no}, RW_mt)
-	m.r_ev, m.w_ev = self.hub:register(no, false, true)
+	m.r_ev, m.w_ev = self.hub:register(no, true, true)
 	R_init(m)
 	return m
 end
