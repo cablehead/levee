@@ -5,7 +5,6 @@ local parsers = require("levee.parsers")
 local meta = require("levee.meta")
 local iovec = require("levee.iovec")
 
-local time = require("levee.time")
 local Status = require("levee.http.status")
 
 
