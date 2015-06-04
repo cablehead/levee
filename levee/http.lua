@@ -6,7 +6,6 @@ local time = require("levee.time")
 local Status = require("levee.http.status")
 
 
-local VERSION = "HTTP/1.1"
 local FIELD_SEP = ": "
 local EOL = "\r\n"
 
