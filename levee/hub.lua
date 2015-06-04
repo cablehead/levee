@@ -167,7 +167,7 @@ local function Hub()
 
 	self.io = require("levee.io")(self)
 	self.tcp = require("levee.tcp")(self)
-	self.http = require("levee.http")(self)
+	self.http = require("levee.http").__plugin(self)
 
 	return self
 end

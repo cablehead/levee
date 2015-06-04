@@ -20,7 +20,7 @@ return {
 		assert.equal(req.path, "/some/path")
 		assert.same(req.headers, {H1 = "one"})
 
-		req:reply("HTTP/1.1 200 OK\r\n", {}, "Hello world\n")
+		req:reply(levee.http.Status(200), {}, "Hello world\n")
 		assert(#c:recv():take_s() > 0)
 
 		s:close()
