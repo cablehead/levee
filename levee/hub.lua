@@ -134,8 +134,14 @@ function Hub_mt:pump()
 		local no, r_ev, w_ev, e_ev = events[i]:value()
 		local r = self.registered[no]
 		if r then
-			if r_ev then r[1]:set(e_ev) end
-			if w_ev then r[2]:set(e_ev) end
+			if r_ev then 
+				-- self.stats.poll_r = self.stats.poll_r + 1
+				r[1]:set(e_ev)
+			end
+			if w_ev then
+				-- self.stats.poll_w = self.stats.poll_w + 1
+				r[2]:set(e_ev)
+			end
 		end
 	end
 end
