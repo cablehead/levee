@@ -21,7 +21,9 @@ function State_mt:recv()
 end
 
 
-function State_mt:send(value)
+function State_mt:set(err)
+	local value = err and -1 or 1
+
 	if not self.co then
 		self.value = value
 		return
@@ -97,15 +99,22 @@ end
 
 
 function Hub_mt:register(no, r, w)
-	self.registered[no] = State(self)
+	local r_ev = r and State(self)
+	local w_ev = w and State(self)
+	self.registered[no] = {r_ev, w_ev}
 	self.poller:register(no, r, w)
-	return self.registered[no]
+	return r_ev, w_ev
 end
 
 
 function Hub_mt:unregister(no, r, w)
 	self.poller:unregister(no, r, w)
-	self.registered[no] = nil
+	local r = self.registered[no]
+	if r then
+		if r[1] then r[1]:set(true) end
+		if r[2] then r[2]:set(true) end
+		self.registered[no] = nil
+	end
 end
 
 
@@ -123,8 +132,10 @@ function Hub_mt:pump()
 
 	for i = 0, n - 1 do
 		local no, r_ev, w_ev, e_ev = events[i]:value()
-		if self.registered[no] then
-			self.registered[no]:send({r_ev, w_ev, e_ev})
+		local r = self.registered[no]
+		if r then
+			if r_ev then r[1]:set(e_ev) end
+			if w_ev then r[2]:set(e_ev) end
 		end
 	end
 end
@@ -147,6 +158,8 @@ local function Hub()
 
 	self.parent = coroutine.running()
 	self.loop = coroutine.create(function() self:main() end)
+
+	self.io = require("levee.io")(self)
 
 	return self
 end

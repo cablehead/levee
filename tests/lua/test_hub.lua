@@ -23,12 +23,29 @@ return {
 
 	test_register = function()
 		local levee = require("levee")
+		local os = levee.sys.os
 
 		local h = levee.Hub()
 
-		local r, w = levee.sys.os.pipe()
+		local r, w = os.pipe()
 
-		local events = h:register(w, false, true)
-		assert.same(events:recv(), {false, true, false})
+		local r_ev = h:register(r, true)
+		local _, w_ev = h:register(w, false, true)
+
+		assert.equal(w_ev:recv(), 1)
+
+		os.write(w, "foo")
+		assert.equal(w_ev:recv(), 1)
+		assert.equal(r_ev:recv(), 1)
+
+		os.close(w)
+		assert.equal(r_ev:recv(), -1)
+
+		h:unregister(r, true)
+		h:unregister(w, false, true)
+
+		assert.same(h.registered, {})
+		assert.equal(r_ev:recv(), -1)
+		assert.equal(w_ev:recv(), -1)
 	end,
 }
