@@ -1,3 +1,6 @@
+local ffi = require('ffi')
+local C = ffi.C
+
 local parsers = require("levee.parsers")
 local meta = require("levee.meta")
 local iovec = require("levee.iovec")
@@ -8,6 +11,27 @@ local Status = require("levee.http.status")
 
 local FIELD_SEP = ": "
 local EOL = "\r\n"
+
+
+--
+-- Date response header cache
+--
+local http_time = ffi.new("time_t [1]")
+local http_date = nil
+local http_date_buf = ffi.new("char [32]")
+local http_tm = ffi.new("struct tm")
+
+local function httpdate()
+	local t = C.time(nil)
+	if t ~= http_time[0] then
+		http_time[0] = t
+		C.gmtime_r(http_time, http_tm)
+		local len = C.strftime(
+			http_date_buf, 32, "%a, %d %b %Y %H:%M:%S GMT", http_tm)
+		http_date = ffi.string(http_date_buf, len)
+	end
+	return http_date
+end
 
 
 local function __recv(self)
@@ -67,7 +91,7 @@ Server_mt.recv = __recv
 
 function Server_mt:write(status, headers, body)
 	local hdr = {
-		["Date"] = time.httpdate(),
+		["Date"] = httpdate(),
 		["Content-Type"] = "text/plain",
 		["Some-Value"] = "with stuff",
 		["Content-Length"] = "12",
