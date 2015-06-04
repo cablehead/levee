@@ -49,6 +49,15 @@ end
 --
 -- Server
 --
+local ServerRequest_mt = {}
+ServerRequest_mt.__index = ServerRequest_mt
+
+
+function ServerRequest_mt:reply(status, headers, body)
+	self.serve:write(status, headers, body)
+end
+
+
 local Server_mt = {}
 Server_mt.__index = Server_mt
 
@@ -86,11 +95,12 @@ function Server_mt:loop()
 		_next = self.parser:recv()
 		if not _next then return end
 
-		req = {headers={}, method=_next[1], path=_next[2], version=_next[3]}
-		req.serve = self
-		function req:reply(status, headers, body)
-			self.serve:write(status, headers, body)
-		end
+		req = setmetatable({
+			serve=self,
+			method=_next[1],
+			path=_next[2],
+			version=_next[3],
+			headers={}, }, ServerRequest_mt)
 
 		while true do
 			_next = self.parser:recv()

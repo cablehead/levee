@@ -45,7 +45,7 @@ return {
 			assert.equal(req.method, "GET")
 			assert.equal(req.path, "/path")
 			assert.equal(req.body, nil)
-			req.reply({200, "OK"}, {}, "Hello World\n")
+			req:reply({200, "OK"}, {}, "Hello World\n")
 
 			response = response:recv()
 			assert.equal(response.code, 200)
