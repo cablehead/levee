@@ -17,7 +17,7 @@ ifneq (,$(MEMCHECK))
 	TEST_RUN:= valgrind --error-exitcode=2 -q --leak-check=full
 endif
 
-OBJS_COMMON := $(OBJ)/heap.o $(OBJ)/http.o
+OBJS_COMMON := $(OBJ)/heap.o
 OBJS_LEVEE := \
 	$(OBJS_COMMON) \
 	$(OBJ)/task.o \
@@ -66,9 +66,9 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 -include $(wildcard $(OBJ)/*.d)
 
-$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
+$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(BUILD)/netparse/libnetparse.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
-	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -o $@
+	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -Wl,-force_load,$(BUILD)/netparse/libnetparse.a -o $@
 
 $(LIB)/levee.so: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(LIB)
@@ -92,6 +92,13 @@ $(TMP)/levee_cdef.h: $(LUAJIT) $(shell find $(PROJECT)/cdef -type f)
 	echo "const char levee_cdef[] = {" > $@
 	$(LUAJIT) $(PROJECT)/cdef/manifest.lua | xxd -i >> $@
 	echo ", 0};" >> $@
+
+$(BUILD)/netparse/Makefile:
+	@mkdir -p $(BUILD)/netparse
+	cd $(BUILD)/netparse && cmake $(PROJECT)/src/netparse -DCMAKE_BUILD_TYPE=Release
+
+$(BUILD)/netparse/libnetparse.a: $(BUILD)/netparse/Makefile
+	$(MAKE) -C $(BUILD)/netparse
 
 $(LUAJIT_SRC)/Makefile:
 	git submodule update --init $(LUAJIT_SRC)
