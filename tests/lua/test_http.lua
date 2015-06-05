@@ -49,7 +49,7 @@ return {
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-		assert.equal(response.body, "Hello World\n")
+		assert.equal(response.body:recv(), "Hello World\n")
 
 		-- make another request on the same connection
 
@@ -63,7 +63,7 @@ return {
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-		assert.equal(response.body, "Hello World\n")
+		assert.equal(response.body:recv(), "Hello World\n")
 
 		c:close()
 		serve:close()

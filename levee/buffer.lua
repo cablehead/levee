@@ -100,6 +100,11 @@ function Buffer:bump(len)
 end
 
 
+function Buffer:slice(len)
+	return self.buf + self.off, len < self.len and len or self.len
+end
+
+
 function Buffer:value()
 	return self.buf + self.off, self.len
 end

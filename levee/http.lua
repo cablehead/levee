@@ -136,32 +136,22 @@ end
 --
 -- Parser
 --
-local function __parser(hub, conn, parser, recver)
-	for buf in conn do
-		if not buf then recver:close() return end
+local function parser_next(hub, conn, parser)
+	local buf = conn:recv()
+	if not buf then return end
 
-		while true do
-			local n = parser:next(buf:value())
+	local n = parser:next(buf:value())
 
-			if n < 0 then error("parse error") end
+	if n < 0 then error("parse error") end
 
-			if n == 0 then break end
-
-			if n > 0 then
-				local value = {parser:value(buf:value())}
-				buf:trim(n)
-				recver:send(value)
-				if parser:is_done() then parser:reset() end
-			end
-		end
+	if n > 0 then
+		local value = {parser:value(buf:value())}
+		buf:trim(n)
+		if parser:is_done() then parser:reset() end
+		return value
 	end
-end
 
-
-local function Parser(hub, conn, parser)
-	local recver = hub:pipe()
-	hub:spawn(function() __parser(hub, conn, parser, recver) end)
-	return recver
+	return parser_next(hub, conn, parser)
 end
 
 
@@ -173,10 +163,10 @@ Client_mt.__index = Client_mt
 
 
 function Client_mt:reader()
-	local _next, res, len, buf
+	local _next, res
 
 	for response in self.responses do
-		_next = self.parser:recv()
+		_next = parser_next(self.hub, self.conn, self.parser)
 		if not _next then return end
 
 		res = {
@@ -184,22 +174,27 @@ function Client_mt:reader()
 			reason = _next[2],
 			version = _next[3],
 			headers = {},
-			-- body = self:hub:pipe(),
+			body = self.hub:pipe(),
 			}
 
 		while true do
-			_next = self.parser:recv()
+			_next = parser_next(self.hub, self.conn, self.parser)
 			if not _next then return end
 			if not _next[1] then break end
 			res.headers[_next[1]] = _next[2]
 		end
 
-		len = _next[2]
-		buf = self.conn:recv()
-		res.body = ffi.string(buf:value(), len)
-		buf:trim(len)
-
 		response:send(res)
+
+		local len = _next[2]
+		while len > 0 do
+			local buf = self.conn:recv()
+			local b, s_len = buf:slice(len)
+			res.body:send(ffi.string(b, s_len))
+			buf:trim(s_len)
+			len = len - s_len
+		end
+		res.body:close()
 	end
 end
 
@@ -217,9 +212,6 @@ end
 
 
 function Client_mt:request(method, path, params, headers, data)
-	local recver = self.hub:pipe()
-	self.responses:send(recver)
-
 	self.iov:write(("%s %s %s\r\n"):format(method, path, VERSION))
 
 	headers = self:__headers(headers)
@@ -240,6 +232,8 @@ function Client_mt:request(method, path, params, headers, data)
 	self.conn:writev(self.iov.iov, self.iov.n)
 	self.iov:reset()
 
+	local recver = self.hub:pipe()
+	self.responses:send(recver)
 	return recver
 end
 
@@ -315,7 +309,7 @@ function Server_mt:loop()
 	local _next, req
 
 	while true do
-		_next = self.parser:recv()
+		_next = parser_next(self.hub, self.conn, self.parser)
 		if not _next then return end
 
 		req = setmetatable({
@@ -326,7 +320,7 @@ function Server_mt:loop()
 			headers={}, }, ServerRequest_mt)
 
 		while true do
-			_next = self.parser:recv()
+			_next = parser_next(self.hub, self.conn, self.parser)
 			if not _next then return end
 			if not _next[1] then break end
 			req.headers[_next[1]] = _next[2]
@@ -348,7 +342,7 @@ local function Server(hub, conn)
 	self.hub = hub
 	self.conn = conn
 	self.recver = hub:pipe()
-	self.parser = Parser(hub, conn, parsers.http.Request())
+	self.parser = parsers.http.Request()
 	self.iov = iovec.Iovec(32)
 	hub:spawn(self.loop, self)
 	return self
@@ -390,7 +384,7 @@ function HTTP_mt:connect(port, host)
 
 	m.hub = self.hub
 	m.conn = self.hub.tcp:connect(port, host)
-	m.parser = Parser(self.hub, m.conn, parsers.http.Response())
+	m.parser = parsers.http.Response()
 	m.iov = iovec.Iovec(32)
 
 	m.responses = self.hub:pipe()
