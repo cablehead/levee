@@ -140,15 +140,19 @@ local function __parser(hub, conn, parser, recver)
 	for buf in conn do
 		if not buf then recver:close() return end
 
-		local n = parser:next(buf:value())
+		while true do
+			local n = parser:next(buf:value())
 
-		if n < 0 then error("parse error") end
+			if n < 0 then error("parse error") end
 
-		if n > 0 then
-			local value = {parser:value(buf:value())}
-			buf:trim(n)
-			recver:send(value)
-			if parser:is_done() then parser:reset() end
+			if n == 0 then break end
+
+			if n > 0 then
+				local value = {parser:value(buf:value())}
+				buf:trim(n)
+				recver:send(value)
+				if parser:is_done() then parser:reset() end
+			end
 		end
 	end
 end
