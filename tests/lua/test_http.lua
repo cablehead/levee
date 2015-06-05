@@ -44,7 +44,7 @@ return {
 		local req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
-		assert.equal(req.body, nil)
+		assert.equal(req.body:recv(), nil)
 		req:reply(levee.http.Status(200), {}, "Hello World\n")
 
 		response = response:recv()
@@ -58,7 +58,7 @@ return {
 		local req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
-		assert.equal(req.body, nil)
+		assert.equal(req.body:recv(), nil)
 		req:reply(levee.http.Status(200), {}, "Hello World\n")
 
 		response = response:recv()
@@ -72,60 +72,28 @@ return {
 	end,
 
 	test_post = function()
-		if true then return 'SKIP' end
 		local levee = require("levee")
-		levee.run(function(h)
-			local serve = h.http:listen(8000)
 
-			local c = h.http:connect(8000)
+		local h = levee.Hub()
+		local serve = h.http:listen(8000)
+		local c = h.http:connect(8000)
+		local s = serve:recv()
 
-			local response = c:post("/path", {data="foo"})
+		local response = c:post("/path", {data="foo"})
 
-			local s = serve:recv()
+		local req = s:recv()
+		assert.equal(req.method, "POST")
+		assert.equal(req.path, "/path")
+		assert.equal(req.body:recv(), "foo")
+		req:reply(levee.http.Status(200), {}, "foobar")
 
-			local req = s:recv()
-			assert.equal(req.method, "POST")
-			assert.equal(req.path, "/path")
-			assert.equal(req.body, "foo")
-			req:reply({200, "OK"}, {}, "foobar")
+		response = response:recv()
+		assert.equal(response.code, 200)
+		assert.equal(response.body:recv(), "foobar")
 
-			response = response:recv()
-			assert.equal(response.code, 200)
-			assert.equal(response.body, "foobar")
-
-			c:close()
-			serve:close()
-		end)
-	end,
-
-	test_serve = function()
-		if true then return 'SKIP' end
-		local levee = require("levee")
-		levee.run(function(h)
-			local serve = h.http:listen(8000)
-
-			function handle(conn)
-				for req in conn do
-					req:reply({200, "OK"}, {}, "Hello world\n")
-				end
-			end
-
-			h:spawn(function()
-				for conn in serve do
-					h:spawn(handle, conn)
-				end
-			end)
-
-			local c = h.http:connect(8000)
-
-			for _ = 1, 10 do
-				local response = c:get("/path"):recv()
-				assert.equal(response.code, 200)
-				assert.equal(response.body, "Hello world\n")
-			end
-
-			c:close()
-			serve:close()
-		end)
+		c:close()
+		serve:close()
+		h:sleep(1)
+		assert.same(h.registered, {})
 	end,
 }

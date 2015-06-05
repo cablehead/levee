@@ -1,4 +1,5 @@
 local sys = require("levee.sys")
+local errno = require("levee.errno")
 
 
 local function __recv(self)
@@ -51,7 +52,10 @@ end
 
 
 function TCP_mt:listen(port, host)
-	local no = sys.socket.listen(port, host)
+	local no, err = sys.socket.listen(port, host)
+	if err then
+		error(errno:message(err))
+	end
 	sys.os.nonblock(no)
 	local m = setmetatable({hub = self.hub, no = no}, Listener_mt)
 	m.r_ev = self.hub:register(no, true)

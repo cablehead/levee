@@ -317,7 +317,9 @@ function Server_mt:loop()
 			method=_next[1],
 			path=_next[2],
 			version=_next[3],
-			headers={}, }, ServerRequest_mt)
+			headers={},
+			body = self.hub:pipe(),
+				}, ServerRequest_mt)
 
 		while true do
 			_next = parser_next(self.hub, self.conn, self.parser)
@@ -327,6 +329,16 @@ function Server_mt:loop()
 		end
 
 		self.recver:send(req)
+
+		local len = _next[2]
+		while len > 0 do
+			local buf = self.conn:recv()
+			local b, s_len = buf:slice(len)
+			req.body:send(ffi.string(b, s_len))
+			buf:trim(s_len)
+			len = len - s_len
+		end
+		req.body:close()
 	end
 end
 
