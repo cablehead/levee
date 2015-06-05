@@ -30,44 +30,45 @@ return {
 	end,
 
 	test_core = function()
-		if true then return 'SKIP' end
 		local levee = require("levee")
-		levee.run(function(h)
-			local serve = h.http:listen(8000)
 
-			local c = h.http:connect(8000)
+		local h = levee.Hub()
 
-			local response = c:get("/path")
+		local serve = h.http:listen(8000)
 
-			local s = serve:recv()
+		local c = h.http:connect(8000)
+		local response = c:get("/path")
 
-			local req = s:recv()
-			assert.equal(req.method, "GET")
-			assert.equal(req.path, "/path")
-			assert.equal(req.body, nil)
-			req:reply({200, "OK"}, {}, "Hello World\n")
+		local s = serve:recv()
 
-			response = response:recv()
-			assert.equal(response.code, 200)
-			assert.equal(response.body, "Hello World\n")
+		local req = s:recv()
+		assert.equal(req.method, "GET")
+		assert.equal(req.path, "/path")
+		assert.equal(req.body, nil)
+		req:reply(levee.http.Status(200), {}, "Hello World\n")
 
-			-- make another request on the same connection
+		response = response:recv()
+		assert.equal(response.code, 200)
+		assert.equal(response.body, "Hello World\n")
 
-			local response = c:get("/path")
+		-- make another request on the same connection
 
-			local req = s:recv()
-			assert.equal(req.method, "GET")
-			assert.equal(req.path, "/path")
-			assert.equal(req.body, nil)
-			req.reply({200, "OK"}, {}, "Hello World\n")
+		local response = c:get("/path")
 
-			response = response:recv()
-			assert.equal(response.code, 200)
-			assert.equal(response.body, "Hello World\n")
+		local req = s:recv()
+		assert.equal(req.method, "GET")
+		assert.equal(req.path, "/path")
+		assert.equal(req.body, nil)
+		req:reply(levee.http.Status(200), {}, "Hello World\n")
 
-			c:close()
-			serve:close()
-		end)
+		response = response:recv()
+		assert.equal(response.code, 200)
+		assert.equal(response.body, "Hello World\n")
+
+		c:close()
+		serve:close()
+		h:sleep(1)
+		assert.same(h.registered, {})
 	end,
 
 	test_post = function()
@@ -86,7 +87,7 @@ return {
 			assert.equal(req.method, "POST")
 			assert.equal(req.path, "/path")
 			assert.equal(req.body, "foo")
-			req.reply({200, "OK"}, {}, "foobar")
+			req:reply({200, "OK"}, {}, "foobar")
 
 			response = response:recv()
 			assert.equal(response.code, 200)
@@ -105,7 +106,7 @@ return {
 
 			function handle(conn)
 				for req in conn do
-					req.reply({200, "OK"}, {}, "Hello world\n")
+					req:reply({200, "OK"}, {}, "Hello world\n")
 				end
 			end
 

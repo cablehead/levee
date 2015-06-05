@@ -6,6 +6,7 @@ local meta = require("levee.meta")
 local iovec = require("levee.iovec")
 
 
+local VERSION = "HTTP/1.1"
 local FIELD_SEP = ": "
 local EOL = "\r\n"
 
@@ -147,8 +148,15 @@ local function __parser(hub, conn, parser, recver)
 			if n == 0 then break end
 
 			if n > 0 then
-				recver:send({parser:value(buf:value())})
-				buf:trim(n)
+				if parser.type == C.HTTP_PARSER_BODY_START then
+					buf:trim(n)
+					local len = parser.as.body_start.content_length
+					recver:send({false, ffi.string(buf:value(), len)})
+					buf:trim(len)
+				else
+					recver:send({parser:value(buf:value())})
+					buf:trim(n)
+				end
 				if parser:is_done() then parser:reset() end
 			end
 		end
@@ -160,6 +168,95 @@ local function Parser(hub, conn, parser)
 	local recver = hub:pipe()
 	hub:spawn(function() __parser(hub, conn, parser, recver) end)
 	return recver
+end
+
+
+--
+-- Client
+--
+local Client_mt = {}
+Client_mt.__index = Client_mt
+
+
+function Client_mt:reader()
+	local _next, res
+
+	for response in self.responses do
+		_next = self.parser:recv()
+		if not _next then return end
+
+		res = {code=_next[1], reason=_next[2], version=_next[3], headers={}}
+
+		while true do
+			_next = self.parser:recv()
+			if not _next then return end
+			if not _next[1] then break end
+			res.headers[_next[1]] = _next[2]
+		end
+
+		res.body = _next[2]
+
+		response:send(res)
+	end
+end
+
+
+function Client_mt:__headers(headers)
+	-- TODO: Host
+	local ret = {
+		["User-Agent"] = "levee/" .. meta.version,
+		Accept = "*/*", }
+	for key, value in pairs(headers or {}) do
+		ret[key] = value
+	end
+	return ret
+end
+
+
+function Client_mt:request(method, path, params, headers, data)
+	local recver = self.hub:pipe()
+	self.responses:send(recver)
+
+	self.iov:write(("%s %s %s\r\n"):format(method, path, VERSION))
+
+	headers = self:__headers(headers)
+	if data then
+		headers["Content-Length"] = tostring(#data)
+	end
+
+	for k, v in pairs(headers) do
+		self.iov:write(k)
+		self.iov:write(FIELD_SEP)
+		self.iov:write(v)
+		self.iov:write(EOL)
+	end
+	self.iov:write(EOL)
+
+	if data then self.iov:write(data) end
+
+	self.conn:writev(self.iov.iov, self.iov.n)
+	self.iov:reset()
+
+	return recver
+end
+
+
+function Client_mt:get(path, options)
+	options = options or {}
+	return self:request("GET", path, options.params, options.headers)
+end
+
+
+function Client_mt:post(path, options)
+	options = options or {}
+	return self:request(
+		"POST", path, options.params, options.headers, options.data)
+end
+
+
+function Client_mt:close()
+	self.conn:close()
+	self.responses:close()
 end
 
 
@@ -286,10 +383,16 @@ HTTP_mt.__index = HTTP_mt
 
 
 function HTTP_mt:connect(port, host)
-	local conn = self.hub.tcp:listen(port, host)
-	local m = setmetatable({hub = self.hub, conn = conn}, Client_mt)
-	m.recver = self.hub:pipe()
-	self.hub:spawn(m.loop, m)
+	local m = setmetatable({}, Client_mt)
+
+	m.hub = self.hub
+	m.conn = self.hub.tcp:connect(port, host)
+	m.parser = Parser(self.hub, m.conn, parsers.http.Response())
+	m.iov = iovec.Iovec(32)
+
+	m.responses = self.hub:pipe()
+	self.hub:spawn(m.reader, m)
+
 	return m
 end
 
