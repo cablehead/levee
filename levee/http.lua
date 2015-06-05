@@ -183,21 +183,27 @@ Server_mt.recv = __recv
 
 
 function Server_mt:write(status, headers, body)
-	local hdr = {
-		["Date"] = httpdate(),
-		["Content-Type"] = "text/plain",
-		["Some-Value"] = "with stuff",
-		["Content-Length"] = "12",
-	}
+	self.iov:write(status)
 
-	self.iov:write(Status[200])
-	for k,v in pairs(hdr) do
+	self.iov:write("Date")
+	self.iov:write(FIELD_SEP)
+	self.iov:write(httpdate())
+	self.iov:write(EOL)
+
+	for k, v in pairs(headers) do
 		self.iov:write(k)
 		self.iov:write(FIELD_SEP)
 		self.iov:write(v)
 		self.iov:write(EOL)
 	end
+
+	self.iov:write("Content-Length")
+	self.iov:write(FIELD_SEP)
+	self.iov:write(tostring(#body))
 	self.iov:write(EOL)
+
+	self.iov:write(EOL)
+
 	self.iov:write(body)
 
 	self.conn:writev(self.iov.iov, self.iov.n)
