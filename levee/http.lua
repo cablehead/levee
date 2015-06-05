@@ -140,25 +140,15 @@ local function __parser(hub, conn, parser, recver)
 	for buf in conn do
 		if not buf then recver:close() return end
 
-		while true do
-			local n = parser:next(buf:value())
+		local n = parser:next(buf:value())
 
-			if n < 0 then error("parse error") end
+		if n < 0 then error("parse error") end
 
-			if n == 0 then break end
-
-			if n > 0 then
-				if parser.type == C.HTTP_PARSER_BODY_START then
-					buf:trim(n)
-					local len = parser.as.body_start.content_length
-					recver:send({false, ffi.string(buf:value(), len)})
-					buf:trim(len)
-				else
-					recver:send({parser:value(buf:value())})
-					buf:trim(n)
-				end
-				if parser:is_done() then parser:reset() end
-			end
+		if n > 0 then
+			local value = {parser:value(buf:value())}
+			buf:trim(n)
+			recver:send(value)
+			if parser:is_done() then parser:reset() end
 		end
 	end
 end
@@ -179,13 +169,19 @@ Client_mt.__index = Client_mt
 
 
 function Client_mt:reader()
-	local _next, res
+	local _next, res, len, buf
 
 	for response in self.responses do
 		_next = self.parser:recv()
 		if not _next then return end
 
-		res = {code=_next[1], reason=_next[2], version=_next[3], headers={}}
+		res = {
+			code = _next[1],
+			reason = _next[2],
+			version = _next[3],
+			headers = {},
+			-- body = self:hub:pipe(),
+			}
 
 		while true do
 			_next = self.parser:recv()
@@ -194,7 +190,10 @@ function Client_mt:reader()
 			res.headers[_next[1]] = _next[2]
 		end
 
-		res.body = _next[2]
+		len = _next[2]
+		buf = self.conn:recv()
+		res.body = ffi.string(buf:value(), len)
+		buf:trim(len)
 
 		response:send(res)
 	end
