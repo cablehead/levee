@@ -1,221 +1,59 @@
 return {
 	test_pipe = function()
-		local levee = require("levee")
+		local h = require("levee").Hub()
+		local p = h:pipe()
 
-		levee.run(function(h)
-			local sender, recver = unpack(h:pipe())
+		-- recv and then send
+		h:spawn_later(10, function() p:send("1") end)
+		assert.equal(p:recv(), "1")
 
-			assert.equal(sender.hub, h)
-			assert.equal(recver.hub, h)
-
-			-- test recv and then send
-			h:spawn(function() assert.equal(sender:send("1"), true) end)
-			local got = recver:recv()
-			assert.equal(got, "1")
-
-			-- test send and then recv
-			local state
-			h:spawn(function() state = recver:recv() end)
-			assert.equal(sender:send("2"), true)
-			h:pause()
-			assert.equal(state, "2")
-		end)
+		-- send and then recv
+		local state
+		h:spawn(function() state = p:recv() end)
+		p:send("2")
+		h:sleep(1)
+		assert.equal(state, "2")
 	end,
 
-	test_pipe_close = function()
-		local levee = require("levee")
+	test_iter = function()
+		local h = require("levee").Hub()
+		local p = h:pipe()
 
-		levee.run(function(h)
-			-- test close sender and then recv
-			local sender, recver = unpack(h:pipe())
-			sender:close()
-			assert.equal(recver:recv(), nil)
-
-			-- test recv and then close sender
-			local state = 'to set'
-			local sender, recver = unpack(h:pipe())
-			h:spawn(function() state = recver:recv() end)
-			h:pause()
-			sender:close()
-			h:pause()
-			assert.equal(state, nil)
-
-			-- test close recver and then send
-			local sender, recver = unpack(h:pipe())
-			recver:close()
-			assert.equal(sender:send("1"), nil)
-
-			-- test send and then close recver
-			local sender, recver = unpack(h:pipe())
-			local state = 'to set'
-			h:spawn(function() state = sender:send("1") end)
-			h:pause()
-			recver:close()
-			h:pause()
-			assert.equal(state, nil)
-		end)
-	end,
-
-	test_switch = function()
-		local levee = require("levee")
-
-		levee.run(function(h)
-			local sender, recver = unpack(h:switch())
-
-			local state = 0
-
-			h:spawn(function()
-				while true do
-					local got = recver:recv()
-					assert.equal(got, true)
-					state = state + 1
-					h:pause()
-				end
-			end)
-
-			-- switch closed
-			h:pause()
-			assert.equal(state, 0)
-
-			-- open switch
-			sender:send(true)
-			h:pause()
-			assert.equal(state, 1)
-
-			-- switch stays open
-			h:pause()
-			assert.equal(state, 2)
-
-			-- close switch
-			sender:send(false)
-			h:pause()
-			assert.equal(state, 2)
-		end)
-	end,
-
-	test_switch_close = function()
-		local levee = require("levee")
-
-		levee.run(function(h)
-			-- test close sender and then recv
-			local sender, recver = unpack(h:switch())
-			sender:close()
-			assert.equal(recver:recv(), nil)
-
-			-- test recv and then close sender
-			local state = 'to set'
-			local sender, recver = unpack(h:switch())
-			h:spawn(function() state = recver:recv() end)
-			h:pause()
-			sender:close()
-			h:pause()
-			assert.equal(state, nil)
-
-			-- test close recver and then send
-			local sender, recver = unpack(h:switch())
-			recver:close()
-			assert.equal(sender:send(true), nil)
-		end)
-	end,
-
-	test_switch_clear_on_recv = function()
-		local levee = require("levee")
-
-		levee.run(function(h)
-			local sender, recver = unpack(h:switch(true))
-
-			local state = 0
-
-			h:spawn(function()
-				while true do
-					local got = recver:recv()
-					assert.equal(got, true)
-					state = state + 1
-					h:pause()
-				end
-			end)
-
-			-- switch closed
-			h:pause()
-			assert.equal(state, 0)
-
-			-- open switch
-			sender:send(true)
-			h:pause()
-			assert.equal(state, 1)
-
-			-- switch should have closed
-			h:pause()
-			assert.equal(state, 1)
-		end)
-	end,
-
-	test_gc = function()
-		local ffi = require("ffi")
-
-		local message = require("levee.message")
-
-		local p = message.Pipe({id = 1})
-
-		collectgarbage("collect")
-		assert(p.sender.other ~= ffi.NULL)
-		assert(p.recver.other ~= ffi.NULL)
-
-		local sender, recver = unpack(p)
-
-		p = nil
-		collectgarbage("collect")
-		assert(sender.other ~= ffi.NULL)
-		assert(recver.other ~= ffi.NULL)
-
-		recver = nil
-		collectgarbage("collect")
-		assert(sender.other, ffi.NULL)
-		assert(sender.closed)
-
-		sender = nil
-		collectgarbage("collect")
-	end,
-
-	test_coro = function()
-		local ffi = require("ffi")
-		local task = require("levee.task")
-
-		ffi.cdef[[
-			typedef struct lua_State lua_State;
-			typedef struct {
-				lua_State *coro;
-			} Foo;
-		]]
-
-		local stash = ffi.new('Foo')
-
-		function pack(...)
-			local m = {}
-			for _, x in ipairs({...}) do
-				table.insert(m, x)
-			end
-			return m
-		end
-
-		local co = coroutine.create(
+		h:spawn(
 			function()
-				local got = pack(task.yield(stash, "1.1", "1.2"))
-				assert.same(got, {"2.1", "2.2"})
-
-				got = pack(task.yield(stash, "3.1", "3.2"))
-				assert.same(got, {"4.1", "4.2"})
-
-				return "5.1", "5.2"
+				for i = 1, 3 do
+					p:send(i)
+				end
+				p:close()
 			end)
 
-		local got = pack(coroutine.resume(co))
-		assert.same(got, {true, "1.1", "1.2"})
+		local want = 1
+		for i in p do
+			assert.equal(want, i)
+			want = want + 1
+		end
+	end,
 
-		got = pack(task.resume(stash, "2.1", "2.2"))
-		assert.same(got, {true, "3.1", "3.2"})
+	test_close_recver = function()
+		local h = require("levee").Hub()
+		local p = h:pipe()
 
-		got = pack(task.resume(stash, "4.1", "4.2"))
-		assert.same(got, {true, "5.1", "5.2"})
+		local state
+		h:spawn(
+			function()
+				while true do
+					local ok = p:send("foo")
+					if not ok then break end
+				end
+				state = "done"
+			end)
+
+		assert.equal(p:recv(), "foo")
+		assert.equal(p:recv(), "foo")
+		assert.equal(p:recv(), "foo")
+
+		p:close()
+		h:sleep(1)
+		assert.equal(state, "done")
 	end,
 }

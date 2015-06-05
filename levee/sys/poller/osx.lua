@@ -4,16 +4,37 @@ local Errno = require('levee.errno')
 ffi.cdef[[
 static const int EV_POLL_IN_MAX = 64;
 static const int EV_POLL_OUT_MAX = 64;
+
+typedef struct kevent LeveePollerEvent;
+
 struct LeveePoller {
 	int fd;
 	int ev_in_pos;
 	uintptr_t id;
+	struct timeval tv;
+	struct timespec ts;
+	int64_t ms;
 	struct kevent ev_in[EV_POLL_IN_MAX];
-	struct kevent ev_out[EV_POLL_OUT_MAX];
+	LeveePollerEvent ev_out[EV_POLL_OUT_MAX];
 };
 ]]
 
 local C = ffi.C
+
+
+local Event = {}
+Event.__index = Event
+
+function Event:value()
+	local fd = tonumber(self.ident)
+	local r = self.filter == C.EVFILT_READ
+	local w = self.filter == C.EVFILT_WRITE
+	local e = bit.band(self.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0
+	return fd, r, w, e
+end
+
+ffi.metatype("LeveePollerEvent", Event)
+
 
 local Poller = {}
 Poller.__index = Poller
@@ -93,34 +114,27 @@ function Poller:unregister(fd, r, w)
 end
 
 
-local POLLIN = 1
-local POLLOUT = 2
-local POLLERR = 3
+function Poller:poll(timeout)
+	local ts
+	if timeout then
+		C.gettimeofday(self.tv, nil)
+		self.ms = timeout - (
+			(self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
+		if self.ms < 0 then
+			return nil, 0
+		end
+		self.ts.tv_sec = (self.ms / 1000LL)
+		self.ts.tv_nsec = (self.ms % 1000LL) * 1000000LL
+		ts = self.ts
+	end
 
+	local n = C.kevent(
+		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, ts)
 
-function Poller:poll()
-	--local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out,
-	--	C.EV_POLL_OUT_MAX, nil)
-
-	local n = C.kevent(self.fd, self.ev_in, self.ev_in_pos, self.ev_out, 1, nil)
 	if n < 0 then Errno:error("kevent") end
 
 	self.ev_in_pos = 0
-	local e = self.ev_out[0]
-
-	if e.filter == C.EVFILT_READ and e.data > 0 then
-		return tonumber(e.ident), POLLIN, e.data
-	end
-
-	-- it's possible to get an EOF and a WRITE in the same poll
-	if bit.band(e.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0 then
-		return tonumber(e.ident), POLLERR, e.data
-	end
-
-	if e.filter == C.EVFILT_WRITE then
-		return tonumber(e.ident), POLLOUT, e.data
-	end
-
+	return self.ev_out, n
 end
 
 

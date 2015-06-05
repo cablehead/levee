@@ -420,17 +420,6 @@ return {
 
 	utcdate = function() return time_now():utcdate() end,
 	localdate = function() return time_now():localdate() end,
-	httpdate = function()
-		local t = C.time(nil)
-		if t ~= http_time[0] then
-			http_time[0] = t
-			C.gmtime_r(http_time, http_tm)
-			local len = C.strftime(http_date_buf, 32, "%a, %d %b %Y %H:%M:%S GMT", http_tm)
-			http_date = ffi.string(http_date_buf, len)
-		end
-		return http_date
-	end,
-
 	parse_http = function(str)
 		local self = Date.allocate()
 		if try_http(self, str) then return self end

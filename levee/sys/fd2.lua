@@ -2,18 +2,12 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
-local function nonblock(no, on)
+local function nonblock(no)
 	local flags = C.fcntl(no, C.F_GETFL, 0)
 	if flags == -1 then
 		return ffi.errno()
 	end
-
-	if on then
-		flags = bit.bor(flags, C.O_NONBLOCK)
-	else
-		flags = bit.band(flags, bit.xor(C.O_NONBLOCK))
-	end
-
+	flags = bit.bor(flags, C.O_NONBLOCK)
 	local rc = C.fcntl(no, C.F_SETFL, ffi.new("int", flags))
 	if rc == -1 then
 		return ffi.errno()
@@ -21,6 +15,14 @@ local function nonblock(no, on)
 	return 0
 end
 
+
+local nonblock_child
+
+if ffi.os:lower() == "linux" then
+	nonblock_child = nonblock
+else
+	nonblock_child = function() end
+end
 
 local function read(no, buf, len)
 	if not len then len = ffi.sizeof(buf) end
@@ -59,6 +61,9 @@ local function write(no, buf, len)
 	end
 end
 
+local function close(fd)
+	return C.close(fd)
+end
 
 local function pipe()
 	local fds = ffi.new("int[2]")
@@ -69,8 +74,10 @@ end
 
 return {
 	nonblock = nonblock,
+	nonblock_child = nonblock_child,
 	read = read,
 	reads = reads,
 	write = write,
+	close = close,
 	pipe = pipe,
 }

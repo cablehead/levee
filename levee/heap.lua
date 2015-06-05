@@ -18,7 +18,12 @@ end
 
 
 function Heap:push(pri, val)
-	local id = #self.refs + 1
+	local id
+	if #self.avail > 0 then
+		id = table.remove(self.avail)
+	else
+		id = #self.refs + 1
+	end
 	self.refs[id] = val
 	C.levee_heap_add(self.heap, pri, id)
 end
@@ -30,8 +35,14 @@ function Heap:pop()
 		local prio = entry.priority
 		local id = tonumber(entry.value)
 		C.levee_heap_remove(self.heap, C.LEVEE_HEAP_ROOT_KEY, 0)
-		local val = self.refs[id]
-		self.refs[id] = nil
+		local val
+		if id == #self.refs then
+			val = table.remove(self.refs)
+		else
+			val = self.refs[id]
+			self.refs[id] = false
+			table.insert(self.avail, id)
+		end
 		return prio, val
 	end
 end
@@ -80,5 +91,5 @@ return function()
 		Errno:error("levee_heap_create")
 	end
 	ffi.gc(heap, C.levee_heap_destroy)
-	return setmetatable({heap = heap, refs = {}}, Heap)
+	return setmetatable({heap = heap, refs = {}, avail={}}, Heap)
 end

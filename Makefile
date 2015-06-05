@@ -7,6 +7,7 @@ BUILD ?= $(PROJECT)/build
 SRC := $(PROJECT)/src
 OBJ := $(BUILD)/obj
 BIN := $(BUILD)/bin
+LIB := $(BUILD)/lib
 TMP := $(BUILD)/tmp
 
 TEST_SRC := $(PROJECT)/tests
@@ -37,7 +38,7 @@ LUAJIT_ARG := \
 
 LUAJIT := $(LUAJIT_DST)/bin/luajit
 
-CFLAGS:= -Wall -Wextra -Werror -pedantic -std=c99 -O2 -march=native -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.1
+CFLAGS:= -Wall -Wextra -Werror -pedantic -std=c99 -O2 -fomit-frame-pointer -march=native -I$(PROJECT)/src -I$(TMP) -I$(LUAJIT_DST)/include/luajit-2.1
 ifeq (Darwin,$(OS))
   LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
 endif
@@ -47,6 +48,8 @@ ifeq (Linux,$(OS))
 endif
 
 all: $(BIN)/levee
+
+so: $(LIB)/levee.so
 
 test: test-c test-lua
 
@@ -66,6 +69,10 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 $(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
 	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -o $@
+
+$(LIB)/levee.so: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
+	@mkdir -p $(LIB)
+	$(CC) $(LDFLAGS) -dynamic -lluajit-5.1 $(OBJS_LEVEE) -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(OBJ)
