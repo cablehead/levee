@@ -29,6 +29,8 @@ function R_mt:reader()
 			-- read until EAGAIN
 			if n < 0 then break end
 			self.buf:bump(n)
+			-- we didn't receive a full read so wait for more data
+			if self.buf:available() > 0 then break end
 		end
 
 		self.recver:send(self.buf)
@@ -36,14 +38,15 @@ function R_mt:reader()
 end
 
 
-function R_mt:__call()
-	return self.recver:recv()
-end
-
-
 function R_mt:recv()
+	if #self.buf > 0 then
+		return self.buf
+	end
 	return self.recver:recv()
 end
+
+
+R_mt.__call = R_mt.recv
 
 
 function R_mt:close()
