@@ -39,9 +39,6 @@ end
 
 
 function R_mt:recv()
-	if self.buf.len > 0 then
-		return self.buf
-	end
 	return self.recver:recv()
 end
 

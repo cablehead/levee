@@ -12,7 +12,8 @@ end
 
 
 function HTTPParser:__tostring()
-	return string.format("levee.HTTPParser: ")
+	return string.format(
+		"levee.HTTPParser: %s", self.response and "response" or "request")
 end
 
 
@@ -69,6 +70,7 @@ function HTTPParser:value(buf)
 			ffi.string(buf + self.as.field.value_off, self.as.field.value_len)
 	elseif self.type == C.NP_HTTP_BODY_START then
 		return
+			false,
 			self.as.body_start.chunked,
 			self.as.body_start.content_length
 	elseif self.type == C.NP_HTTP_BODY_CHUNK then

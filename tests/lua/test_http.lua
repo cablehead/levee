@@ -96,4 +96,36 @@ return {
 		h:sleep(1)
 		assert.same(h.registered, {})
 	end,
+
+	test_chunk_transfer = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen(8000)
+		local c = h.http:connect(8000)
+		local s = serve:recv()
+
+		local response = c:get("/path")
+		local req = s:recv()
+		local stream = h:pipe()
+		req:reply(levee.http.Status(200), {}, stream)
+
+		response = response:recv()
+		assert.equal(response.code, 200)
+
+		stream:send("01234567012345678")
+		assert.equal(response.body:recv(), "01234567012345678")
+
+		stream:send("90123456701234567")
+		assert.equal(response.body:recv(), "90123456701234567")
+
+		stream:close()
+		assert.equal(response.body:recv(), nil)
+
+		c:close()
+		serve:close()
+		h:sleep(1)
+		assert.same(h.registered, {})
+	end,
 }

@@ -128,8 +128,17 @@ local function httpdate()
 end
 
 
-local function __recv(self)
-	return self.recver:recv()
+--- Returns HEX representation of num
+local hexstr = '0123456789abcdef'
+function num2hex(num)
+	local s = ''
+	while num > 0 do
+		local mod = math.fmod(num, 16)
+		s = string.sub(hexstr, mod+1, mod+1) .. s
+		num = math.floor(num / 16)
+	end
+	if s == '' then s = '0' end
+	return s
 end
 
 
@@ -137,19 +146,18 @@ end
 -- Parser
 --
 local function parser_next(hub, conn, parser)
-	local buf = conn:recv()
-	if not buf then return end
+	local n = parser:next(conn.buf:value())
 
-	local n = parser:next(buf:value())
-
-	if n < 0 then error("parse error") end
+	if n < 0 then error(("parse error: %s"):format(parser)) end
 
 	if n > 0 then
-		local value = {parser:value(buf:value())}
-		buf:trim(n)
+		local value = {parser:value(conn.buf:value())}
+		conn.buf:trim(n)
 		if parser:is_done() then parser:reset() end
 		return value
 	end
+
+	if not conn:recv() then return end
 
 	return parser_next(hub, conn, parser)
 end
@@ -186,14 +194,37 @@ function Client_mt:reader()
 
 		response:send(res)
 
-		local len = _next[2]
-		while len > 0 do
-			local buf = self.conn:recv()
-			local b, s_len = buf:slice(len)
-			res.body:send(ffi.string(b, s_len))
-			buf:trim(s_len)
-			len = len - s_len
+		-- chunked tranfer?
+		if _next[2] then
+			while true do
+				_next = parser_next(self.hub, self.conn, self.parser)
+				if not _next then return end
+				if not _next[1] then break end
+				local len = _next[2]
+				while len > 0 do
+					if self.conn.buf.len == 0 then
+						if not self.conn:recv() then return end
+					end
+
+					local b, s_len = self.conn.buf:slice(len)
+					res.body:send(ffi.string(b, s_len))
+					self.conn.buf:trim(s_len)
+					len = len - s_len
+				end
+			end
+		else
+			local len = _next[3]
+			while len > 0 do
+				if self.conn.buf.len == 0 then
+					if not self.conn:recv() then return end
+				end
+				local b, s_len = self.conn.buf:slice(len)
+				res.body:send(ffi.string(b, s_len))
+				self.conn.buf:trim(s_len)
+				len = len - s_len
+			end
 		end
+
 		res.body:close()
 	end
 end
@@ -265,47 +296,78 @@ ServerRequest_mt.__index = ServerRequest_mt
 
 
 function ServerRequest_mt:reply(status, headers, body)
-	self.serve:write(status, headers, body)
+	self.serve.responses:send({status, headers, body})
 end
 
 
 local Server_mt = {}
 Server_mt.__index = Server_mt
 
-Server_mt.__call = __recv
-Server_mt.recv = __recv
 
-
-function Server_mt:write(status, headers, body)
-	self.iov:write(status)
-
-	self.iov:write("Date")
-	self.iov:write(FIELD_SEP)
-	self.iov:write(httpdate())
-	self.iov:write(EOL)
-
-	for k, v in pairs(headers) do
-		self.iov:write(k)
-		self.iov:write(FIELD_SEP)
-		self.iov:write(v)
-		self.iov:write(EOL)
-	end
-
-	self.iov:write("Content-Length")
-	self.iov:write(FIELD_SEP)
-	self.iov:write(tostring(#body))
-	self.iov:write(EOL)
-
-	self.iov:write(EOL)
-
-	self.iov:write(body)
-
-	self.conn:writev(self.iov.iov, self.iov.n)
-	self.iov:reset()
+function Server_mt:recv()
+	return self.requests:recv()
 end
 
 
-function Server_mt:loop()
+Server_mt.__call = Server_mt.recv
+
+
+function Server_mt:writer()
+	for response in self.responses do
+		local status, headers, body = unpack(response)
+		self.iov:write(status)
+
+		self.iov:write("Date")
+		self.iov:write(FIELD_SEP)
+		self.iov:write(httpdate())
+		self.iov:write(EOL)
+
+		for k, v in pairs(headers) do
+			self.iov:write(k)
+			self.iov:write(FIELD_SEP)
+			self.iov:write(v)
+			self.iov:write(EOL)
+		end
+
+		if type(body) ~= "table" then
+			self.iov:write("Content-Length")
+			self.iov:write(FIELD_SEP)
+			self.iov:write(tostring(#body))
+			self.iov:write(EOL)
+			self.iov:write(EOL)
+			self.iov:write(body)
+			self.conn:writev(self.iov.iov, self.iov.n)
+			self.iov:reset()
+
+		else
+			self.iov:write("Transfer-Encoding")
+			self.iov:write(FIELD_SEP)
+			self.iov:write("chunked")
+			self.iov:write(EOL)
+			self.iov:write(EOL)
+			self.conn:writev(self.iov.iov, self.iov.n)
+			self.iov:reset()
+
+			for s in body do
+				self.iov:write(num2hex(#s))
+				self.iov:write(EOL)
+				self.iov:write(s)
+				self.iov:write(EOL)
+				self.conn:writev(self.iov.iov, self.iov.n)
+				self.iov:reset()
+			end
+
+			self.iov:write("0")
+			self.iov:write(EOL)
+			self.iov:write(EOL)
+			self.conn:writev(self.iov.iov, self.iov.n)
+			self.iov:reset()
+		end
+	end
+end
+
+
+function Server_mt:reader()
 	local _next, req
 
 	while true do
@@ -328,14 +390,18 @@ function Server_mt:loop()
 			req.headers[_next[1]] = _next[2]
 		end
 
-		self.recver:send(req)
+		self.requests:send(req)
 
-		local len = _next[2]
+		-- TODO: chunk transfer
+
+		local len = _next[3]
 		while len > 0 do
-			local buf = self.conn:recv()
-			local b, s_len = buf:slice(len)
+			if self.conn.buf.len == 0 then
+				if not self.conn:recv() then return end
+			end
+			local b, s_len = self.conn.buf:slice(len)
 			req.body:send(ffi.string(b, s_len))
-			buf:trim(s_len)
+			self.conn.buf:trim(s_len)
 			len = len - s_len
 		end
 		req.body:close()
@@ -345,7 +411,8 @@ end
 
 function Server_mt:close()
 	self.conn:close()
-	self.recver:close()
+	self.requests:close()
+	self.responses:close()
 end
 
 
@@ -353,10 +420,12 @@ local function Server(hub, conn)
 	local self = setmetatable({}, Server_mt)
 	self.hub = hub
 	self.conn = conn
-	self.recver = hub:pipe()
+	self.requests = hub:pipe()
+	self.responses = hub:pipe()
 	self.parser = parsers.http.Request()
 	self.iov = iovec.Iovec(32)
-	hub:spawn(self.loop, self)
+	hub:spawn(self.reader, self)
+	hub:spawn(self.writer, self)
 	return self
 end
 
@@ -367,8 +436,13 @@ end
 local Listener_mt = {}
 Listener_mt.__index = Listener_mt
 
-Listener_mt.__call = __recv
-Listener_mt.recv = __recv
+
+function Listener_mt:recv()
+	return self.recver:recv()
+end
+
+
+Listener_mt.__call = Listener_mt.recv
 
 
 function Listener_mt:loop()
