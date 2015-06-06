@@ -67,12 +67,12 @@ W_mt.__index = W_mt
 
 
 function W_mt:write(buf, len)
-	sys.os.write(self.no, buf, len)
+	return sys.os.write(self.no, buf, len)
 end
 
 
 function W_mt:writev(iov, n)
-	C.writev(self.no, iov, n)
+	return C.writev(self.no, iov, n)
 end
 
 

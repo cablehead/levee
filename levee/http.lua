@@ -336,7 +336,10 @@ function Server_mt:writer()
 			self.iov:write(EOL)
 			self.iov:write(EOL)
 			self.iov:write(body)
-			self.conn:writev(self.iov.iov, self.iov.n)
+			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+				self:close()
+				return
+			end
 			self.iov:reset()
 
 		else
@@ -345,7 +348,10 @@ function Server_mt:writer()
 			self.iov:write("chunked")
 			self.iov:write(EOL)
 			self.iov:write(EOL)
-			self.conn:writev(self.iov.iov, self.iov.n)
+			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+				self:close()
+				return
+			end
 			self.iov:reset()
 
 			for s in body do
@@ -353,14 +359,20 @@ function Server_mt:writer()
 				self.iov:write(EOL)
 				self.iov:write(s)
 				self.iov:write(EOL)
-				self.conn:writev(self.iov.iov, self.iov.n)
+				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+					self:close()
+					return
+				end
 				self.iov:reset()
 			end
 
 			self.iov:write("0")
 			self.iov:write(EOL)
 			self.iov:write(EOL)
-			self.conn:writev(self.iov.iov, self.iov.n)
+			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+				self:close()
+				return
+			end
 			self.iov:reset()
 		end
 	end
