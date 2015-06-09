@@ -96,6 +96,7 @@ local RW_mt = {}
 RW_mt.__index = RW_mt
 
 RW_mt.read = R_mt.read
+RW_mt.readinto = R_mt.readinto
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
 
