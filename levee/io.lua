@@ -81,11 +81,21 @@ W_mt.__index = W_mt
 
 
 function W_mt:write(buf, len)
-	return sys.os.write(self.no, buf, len)
+	if self.closed then return -1, errno["EBADF"] end
+
+	local n, err = sys.os.write(self.no, buf, len)
+
+	if n < 0 then
+		self:close()
+		return n, err
+	end
+
+	return n, err
 end
 
 
 function W_mt:writev(iov, n)
+	-- TODO: close on error, return errno
 	return C.writev(self.no, iov, n)
 end
 
