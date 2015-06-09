@@ -41,32 +41,6 @@ function R_mt:read(buf, len)
 end
 
 
-function R_mt:reader()
-	for ev in self.r_ev do
-		if ev < -1 then
-			self.hub:unregister(self.no, true)
-			self.recver:close()
-			return
-		end
-
-		while true do
-			local n = C.read(self.no, self.buf:tail())
-			if n == 0 then
-				self:close()
-				return
-			end
-			-- read until EAGAIN
-			if n < 0 then break end
-			self.buf:bump(n)
-			-- we didn't receive a full read so wait for more data
-			if self.buf:available() > 0 then break end
-		end
-
-		self.recver:send(self.buf)
-	end
-end
-
-
 function R_mt:close()
 	self.closed = true
 	self.hub:unregister(self.no, true)

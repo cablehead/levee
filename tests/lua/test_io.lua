@@ -1,5 +1,5 @@
 return {
-	test_io_close_writer = function()
+	test_close_writer = function()
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -25,7 +25,7 @@ return {
 		assert.same(h.registered, {})
 	end,
 
-	test_io_last_read = function()
+	test_last_read = function()
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -46,7 +46,7 @@ return {
 		assert.same(h.registered, {})
 	end,
 
-	test_io_close_reader = function()
+	test_close_reader = function()
 		local levee = require("levee")
 
 		local h = levee.Hub()
