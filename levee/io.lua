@@ -1,8 +1,8 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local Buffer = require("levee.buffer")
 local sys = require("levee.sys")
+local errno = require("levee.errno")
 
 
 --
@@ -10,6 +10,35 @@ local sys = require("levee.sys")
 --
 local R_mt = {}
 R_mt.__index = R_mt
+
+
+function R_mt:read(buf, len)
+	if self.closed then return -1, errno["EBADF"] end
+
+	local ev = self.r_ev:recv()
+
+	local n, err = sys.os.read(self.no, buf, len)
+
+	if n == 0 then
+		self:close()
+		return n, err
+	end
+
+	-- TODO:
+	-- if n == len, maybe don't wait on r_ev on next read
+	-- if ev == -1 and n != len, maybe close and set err
+	if n > 0 then
+		return n
+	end
+
+	if err ~= errno["EAGAIN"] then
+		self:close()
+		return n, err
+	end
+
+	-- EAGAIN
+	return self:read(buf, len)
+end
 
 
 function R_mt:reader()
@@ -38,24 +67,9 @@ function R_mt:reader()
 end
 
 
-function R_mt:recv()
-	return self.recver:recv()
-end
-
-
-R_mt.__call = R_mt.recv
-
-
 function R_mt:close()
-	self.recver:close()
+	self.closed = true
 	self.hub:unregister(self.no, true)
-end
-
-
-local function R_init(self)
-	self.buf = Buffer(4096)
-	self.recver = self.hub:pipe()
-	self.hub:spawn(self.reader, self)
 end
 
 
@@ -77,6 +91,7 @@ end
 
 
 function W_mt:close()
+	self.closed = true
 	self.hub:unregister(self.no, false, true)
 end
 
@@ -87,15 +102,13 @@ end
 local RW_mt = {}
 RW_mt.__index = RW_mt
 
-RW_mt.reader = R_mt.reader
-RW_mt.__call = R_mt.__call
-RW_mt.recv = R_mt.recv
+RW_mt.read = R_mt.read
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
 
 
 function RW_mt:close()
-	self.recver:close()
+	self.closed = true
 	self.hub:unregister(self.no, true, true)
 end
 
@@ -110,7 +123,6 @@ IO_mt.__index = IO_mt
 function IO_mt:r(no)
 	local m = setmetatable({hub = self.hub, no = no}, R_mt)
 	m.r_ev = self.hub:register(no, true)
-	R_init(m)
 	return m
 end
 
@@ -126,7 +138,6 @@ end
 function IO_mt:rw(no)
 	local m = setmetatable({hub = self.hub, no = no}, RW_mt)
 	m.r_ev, m.w_ev = self.hub:register(no, true, true)
-	R_init(m)
 	return m
 end
 

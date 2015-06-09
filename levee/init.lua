@@ -4,4 +4,5 @@ return {
 	time = require("levee.time"),
 	iovec = require("levee.iovec"),
 	http = require("levee.http"),
+	buffer = require("levee.buffer"),
 }
