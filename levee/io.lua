@@ -41,6 +41,15 @@ function R_mt:read(buf, len)
 end
 
 
+function R_mt:readinto(buf)
+	local n, err = self:read(buf:tail())
+	if n > 0 then
+		buf:bump(n)
+	end
+	return n, err
+end
+
+
 function R_mt:close()
 	self.closed = true
 	self.hub:unregister(self.no, true)
