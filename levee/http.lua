@@ -418,7 +418,6 @@ function Server_mt:reader()
 			path=_next[2],
 			version=_next[3],
 			headers={},
-			body = self.hub:pipe(),
 			response = self.hub:pipe(), }
 
 		while true do
@@ -428,22 +427,12 @@ function Server_mt:reader()
 			req.headers[_next[1]] = _next[2]
 		end
 
+		if _next[2] then error("TODO: chunked") end
+
+		req.len = _next[3]
 		self.requests:send(req)
 		self.responses:send(req.response)
-
-		-- TODO: chunk transfer
-
-		local len = _next[3]
-		while len > 0 do
-			if self.conn.buf.len == 0 then
-				if not self.conn:recv() then return end
-			end
-			local b, s_len = self.conn.buf:slice(len)
-			req.body:send(ffi.string(b, s_len))
-			self.conn.buf:trim(s_len)
-			len = len - s_len
-		end
-		req.body:close()
+		self.baton:wait()
 	end
 end
 
@@ -464,6 +453,7 @@ local function Server(hub, conn)
 	self.parser = parsers.http.Request()
 	self.buf = buffer(4096)
 	self.iov = iovec.Iovec(32)
+	self.baton = hub:baton()
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
 	return self
