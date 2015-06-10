@@ -156,10 +156,7 @@ return {
 		response.client.baton:resume()
 
 		-- send chunk 2
-		req.response:send(17)
-		req.serve.baton:wait()
-		req.serve.conn:write("90123456701234567")
-		req.serve.baton:resume()
+		req.response:send("90123456701234567")
 
 		local len = response.chunks:recv()
 

@@ -51,8 +51,10 @@ end
 
 
 function R_mt:close()
-	self.closed = true
-	self.hub:unregister(self.no, true)
+	if not self.closed then
+		self.closed = true
+		self.hub:unregister(self.no, true)
+	end
 end
 
 
@@ -78,14 +80,18 @@ end
 
 
 function W_mt:writev(iov, n)
+	if self.closed then return -1, errno["EBADF"] end
+
 	-- TODO: close on error, return errno
 	return C.writev(self.no, iov, n)
 end
 
 
 function W_mt:close()
-	self.closed = true
-	self.hub:unregister(self.no, false, true)
+	if not self.closed then
+		self.closed = true
+		self.hub:unregister(self.no, false, true)
+	end
 end
 
 
@@ -102,8 +108,10 @@ RW_mt.writev = W_mt.writev
 
 
 function RW_mt:close()
-	self.closed = true
-	self.hub:unregister(self.no, true, true)
+	if not self.closed then
+		self.closed = true
+		self.hub:unregister(self.no, true, true)
+	end
 end
 
 

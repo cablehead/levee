@@ -344,22 +344,35 @@ function Server_mt:writer()
 				self.iov:reset()
 
 				for len in response do
-					self.iov:write(num2hex(len))
-					self.iov:write(EOL)
-					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-						self:close()
-						return
-					end
-					self.iov:reset()
+					if type(len) == "string" then
+						self.iov:write(num2hex(#len))
+						self.iov:write(EOL)
+						self.iov:write(len)
+						self.iov:write(EOL)
+						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+							self:close()
+							return
+						end
+						self.iov:reset()
 
-					self.baton:swap()
+					else
+						self.iov:write(num2hex(len))
+						self.iov:write(EOL)
+						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+							self:close()
+							return
+						end
+						self.iov:reset()
 
-					self.iov:write(EOL)
-					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-						self:close()
-						return
+						self.baton:swap()
+
+						self.iov:write(EOL)
+						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+							self:close()
+							return
+						end
+						self.iov:reset()
 					end
-					self.iov:reset()
 				end
 
 				self.iov:write("0")
