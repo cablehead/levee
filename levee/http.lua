@@ -432,7 +432,10 @@ function Server_mt:reader()
 		req.len = _next[3]
 		self.requests:send(req)
 		self.responses:send(req.response)
-		self.baton:wait()
+
+		if req.len > 0 then
+			self.baton:wait()
+		end
 	end
 end
 

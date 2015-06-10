@@ -28,7 +28,6 @@ return {
 		s:close()
 		serve:close()
 		c:readinto(buf)
-
 		assert.same(h.registered, {})
 	end,
 
@@ -47,7 +46,6 @@ return {
 		local req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
-		assert.equal(req.body:recv(), nil)
 
 		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
@@ -66,7 +64,6 @@ return {
 		local req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
-		assert.equal(req.body:recv(), nil)
 
 		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
@@ -105,8 +102,6 @@ return {
 		req.serve.baton:resume()
 
 		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
-
-		if true then return end
 
 		response = response:recv()
 		assert.equal(response.code, 200)
