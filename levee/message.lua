@@ -91,6 +91,15 @@ function Baton_mt:resume()
 end
 
 
+function Baton_mt:swap()
+	assert(self.co)
+	local co = self.co
+	self.co = coroutine.running()
+	self.hub.ready:push({co})
+	return self.hub:_coyield()
+end
+
+
 function Baton_mt:wait()
 	assert(not self.co)
 	self.co = coroutine.running()

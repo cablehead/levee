@@ -1,3 +1,5 @@
+local ffi = require('ffi')
+
 return {
 	test_basic = function()
 		local request = "" ..
@@ -118,7 +120,6 @@ return {
 	end,
 
 	test_chunk_transfer = function()
-		if true then return "SKIP" end
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -129,20 +130,51 @@ return {
 
 		local response = c:get("/path")
 		local req = s:recv()
-		local stream = h:pipe()
-		req:reply(levee.http.Status(200), {}, stream)
+
+		req.response:send({levee.http.Status(200), {}, nil})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
+		assert(not response.len)
+		assert(response.chunks)
 
-		stream:send("01234567012345678")
-		assert.equal(response.body:recv(), "01234567012345678")
+		-- send chunk 1
+		req.response:send(17)
+		req.serve.baton:wait()
+		req.serve.conn:write("01234567012345678")
+		req.serve.baton:resume()
 
-		stream:send("90123456701234567")
-		assert.equal(response.body:recv(), "90123456701234567")
+		local len = response.chunks:recv()
 
-		stream:close()
-		assert.equal(response.body:recv(), nil)
+		if #response.client.buf < len then
+			response.client.conn:readinto(response.client.buf)
+		end
+
+		local chunk = ffi.string(response.client.buf:slice(len))
+		response.client.buf:trim(len)
+		assert.equal(chunk, "01234567012345678")
+		response.client.baton:resume()
+
+		-- send chunk 2
+		req.response:send(17)
+		req.serve.baton:wait()
+		req.serve.conn:write("90123456701234567")
+		req.serve.baton:resume()
+
+		local len = response.chunks:recv()
+
+		if #response.client.buf < len then
+			response.client.conn:readinto(response.client.buf)
+		end
+
+		local chunk = ffi.string(response.client.buf:slice(len))
+		response.client.buf:trim(len)
+		assert.equal(chunk, "90123456701234567")
+		response.client.baton:resume()
+
+		-- end response
+		req.response:close()
+		assert.equal(response.chunks:recv(), nil)
 
 		c:close()
 		serve:close()

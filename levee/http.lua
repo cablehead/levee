@@ -194,48 +194,27 @@ function Client_mt:reader()
 			res.headers[_next[1]] = _next[2]
 		end
 
-		if _next[2] then
-			error("chunked")
-		end
+		-- content-length
+		if not _next[2] then
+			res.len = _next[3]
+			response:send(res)
+			self.baton:wait()
 
-		res.len = _next[3]
-		response:send(res)
-		self.baton:wait()
+		-- chunked tranfer
+		else
+			res.chunks = self.hub:pipe()
+			response:send(res)
 
-		--[[
-		-- chunked tranfer?
-		if _next[2] then
 			while true do
-				_next = parser_next(self.hub, self.conn, self.parser)
+				_next = parser_next(self)
 				if not _next then return end
 				if not _next[1] then break end
-				local len = _next[2]
-				while len > 0 do
-					if self.conn.buf.len == 0 then
-						if not self.conn:recv() then return end
-					end
-
-					local b, s_len = self.conn.buf:slice(len)
-					res.body:send(ffi.string(b, s_len))
-					self.conn.buf:trim(s_len)
-					len = len - s_len
-				end
+				res.chunks:send(_next[2])
+				self.baton:wait()
 			end
-		else
 
-			local len = _next[3]
-			while len > 0 do
-				if self.conn.buf.len == 0 then
-					if not self.conn:recv() then return end
-				end
-				local b, s_len = self.conn.buf:slice(len)
-				res.body:send(ffi.string(b, s_len))
-				self.conn.buf:trim(s_len)
-				len = len - s_len
-			end
+			res.chunks:close()
 		end
-		--]]
-
 	end
 end
 
@@ -353,46 +332,28 @@ function Server_mt:writer()
 			self.iov:reset()
 
 		else
-				error("yarg")
-				if type(body) ~= "table" then
-					self.iov:write("Content-Length")
-					self.iov:write(FIELD_SEP)
-					self.iov:write(tostring(#body))
+				self.iov:write("Transfer-Encoding")
+				self.iov:write(FIELD_SEP)
+				self.iov:write("chunked")
+				self.iov:write(EOL)
+				self.iov:write(EOL)
+				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+					self:close()
+					return
+				end
+				self.iov:reset()
+
+				for len in response do
+					self.iov:write(num2hex(len))
 					self.iov:write(EOL)
-					self.iov:write(EOL)
-					self.iov:write(body)
 					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
 						self:close()
 						return
 					end
 					self.iov:reset()
 
-				else
-					self.iov:write("Transfer-Encoding")
-					self.iov:write(FIELD_SEP)
-					self.iov:write("chunked")
-					self.iov:write(EOL)
-					self.iov:write(EOL)
-					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-						self:close()
-						return
-					end
-					self.iov:reset()
+					self.baton:swap()
 
-					for s in body do
-						self.iov:write(num2hex(#s))
-						self.iov:write(EOL)
-						self.iov:write(s)
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
-							return
-						end
-						self.iov:reset()
-					end
-
-					self.iov:write("0")
-					self.iov:write(EOL)
 					self.iov:write(EOL)
 					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
 						self:close()
@@ -400,6 +361,15 @@ function Server_mt:writer()
 					end
 					self.iov:reset()
 				end
+
+				self.iov:write("0")
+				self.iov:write(EOL)
+				self.iov:write(EOL)
+				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+					self:close()
+					return
+				end
+				self.iov:reset()
 		end
 	end
 end
