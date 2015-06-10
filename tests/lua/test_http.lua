@@ -20,12 +20,15 @@ return {
 		assert.equal(req.path, "/some/path")
 		assert.same(req.headers, {H1 = "one"})
 
-		req:reply(levee.http.Status(200), {}, "Hello world\n")
-		assert(#c:recv():take_s() > 0)
+		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
+
+		local buf = levee.buffer(4096)
+		assert(c:readinto(buf) > 0)
 
 		s:close()
 		serve:close()
-		h:sleep(1)
+		c:readinto(buf)
+
 		assert.same(h.registered, {})
 	end,
 
@@ -45,11 +48,16 @@ return {
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
 		assert.equal(req.body:recv(), nil)
-		req:reply(levee.http.Status(200), {}, "Hello World\n")
+
+		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-		assert.equal(response.body:recv(), "Hello World\n")
+
+		local body = response.client.buf:take_s()
+		assert.equal(#body, response.len)
+		assert.equal(body, "Hello world\n")
+		response.client.baton:resume()
 
 		-- make another request on the same connection
 
@@ -59,11 +67,16 @@ return {
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
 		assert.equal(req.body:recv(), nil)
-		req:reply(levee.http.Status(200), {}, "Hello World\n")
+
+		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-		assert.equal(response.body:recv(), "Hello World\n")
+
+		local body = response.client.buf:take_s()
+		assert.equal(#body, response.len)
+		assert.equal(body, "Hello world\n")
+		response.client.baton:resume()
 
 		c:close()
 		serve:close()

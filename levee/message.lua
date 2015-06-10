@@ -1,3 +1,6 @@
+--
+-- Pipe
+--
 local Pipe_mt = {}
 Pipe_mt.__index = Pipe_mt
 
@@ -73,5 +76,35 @@ local function Pipe(hub)
 end
 
 
+--
+-- Baton
+--
+local Baton_mt = {}
+Baton_mt.__index = Baton_mt
+
+
+function Baton_mt:resume()
+	assert(self.co)
+	local co = self.co
+	self.co = nil
+	self.hub.ready:push({co})
+end
+
+
+function Baton_mt:wait()
+	assert(not self.co)
+	self.co = coroutine.running()
+	return self.hub:_coyield()
+end
+
+
+local function Baton(hub)
+	local self = setmetatable({hub=hub}, Baton_mt)
+	return self
+end
+
+
 return {
-	Pipe = Pipe, }
+	Pipe = Pipe,
+	Baton = Baton,
+	}

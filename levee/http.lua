@@ -4,6 +4,7 @@ local C = ffi.C
 local parsers = require("levee.parsers")
 local meta = require("levee.meta")
 local iovec = require("levee.iovec")
+local buffer = require("levee.buffer")
 
 
 local VERSION = "HTTP/1.1"
@@ -145,21 +146,22 @@ end
 --
 -- Parser
 --
-local function parser_next(hub, conn, parser)
-	local n = parser:next(conn.buf:value())
+local function parser_next(self)
+	local n = self.parser:next(self.buf:value())
 
-	if n < 0 then error(("parse error: %s"):format(parser)) end
+	if n < 0 then error(("parse error: %s"):format(self.parser)) end
 
 	if n > 0 then
-		local value = {parser:value(conn.buf:value())}
-		conn.buf:trim(n)
-		if parser:is_done() then parser:reset() end
+		local value = {self.parser:value(self.buf:value())}
+		self.buf:trim(n)
+		if self.parser:is_done() then self.parser:reset() end
 		return value
 	end
 
-	if not conn:recv() then return end
+	local n, err = self.conn:readinto(self.buf)
+	if n <= 0 then return end
 
-	return parser_next(hub, conn, parser)
+	return parser_next(self)
 end
 
 
@@ -174,26 +176,33 @@ function Client_mt:reader()
 	local _next, res
 
 	for response in self.responses do
-		_next = parser_next(self.hub, self.conn, self.parser)
+		_next = parser_next(self)
 		if not _next then return end
 
 		res = {
+			client = self,
 			code = _next[1],
 			reason = _next[2],
 			version = _next[3],
 			headers = {},
-			body = self.hub:pipe(),
 			}
 
 		while true do
-			_next = parser_next(self.hub, self.conn, self.parser)
+			_next = parser_next(self)
 			if not _next then return end
 			if not _next[1] then break end
 			res.headers[_next[1]] = _next[2]
 		end
 
-		response:send(res)
+		if _next[2] then
+			error("chunked")
+		end
 
+		res.len = _next[3]
+		response:send(res)
+		self.baton:wait()
+
+		--[[
 		-- chunked tranfer?
 		if _next[2] then
 			while true do
@@ -213,6 +222,7 @@ function Client_mt:reader()
 				end
 			end
 		else
+
 			local len = _next[3]
 			while len > 0 do
 				if self.conn.buf.len == 0 then
@@ -224,8 +234,8 @@ function Client_mt:reader()
 				len = len - s_len
 			end
 		end
+		--]]
 
-		res.body:close()
 	end
 end
 
@@ -314,7 +324,7 @@ Server_mt.__call = Server_mt.recv
 
 function Server_mt:writer()
 	for response in self.responses do
-		local status, headers, body = unpack(response)
+		local status, headers, body = unpack(response:recv())
 		self.iov:write(status)
 
 		self.iov:write("Date")
@@ -329,7 +339,7 @@ function Server_mt:writer()
 			self.iov:write(EOL)
 		end
 
-		if type(body) ~= "table" then
+		if type(body) == "string" then
 			self.iov:write("Content-Length")
 			self.iov:write(FIELD_SEP)
 			self.iov:write(tostring(#body))
@@ -343,37 +353,53 @@ function Server_mt:writer()
 			self.iov:reset()
 
 		else
-			self.iov:write("Transfer-Encoding")
-			self.iov:write(FIELD_SEP)
-			self.iov:write("chunked")
-			self.iov:write(EOL)
-			self.iov:write(EOL)
-			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-				self:close()
-				return
-			end
-			self.iov:reset()
+				error("yarg")
+				if type(body) ~= "table" then
+					self.iov:write("Content-Length")
+					self.iov:write(FIELD_SEP)
+					self.iov:write(tostring(#body))
+					self.iov:write(EOL)
+					self.iov:write(EOL)
+					self.iov:write(body)
+					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+						self:close()
+						return
+					end
+					self.iov:reset()
 
-			for s in body do
-				self.iov:write(num2hex(#s))
-				self.iov:write(EOL)
-				self.iov:write(s)
-				self.iov:write(EOL)
-				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-					self:close()
-					return
+				else
+					self.iov:write("Transfer-Encoding")
+					self.iov:write(FIELD_SEP)
+					self.iov:write("chunked")
+					self.iov:write(EOL)
+					self.iov:write(EOL)
+					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+						self:close()
+						return
+					end
+					self.iov:reset()
+
+					for s in body do
+						self.iov:write(num2hex(#s))
+						self.iov:write(EOL)
+						self.iov:write(s)
+						self.iov:write(EOL)
+						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+							self:close()
+							return
+						end
+						self.iov:reset()
+					end
+
+					self.iov:write("0")
+					self.iov:write(EOL)
+					self.iov:write(EOL)
+					if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+						self:close()
+						return
+					end
+					self.iov:reset()
 				end
-				self.iov:reset()
-			end
-
-			self.iov:write("0")
-			self.iov:write(EOL)
-			self.iov:write(EOL)
-			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-				self:close()
-				return
-			end
-			self.iov:reset()
 		end
 	end
 end
@@ -383,26 +409,27 @@ function Server_mt:reader()
 	local _next, req
 
 	while true do
-		_next = parser_next(self.hub, self.conn, self.parser)
+		_next = parser_next(self)
 		if not _next then return end
 
-		req = setmetatable({
-			serve=self,
+		req = {
+			serve = self,
 			method=_next[1],
 			path=_next[2],
 			version=_next[3],
 			headers={},
 			body = self.hub:pipe(),
-				}, ServerRequest_mt)
+			response = self.hub:pipe(), }
 
 		while true do
-			_next = parser_next(self.hub, self.conn, self.parser)
+			_next = parser_next(self)
 			if not _next then return end
 			if not _next[1] then break end
 			req.headers[_next[1]] = _next[2]
 		end
 
 		self.requests:send(req)
+		self.responses:send(req.response)
 
 		-- TODO: chunk transfer
 
@@ -435,6 +462,7 @@ local function Server(hub, conn)
 	self.requests = hub:pipe()
 	self.responses = hub:pipe()
 	self.parser = parsers.http.Request()
+	self.buf = buffer(4096)
 	self.iov = iovec.Iovec(32)
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
@@ -483,11 +511,12 @@ function HTTP_mt:connect(port, host)
 	m.hub = self.hub
 	m.conn = self.hub.tcp:connect(port, host)
 	m.parser = parsers.http.Response()
+	m.buf = buffer(4096)
 	m.iov = iovec.Iovec(32)
+	m.baton = self.hub:baton()
 
 	m.responses = self.hub:pipe()
 	self.hub:spawn(m.reader, m)
-
 	return m
 end
 
