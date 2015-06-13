@@ -334,7 +334,7 @@ function Server_mt:writer()
 		elseif body ~= nil then
 			self.iov:write("Content-Length")
 			self.iov:write(FIELD_SEP)
-			self.iov:write(tostring(body))
+			self.iov:write(tostring(tonumber(body)))
 			self.iov:write(EOL)
 			self.iov:write(EOL)
 			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
