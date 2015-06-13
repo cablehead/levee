@@ -119,6 +119,43 @@ return {
 		assert.same(h.registered, {})
 	end,
 
+	test_content_length = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen(8000)
+
+		local c = h.http:connect(8000)
+		local response = c:get("/path")
+
+		local s = serve:recv()
+
+		local req = s:recv()
+		assert.equal(req.method, "GET")
+		assert.equal(req.path, "/path")
+
+		local body = "Hello world\n"
+		req.response:send({levee.http.Status(200), {}, #body})
+
+		response = response:recv()
+		assert.equal(response.code, 200)
+
+		req.serve.conn:write(body)
+		req.serve.baton:resume()
+
+		response.client.conn:readinto(response.client.buf)
+		local body = response.client.buf:take_s()
+		assert.equal(#body, response.len)
+		assert.equal(body, "Hello world\n")
+		response.client.baton:resume()
+
+		c:close()
+		serve:close()
+		h:sleep(1)
+		assert.same(h.registered, {})
+	end,
+
 	test_chunk_transfer = function()
 		local levee = require("levee")
 

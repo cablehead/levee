@@ -331,6 +331,20 @@ function Server_mt:writer()
 			end
 			self.iov:reset()
 
+		elseif body ~= nil then
+			self.iov:write("Content-Length")
+			self.iov:write(FIELD_SEP)
+			self.iov:write(tostring(body))
+			self.iov:write(EOL)
+			self.iov:write(EOL)
+			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
+				self:close()
+				return
+			end
+			self.iov:reset()
+
+			self.baton:wait()
+
 		else
 				self.iov:write("Transfer-Encoding")
 				self.iov:write(FIELD_SEP)
