@@ -15,8 +15,6 @@ R_mt.__index = R_mt
 function R_mt:read(buf, len)
 	if self.closed then return -1, errno["EBADF"] end
 
-	local ev = self.r_ev:recv()
-
 	local n, err = sys.os.read(self.no, buf, len)
 
 	if n == 0 then
@@ -37,6 +35,7 @@ function R_mt:read(buf, len)
 	end
 
 	-- EAGAIN
+	local ev = self.r_ev:recv()
 	return self:read(buf, len)
 end
 

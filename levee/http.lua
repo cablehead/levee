@@ -172,6 +172,14 @@ local Client_mt = {}
 Client_mt.__index = Client_mt
 
 
+local Response_mt = {}
+Response_mt.__index = Response_mt
+
+function Response_mt:__tostring()
+	return ("levee.http.Response: %s %s"):format(self.code, self.reason)
+end
+
+
 function Client_mt:reader()
 	local _next, res
 
@@ -179,13 +187,13 @@ function Client_mt:reader()
 		_next = parser_next(self)
 		if not _next then return end
 
-		res = {
+		res = setmetatable({
 			client = self,
 			code = _next[1],
 			reason = _next[2],
 			version = _next[3],
 			headers = {},
-			}
+			}, Response_mt)
 
 		while true do
 			_next = parser_next(self)
