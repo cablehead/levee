@@ -4,7 +4,7 @@ local Errno = require('levee.errno')
 
 ffi.cdef[[
 static const unsigned LEVEE_BUFFER_MIN_SIZE = 8192;
-static const unsigned LEVEE_BUFFER_MAX_BLOCK = 65536;
+static const unsigned LEVEE_BUFFER_MAX_BLOCK = 131072;
 struct LeveeBuffer {
 	uint8_t *buf;
 	uint32_t off, len, cap;
@@ -48,6 +48,8 @@ function Buffer:ensure(hint)
 		return self
 	end
 
+	local buf
+
 	-- find next capacity size
 	if cap <= C.LEVEE_BUFFER_MIN_SIZE then
 		cap = C.LEVEE_BUFFER_MIN_SIZE
@@ -60,13 +62,21 @@ function Buffer:ensure(hint)
 		cap = math.pow(2, math.ceil(math.log(cap)/math.log(2)))
 	end
 
-	local buf = C.malloc(cap)
-	if buf == nil then
-		Errno:error("malloc")
-	end
-	if self.len > 0 then
-		-- only copy the subregion containing untrimmed data
-		C.memcpy(buf, self.buf+self.off, self.len)
+	if self.off > 0 or cap < C.LEVEE_BUFFER_MAX_BLOCK then
+		buf = C.malloc(cap)
+		if buf == nil then
+			Errno:error("malloc")
+		end
+		if self.len > 0 then
+			-- only copy the subregion containing untrimmed data
+			C.memcpy(buf, self.buf+self.off, self.len)
+		end
+	else
+		-- use realloc to take advantage of mremap
+		buf = C.realloc(self.buf, cap)
+		if buf == nil then
+			Errno:error("realloc")
+		end
 	end
 	C.free(self.buf)
 
