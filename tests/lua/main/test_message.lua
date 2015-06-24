@@ -54,7 +54,6 @@ return {
 		assert.equal(p:recv(), "foo")
 
 		p:close()
-		-- TODO: Should this continue still be needed?
 		h:continue()
 		assert.equal(state, "done")
 	end,
