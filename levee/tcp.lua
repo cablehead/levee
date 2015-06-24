@@ -32,8 +32,15 @@ end
 
 
 function Listener_mt:close()
+	if self.closed then
+		return
+	end
+
+	self.closed = true
 	self.hub:unregister(self.no, true)
 	self.recver:close()
+	self.hub:continue()
+	return true
 end
 
 

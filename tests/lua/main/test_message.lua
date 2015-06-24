@@ -54,7 +54,6 @@ return {
 		assert.equal(p:recv(), "foo")
 
 		p:close()
-		h:continue()
 		assert.equal(state, "done")
 	end,
 }

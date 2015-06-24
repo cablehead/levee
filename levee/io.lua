@@ -22,9 +22,6 @@ function R_mt:read(buf, len)
 		return n, err
 	end
 
-	-- TODO:
-	-- if n == len, maybe don't wait on r_ev on next read
-	-- if ev == -1 and n != len, maybe close and set err
 	if n > 0 then
 		return n
 	end
@@ -50,10 +47,14 @@ end
 
 
 function R_mt:close()
-	if not self.closed then
-		self.closed = true
-		self.hub:unregister(self.no, true)
+	if self.closed then
+		return
 	end
+
+	self.closed = true
+	self.hub:unregister(self.no, true)
+	self.hub:continue()
+	return true
 end
 
 
@@ -87,10 +88,14 @@ end
 
 
 function W_mt:close()
-	if not self.closed then
-		self.closed = true
-		self.hub:unregister(self.no, false, true)
+	if self.closed then
+		return
 	end
+
+	self.closed = true
+	self.hub:unregister(self.no, false, true)
+	self.hub:continue()
+	return true
 end
 
 
@@ -107,10 +112,14 @@ RW_mt.writev = W_mt.writev
 
 
 function RW_mt:close()
-	if not self.closed then
-		self.closed = true
-		self.hub:unregister(self.no, true, true)
+	if self.closed then
+		return
 	end
+
+	self.closed = true
+	self.hub:unregister(self.no, true, true)
+	self.hub:continue()
+	return true
 end
 
 

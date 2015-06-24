@@ -63,16 +63,14 @@ function Pipe_mt:close()
 		local co = self.recver
 		self.recver = nil
 		self.hub.ready:push({co})
-		self.hub:continue()
-		return true
-	end
-
-	if self.sender then
+	elseif self.sender then
 		local co = self.sender
 		self.sender = nil
 		self.hub.ready:push({co})
-		return true
 	end
+
+	self.hub:continue()
+	return true
 end
 
 
