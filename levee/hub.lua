@@ -88,6 +88,7 @@ end
 function Hub_mt:spawn(f, a)
 	local co = coroutine.create(f)
 	self.ready:push({co, a})
+	self:continue()
 end
 
 

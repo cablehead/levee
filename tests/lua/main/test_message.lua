@@ -4,15 +4,16 @@ return {
 		local p = h:pipe()
 
 		-- recv and then send
-		h:spawn_later(10, function() p:send("1") end)
+		local sent = false
+		h:spawn_later(10, function() sent = true; p:send("1") end)
+		assert(not sent)
 		assert.equal(p:recv(), "1")
 
 		-- send and then recv
-		local state
-		h:spawn(function() state = p:recv() end)
-		p:send("2")
-		h:sleep(1)
-		assert.equal(state, "2")
+		local sent = false
+		h:spawn(function() sent = true; p:send("2") end)
+		assert(sent)
+		assert.equal(p:recv(), "2")
 	end,
 
 	test_iter = function()
@@ -53,7 +54,8 @@ return {
 		assert.equal(p:recv(), "foo")
 
 		p:close()
-		h:sleep(1)
+		-- Should this continue still be needed?
+		h:continue()
 		assert.equal(state, "done")
 	end,
 }
