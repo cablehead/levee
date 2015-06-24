@@ -172,6 +172,14 @@ local Client_mt = {}
 Client_mt.__index = Client_mt
 
 
+local Response_mt = {}
+Response_mt.__index = Response_mt
+
+function Response_mt:__tostring()
+	return ("levee.http.Response: %s %s"):format(self.code, self.reason)
+end
+
+
 function Client_mt:reader()
 	local _next, res
 
@@ -179,13 +187,13 @@ function Client_mt:reader()
 		_next = parser_next(self)
 		if not _next then return end
 
-		res = {
+		res = setmetatable({
 			client = self,
 			code = _next[1],
 			reason = _next[2],
 			version = _next[3],
 			headers = {},
-			}
+			}, Response_mt)
 
 		while true do
 			_next = parser_next(self)
@@ -280,14 +288,12 @@ end
 --
 -- Server
 --
-local ServerRequest_mt = {}
-ServerRequest_mt.__index = ServerRequest_mt
+local Request_mt = {}
+Request_mt.__index = ServeRequest_mt
 
-
-function ServerRequest_mt:reply(status, headers, body)
-	self.serve.responses:send({status, headers, body})
+function Request_mt:__tostring()
+	return ("levee.http.Request: %s %s"):format(self.method, self.path)
 end
-
 
 local Server_mt = {}
 Server_mt.__index = Server_mt
@@ -409,13 +415,13 @@ function Server_mt:reader()
 		_next = parser_next(self)
 		if not _next then return end
 
-		req = {
+		req = setmetatable({
 			serve = self,
 			method=_next[1],
 			path=_next[2],
 			version=_next[3],
 			headers={},
-			response = self.hub:pipe(), }
+			response = self.hub:pipe(), }, Request_mt)
 
 		while true do
 			_next = parser_next(self)
@@ -451,7 +457,7 @@ local function Server(hub, conn)
 	self.requests = hub:pipe()
 	self.responses = hub:pipe()
 	self.parser = parsers.http.Request()
-	self.buf = buffer(4096)
+	self.buf = buffer(64*1024)
 	self.iov = iovec.Iovec(32)
 	self.baton = hub:baton()
 	hub:spawn(self.reader, self)
@@ -501,7 +507,7 @@ function HTTP_mt:connect(port, host)
 	m.hub = self.hub
 	m.conn = self.hub.tcp:connect(port, host)
 	m.parser = parsers.http.Response()
-	m.buf = buffer(4096)
+	m.buf = buffer(64*1024)
 	m.iov = iovec.Iovec(32)
 	m.baton = self.hub:baton()
 
