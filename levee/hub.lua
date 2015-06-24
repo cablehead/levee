@@ -103,6 +103,12 @@ function Hub_mt:sleep(ms)
 end
 
 
+function Hub_mt:continue()
+	self.ready:push({coroutine.running()})
+	self:_coyield()
+end
+
+
 function Hub_mt:register(no, r, w)
 	local r_ev = r and State(self)
 	local w_ev = w and State(self)
@@ -124,13 +130,16 @@ end
 
 
 function Hub_mt:pump()
-	for work in self.ready:popiter() do
+	local num = #self.ready
+	for _ = 1, num do
+		local work = self.ready:pop()
 		self:_coresume(work[1], work[2])
 	end
 
-	local events, n = self.poller:poll(self.scheduled:peek())
+	local events, n = self.poller:poll(
+		(#self.ready > 0 or self.scheduled:peek()))
 
-	if n == 0 then
+	if n == 0 and #self.ready == 0 then
 		local ms, co = self.scheduled:pop()
 		self:_coresume(co)
 	end

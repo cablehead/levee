@@ -117,15 +117,21 @@ end
 function Poller:poll(timeout)
 	local ts
 	if timeout then
-		C.gettimeofday(self.tv, nil)
-		self.ms = timeout - (
-			(self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
-		if self.ms < 0 then
-			return nil, 0
+		if type(timeout) == "number" then
+			C.gettimeofday(self.tv, nil)
+			self.ms = timeout - (
+				(self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
+			if self.ms < 0 then
+				return nil, 0
+			end
+			self.ts.tv_sec = (self.ms / 1000LL)
+			self.ts.tv_nsec = (self.ms % 1000LL) * 1000000LL
+			ts = self.ts
+		else
+			self.ts.tv_sec = 0
+			self.ts.tv_nsec = 0
+			ts = self.ts
 		end
-		self.ts.tv_sec = (self.ms / 1000LL)
-		self.ts.tv_nsec = (self.ms % 1000LL) * 1000000LL
-		ts = self.ts
 	end
 
 	local n = C.kevent(
