@@ -1,6 +1,22 @@
+## Stream
+
+*This'll likely move to be a general message / io primitive.*
+
+A `Stream` allows a portion of a streaming socket to be delegated.
+
+### attributes
+
+- conn
+- buf
+- len
+- done
+
+### methods
+
+- tostring: copies the entire stream into a string and marks it as done
+- readin: read from the stream's conn to its buf
 
 ## Request
-
 
 ### attributes
 
@@ -8,34 +24,54 @@
 - path
 - version
 - headers
-
+- conn
 - response
 
-response is a pipe used to communicate the response to send. the first send for the response is expected to be in the form:
+    response is a pipe used to communicate the response to send. the first send
+    for the response is expected to be in the form:
 
-```
-    {status, headers, body}
-```
+    `{status, headers, body}`
 
-- status is in the form ```{code, reason}```
+    - status is in the form `{code, reason}`
 
-- headers is a table of key, value pairs
+    - headers is a table of key, value pairs
 
-- body can be either, a string, an integer or nil
+    - body can be either a string, an integer or nil
 
-    * if body is a string it will be used as for the response body and the
-      request is complete.
+        * if body is a string it will be used as for the response body and the
+          request is complete.
 
-    * if body is an integer it is the Content-Length of the body. If it is 0,
-      then the response has no body, and the request is complete. Otherwise the
-      application is expected to directly transfer the specified number of
-      bytes over the request's connection. Once done, the application should
-      call response:close() to indicate the response has completed.
+        * if body is an integer it is the Content-Length of the body. If it is
+          0, then the response has no body, and the request is complete.
+          Otherwise the application is expected to directly transfer the
+          specified number of bytes over the request's connection. Once done,
+          the application should call response:close() to indicate the response
+          has completed.
 
-    * if body is nil then this will be a chunked response. Each subsequent send
-      on the response will describe the next chunk. Either a string or an
-      integer can be sent. strings will be used as is as the next chunk.
-      integers indicate the length of the next chunk, and the application is
-      then responsible to directly put that many bytes over the request's
-      connection. Once all chunks have been sent the application should call
-      response:close() to indicate the response has completed.
+        * if body is nil then this will be a chunked response. Each subsequent
+          send on the response will describe the next chunk. Either a string or
+          an integer can be sent. strings will be used as is as the next chunk.
+          integers indicate the length of the next chunk, and the application
+          is then responsible to directly put that many bytes over the
+          request's connection. Once all chunks have been sent the application
+          should call response:close() to indicate the response has completed.
+
+## Response
+
+### attributes
+
+- code
+- reason
+- version
+- headers
+
+- body
+
+    If this is a Content-Length response than body will be a `Stream` the
+    application can use to proccess the Response body.
+
+- chunks
+
+    If this is a chunked response than chunks will be a pipe which will yield
+    the response's chunks. Each chunk will be a `Stream` which should be fully
+    consumed before recv-ing the next chunk.
