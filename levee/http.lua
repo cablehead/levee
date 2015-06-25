@@ -144,6 +144,37 @@ end
 
 
 --
+-- Stream
+--
+local Stream_mt = {}
+Stream_mt.__index = Stream_mt
+
+function Stream_mt:__tostring()
+	return ("levee.http.Stream: len=%s buffered=%s"):format(
+		tonumber(self.len), #self.buf)
+end
+
+function Stream_mt:readin()
+	return self.conn:readinto(self.buf)
+end
+
+function Stream_mt:tostring()
+	local ret = {}
+	while true do
+		local seg = self.buf:take_s(self.len)
+		table.insert(ret, seg)
+		self.len = self.len - #seg
+		if self.len == 0 then
+			break
+		end
+		self:readin()
+	end
+	self.done:close()
+	return table.concat(ret)
+end
+
+
+--
 -- Parser
 --
 local function parser_next(self)
@@ -180,34 +211,6 @@ function Response_mt:__tostring()
 end
 
 
-local Stream_mt = {}
-Stream_mt.__index = Stream_mt
-
-function Stream_mt:__tostring()
-	return ("levee.http.Stream: len=%s buffered=%s"):format(
-		tonumber(self.len), #self.buf)
-end
-
-function Stream_mt:readin()
-	return self.conn:readinto(self.buf)
-end
-
-function Stream_mt:tostring()
-	local ret = {}
-	while true do
-		local seg = self.buf:take_s(self.len)
-		table.insert(ret, seg)
-		self.len = self.len - #seg
-		if self.len == 0 then
-			break
-		end
-		self:readin()
-	end
-	self.done:close()
-	return table.concat(ret)
-end
-
-
 function Client_mt:reader()
 	local _next, res
 
@@ -233,7 +236,6 @@ function Client_mt:reader()
 		-- content-length
 		if not _next[2] then
 			-- TODO: handle Content-Length == 0
-			res.len = _next[3]
 
 			res.body = setmetatable({
 				len = _next[3],
@@ -470,13 +472,20 @@ function Server_mt:reader()
 
 		if _next[2] then error("TODO: chunked") end
 
-		req.len = _next[3]
+		local len = _next[3]
+
+		if len > 0 then
+			req.body = setmetatable({
+				len = len,
+				conn = self.conn,
+				buf = self.buf,
+				done = self.hub:pipe(), }, Stream_mt)
+		end
+
 		self.requests:send(req)
 		self.responses:send(req.response)
 
-		if req.len > 0 then
-			self.baton:wait()
-		end
+		if len > 0 then req.body.done:recv() end
 	end
 end
 

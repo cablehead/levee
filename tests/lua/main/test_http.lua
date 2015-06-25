@@ -75,7 +75,6 @@ return {
 	end,
 
 	test_post = function()
-		if true then return "SKIP" end
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -89,25 +88,16 @@ return {
 
 		assert.equal(req.method, "POST")
 		assert.equal(req.path, "/path")
-
-		local body = req.serve.buf:take_s()
-		assert.equal(#body, req.len)
-		assert.equal(body, "foo")
-		req.serve.baton:resume()
+		assert.equal(req.body:tostring(), "foo")
 
 		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-
-		local body = response.client.buf:take_s()
-		assert.equal(#body, response.len)
-		assert.equal(body, "Hello world\n")
-		response.client.baton:resume()
+		assert.equal(response.body:tostring(), "Hello world\n")
 
 		c:close()
 		serve:close()
-		h:sleep(1)
 		assert.same(h.registered, {})
 	end,
 
