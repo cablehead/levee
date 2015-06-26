@@ -235,4 +235,38 @@ return {
 		origin:close()
 		assert.same(h.registered, {})
 	end,
+
+	test_sendfile = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen(8000)
+		h:spawn(function()
+			for conn in serve do
+				h:spawn(function()
+					for req in conn do
+						-- TODO: sanitize path
+						req:sendfile(req.path)
+					end
+				end)
+			end
+		end)
+
+		local c = h.http:connect(8000)
+
+		local res = c:get("/foo"):recv()
+		assert.equal(res.code, 404)
+		assert.equal(res.body:tostring(), "Not Found\n")
+
+		local filename = debug.getinfo(1, 'S').source:sub(2)
+		local res = c:get(filename):recv()
+		assert.equal(res.code, 200)
+		assert(res.body:tostring():find("wombat"))
+
+		c:close()
+		serve:close()
+		assert.same(h.registered, {})
+	end,
 }
+

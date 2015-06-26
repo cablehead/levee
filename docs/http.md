@@ -71,6 +71,14 @@ A `Stream` allows a portion of a streaming socket to be delegated.
           request's connection. Once all chunks have been sent the application
           should call response:close() to indicate the response has completed.
 
+### methods
+
+- `sendfile(filename)`
+
+    convenience to transfer `filename` as the response. if the file does not
+    exist, or is not a regular file, a 404 status is returned. currently there
+    is no sanitizing of file path.
+
 ## Response
 
 ### attributes

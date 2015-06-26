@@ -21,7 +21,7 @@ function Status:__call(code, reason)
 	if reason then
 		return string.format("HTTP/1.1 %d %s\r\n", code, reason)
 	end
-	return Status[200]
+	return Status[code]
 end
 
 setmetatable(Status, Status)
@@ -363,6 +363,43 @@ end
 --
 local Request_mt = {}
 Request_mt.__index = Request_mt
+
+function Request_mt:_sendfile(name)
+	local no = C.open(name, C.O_RDONLY)
+	if no < 0 then return -1 end
+
+	local st = ffi.new("struct stat")
+	local rc = C.fstat64(no, st)
+	if rc < 0 then return -1 end
+	-- check this is a regular file
+	if bit.band(st.st_mode, C.S_IFREG) == 0 then return -1 end
+
+	self.response:send({Status(200), {}, st.st_size})
+
+	local len = ffi.new("off_t[1]")
+	local sent = 0
+
+	while true do
+		len[0] = st.st_size - sent
+		local rc = C.sendfile(no, self.conn.no, sent, len, nil, 0)
+		if rc == 0 then
+			break
+		end
+		sent = sent + len[0]
+		local ev = self.conn.w_ev:recv()
+		assert(ev > 0)  -- TODO: handle shutdown on error
+	end
+
+	self.response:close()
+	return 0
+end
+
+function Request_mt:sendfile(name)
+	local rc = self:_sendfile(name)
+	if rc < 0 then
+		self.response:send({Status(404), {}, "Not Found\n"})
+	end
+end
 
 function Request_mt:__tostring()
 	return ("levee.http.Request: %s %s"):format(self.method, self.path)
