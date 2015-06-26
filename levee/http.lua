@@ -256,8 +256,15 @@ function Client_mt:reader()
 				_next = parser_next(self)
 				if not _next then return end
 				if not _next[1] then break end
-				res.chunks:send(_next[2])
-				self.baton:wait()
+
+				local chunk = setmetatable({
+					len = _next[2],
+					conn = self.conn,
+					buf = self.buf,
+					done = self.hub:pipe(), }, Stream_mt)
+
+				res.chunks:send(chunk)
+				chunk.done:recv()
 			end
 
 			res.chunks:close()
@@ -402,36 +409,44 @@ function Server_mt:writer()
 				end
 				self.iov:reset()
 
-				for len in response do
-					if type(len) == "string" then
-						self.iov:write(num2hex(#len))
+				local function write_chunk(response, chunk)
+					if type(chunk) == "string" then
+						self.iov:write(num2hex(#chunk))
 						self.iov:write(EOL)
-						self.iov:write(len)
+						self.iov:write(chunk)
 						self.iov:write(EOL)
 						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
 							return
 						end
 						self.iov:reset()
+
+						chunk = response:recv()
 
 					else
-						self.iov:write(num2hex(len))
+						self.iov:write(num2hex(chunk))
 						self.iov:write(EOL)
 						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
 							return
 						end
 						self.iov:reset()
 
-						self.baton:swap()
+						chunk = response:recv()
 
 						self.iov:write(EOL)
 						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
 							return
 						end
 						self.iov:reset()
 					end
+
+					if not chunk then return true end
+					return write_chunk(response, chunk)
+				end
+
+				local ok = write_chunk(response, response:recv())
+				if not ok then
+					self:close()
+					return
 				end
 
 				self.iov:write("0")

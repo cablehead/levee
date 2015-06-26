@@ -132,10 +132,6 @@ return {
 	end,
 
 	test_chunk_transfer = function()
-		if true then return "SKIP" end
-		print()
-		print()
-
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -144,58 +140,27 @@ return {
 		local c = h.http:connect(8000)
 		local s = serve:recv()
 
-		print("1")
-
 		local response = c:get("/path")
 		local req = s:recv()
-
-		print("5")
 
 		req.response:send({levee.http.Status(200), {}, nil})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-		assert(not response.len)
+		assert(not response.body)
 		assert(response.chunks)
-
-		print("10")
 
 		-- send chunk 1
 		req.response:send(17)
-		req.serve.baton:wait()
-		req.serve.conn:write("01234567012345678")
-		req.serve.baton:resume()
+		req.conn:write("01234567012345678")
 
-		print("12")
-
-		local len = response.chunks:recv()
-
-		if #response.client.buf < len then
-			response.client.conn:readinto(response.client.buf)
-		end
-
-		print("17")
-
-		local chunk = ffi.string(response.client.buf:slice(len))
-		response.client.buf:trim(len)
-		assert.equal(chunk, "01234567012345678")
-		response.client.baton:resume()
-
-		print("20")
+		local chunk = response.chunks:recv()
+		assert.equal(chunk:tostring(), "01234567012345678")
 
 		-- send chunk 2
 		req.response:send("90123456701234567")
-
-		local len = response.chunks:recv()
-
-		if #response.client.buf < len then
-			response.client.conn:readinto(response.client.buf)
-		end
-
-		local chunk = ffi.string(response.client.buf:slice(len))
-		response.client.buf:trim(len)
-		assert.equal(chunk, "90123456701234567")
-		response.client.baton:resume()
+		local chunk = response.chunks:recv()
+		assert.equal(chunk:tostring(), "90123456701234567")
 
 		-- end response
 		req.response:close()
@@ -203,7 +168,6 @@ return {
 
 		c:close()
 		serve:close()
-		h:sleep(1)
 		assert.same(h.registered, {})
 	end,
 }
