@@ -158,6 +158,16 @@ function Stream_mt:readin()
 	return self.conn:readinto(self.buf)
 end
 
+function Stream_mt:trim(len)
+	if len then
+		assert(len < self.len)
+	else
+		len = self.len
+	end
+	local got = self.buf:trim(len)
+	self.len = self.len - got
+end
+
 function Stream_mt:tostring()
 	local ret = {}
 	while true do

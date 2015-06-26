@@ -171,4 +171,61 @@ return {
 		serve:close()
 		assert.same(h.registered, {})
 	end,
+
+	test_proxy = function()
+		local function x(s, n)
+			ret = ""
+			for _ = 1, n do
+				ret = ret .. s
+			end
+			return ret
+		end
+
+		print()
+		print()
+
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		-- origin
+		h:spawn(function()
+			local serve = h.http:listen(8000)
+			while true do
+				local s = serve:recv()
+				h:spawn(function()
+					while true do
+						local req = s:recv()
+						req.response:send({levee.http.Status(200), {}, 10000})
+						for i = 1, 10 do
+							req.conn:write(x(".", 1000))
+							h:continue()
+						end
+						req.response:close()
+					end
+				end)
+			end
+		end)
+
+		local c = h.http:connect(8000)
+
+		local response = c:get("/"):recv()
+		assert.equal(response.code, 200)
+
+		response.body:readin()
+		response.body:trim()
+		response.body:readin()
+		response.body:trim()
+
+		print(response.body)
+		print(#response.body:tostring())
+
+		print()
+
+		local response = c:get("/"):recv()
+		assert.equal(response.code, 200)
+
+		print(response.body.len)
+		print(#response.body:tostring())
+	end,
 }

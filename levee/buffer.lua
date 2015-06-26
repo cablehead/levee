@@ -86,12 +86,15 @@ end
 
 function Buffer:trim(len)
 	if not len or len >= self.len then
+		local ret = self.len
 		self.off = 0
 		self.len = 0
-	else
-		self.off = self.off + len
-		self.len = self.len - len
+		return ret
 	end
+
+	self.off = self.off + len
+	self.len = self.len - len
+	return len
 end
 
 
