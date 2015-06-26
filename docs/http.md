@@ -13,8 +13,23 @@ A `Stream` allows a portion of a streaming socket to be delegated.
 
 ### methods
 
-- tostring: copies the entire stream into a string and marks it as done
-- readin: read from the stream's conn to its buf
+- `readin()`:
+
+    read from the stream's conn to its buf.
+
+- `trim(len)`
+
+    trims this stream's buf by len. if len is nil then trims the entire buf.
+    the stream's len will be reduced by the actual amount trimmed. if len drops
+    to 0 the stream will be marked as done.
+
+- `splice(conn)`
+
+    writes this stream to conn and marks it as done.
+
+- `tostring()`
+
+    copies the entire stream into a string and marks it as done.
 
 ## Request
 
