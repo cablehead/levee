@@ -41,7 +41,7 @@ end
 
 
 local usage = [[
-Usage: lua.test [-v] [-o] [-k <match>] <path>]]
+Usage: lua.test [-v] [-x] [-k <match>] <path>]]
 
 
 function bad_usage()
@@ -196,6 +196,8 @@ function main(argv)
 			w(txtblu..script..txtrst..'\n')
 		end
 
+		local done = false
+
 		for i, name in ipairs(to_run) do
 			local pattern = "    %-40s "
 			w(pattern:format(name))
@@ -217,10 +219,13 @@ function main(argv)
 				stats[extra] = stats[extra] + 1
 			else
 				if argv.exitfirst then
+					done = true
 					break
 				end
 			end
 		end
+
+		if done then break end
 	end
 
 	io.write('\n')
