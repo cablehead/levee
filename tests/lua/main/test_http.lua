@@ -189,10 +189,10 @@ return {
 		local h = levee.Hub()
 
 		-- origin
+		local origin = h.http:listen(8000)
 		h:spawn(function()
-			local serve = h.http:listen(8000)
 			while true do
-				local s = serve:recv()
+				local s = origin:recv()
 				h:spawn(function()
 					while true do
 						local req = s:recv()
@@ -227,5 +227,9 @@ return {
 
 		print(response.body.len)
 		print(#response.body:tostring())
+
+		c:close()
+		origin:close()
+		assert.same(h.registered, {})
 	end,
 }
