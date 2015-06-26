@@ -68,7 +68,7 @@ A `Stream` allows a portion of a streaming socket to be delegated.
 - body
 
     If this is a Content-Length response than body will be a `Stream` the
-    application can use to proccess the Response body.
+    application can use to process the Response body.
 
 - chunks
 
