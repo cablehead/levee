@@ -395,7 +395,7 @@ function Server_mt:writer()
 			end
 			self.iov:reset()
 
-			self.baton:wait()
+			assert(not response:recv())
 
 		else
 				self.iov:write("Transfer-Encoding")
@@ -521,7 +521,6 @@ local function Server(hub, conn)
 	self.parser = parsers.http.Request()
 	self.buf = buffer(64*1024)
 	self.iov = iovec.Iovec(32)
-	self.baton = hub:baton()
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
 	return self
@@ -571,7 +570,6 @@ function HTTP_mt:connect(port, host)
 	m.parser = parsers.http.Response()
 	m.buf = buffer(64*1024)
 	m.iov = iovec.Iovec(32)
-	m.baton = self.hub:baton()
 
 	m.responses = self.hub:pipe()
 	self.hub:spawn(m.reader, m)

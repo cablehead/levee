@@ -124,6 +124,7 @@ return {
 		assert.equal(response.code, 200)
 
 		req.conn:write(body)
+		req.response:close()
 		assert.equal(response.body:tostring(), "Hello world\n")
 
 		c:close()
