@@ -181,9 +181,6 @@ return {
 			return ret
 		end
 
-		print()
-		print()
-
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -191,11 +188,9 @@ return {
 		-- origin
 		local origin = h.http:listen(8000)
 		h:spawn(function()
-			while true do
-				local s = origin:recv()
+			for conn in origin do
 				h:spawn(function()
-					while true do
-						local req = s:recv()
+					for req in conn do
 						req.response:send({levee.http.Status(200), {}, 10000})
 						for i = 1, 10 do
 							req.conn:write(x(".", 1000))
@@ -207,28 +202,36 @@ return {
 			end
 		end)
 
-		local c = h.http:connect(8000)
+		-- proxy
+		local proxy = h.http:listen(8001)
+		h:spawn(function()
+			for conn in proxy do
+				h:spawn(function()
+					local backend = h.http:connect(8000)
+					for req in conn do
+						local res = backend:get(req.path):recv()
+						req.response:send({levee.http.Status(res.code), {}, #res.body})
+						res.body:splice(req.conn)
+						req.response:close()
+					end
+					backend:close()
+				end)
+			end
+		end)
+
+		-- client
+		local c = h.http:connect(8001)
 
 		local response = c:get("/"):recv()
 		assert.equal(response.code, 200)
-
-		response.body:readin()
-		response.body:trim()
-		response.body:readin()
-		response.body:trim()
-
-		print(response.body)
-		print(#response.body:tostring())
-
-		print()
+		assert(#response.body:tostring() == 10000)
 
 		local response = c:get("/"):recv()
 		assert.equal(response.code, 200)
-
-		print(response.body.len)
-		print(#response.body:tostring())
+		assert(#response.body:tostring() == 10000)
 
 		c:close()
+		proxy:close()
 		origin:close()
 		assert.same(h.registered, {})
 	end,

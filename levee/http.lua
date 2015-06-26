@@ -154,6 +154,10 @@ function Stream_mt:__tostring()
 		tonumber(self.len), #self.buf)
 end
 
+function Stream_mt:__len()
+	return self.len
+end
+
 function Stream_mt:readin()
 	return self.conn:readinto(self.buf)
 end
@@ -166,6 +170,19 @@ function Stream_mt:trim(len)
 	end
 	local got = self.buf:trim(len)
 	self.len = self.len - got
+	if self.len == 0 then
+		self.done:close()
+	end
+end
+
+function Stream_mt:splice(conn)
+	while self.len > 0 do
+		self:readin()
+		-- TODO: write should probably have a continue
+		local n, err = conn:write(self.buf:value())
+		assert(n == #self.buf)
+		self:trim()
+	end
 end
 
 function Stream_mt:tostring()
@@ -477,7 +494,10 @@ function Server_mt:reader()
 
 	while true do
 		_next = parser_next(self)
-		if not _next then return end
+		if not _next then
+			self:close()
+			return
+		end
 
 		req = setmetatable({
 			serve = self,
@@ -490,7 +510,10 @@ function Server_mt:reader()
 
 		while true do
 			_next = parser_next(self)
-			if not _next then return end
+			if not _next then
+				self:close()
+				return
+			end
 			if not _next[1] then break end
 			req.headers[_next[1]] = _next[2]
 		end
