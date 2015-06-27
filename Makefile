@@ -20,7 +20,6 @@ endif
 OBJS_COMMON := $(OBJ)/heap.o
 OBJS_LEVEE := \
 	$(OBJS_COMMON) \
-	$(OBJ)/task.o \
 	$(OBJ)/liblevee.o \
 	$(OBJ)/levee.o
 
