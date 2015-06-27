@@ -56,11 +56,6 @@ function Hub_mt:pipe()
 end
 
 
-function Hub_mt:baton()
-	return message.Baton(self)
-end
-
-
 function Hub_mt:_coresume(co, value)
 	if co ~= self.parent then
 		local status, message = coroutine.resume(co, value)
@@ -88,6 +83,7 @@ end
 function Hub_mt:spawn(f, a)
 	local co = coroutine.create(f)
 	self.ready:push({co, a})
+	self:continue()
 end
 
 
@@ -148,14 +144,8 @@ function Hub_mt:pump()
 		local no, r_ev, w_ev, e_ev = events[i]:value()
 		local r = self.registered[no]
 		if r then
-			if r_ev then 
-				-- self.stats.poll_r = self.stats.poll_r + 1
-				r[1]:set(e_ev)
-			end
-			if w_ev then
-				-- self.stats.poll_w = self.stats.poll_w + 1
-				r[2]:set(e_ev)
-			end
+			if r_ev then r[1]:set(e_ev) end
+			if w_ev then r[2]:set(e_ev) end
 		end
 	end
 end

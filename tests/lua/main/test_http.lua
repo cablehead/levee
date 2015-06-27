@@ -48,16 +48,12 @@ return {
 		local req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
-
 		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
 
-		local body = response.client.buf:take_s()
-		assert.equal(#body, response.len)
-		assert.equal(body, "Hello world\n")
-		response.client.baton:resume()
+		assert.equal(response.body:tostring(), "Hello world\n")
 
 		-- make another request on the same connection
 
@@ -71,15 +67,10 @@ return {
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-
-		local body = response.client.buf:take_s()
-		assert.equal(#body, response.len)
-		assert.equal(body, "Hello world\n")
-		response.client.baton:resume()
+		assert.equal(response.body:tostring(), "Hello world\n")
 
 		c:close()
 		serve:close()
-		h:sleep(1)
 		assert.same(h.registered, {})
 	end,
 
@@ -97,25 +88,16 @@ return {
 
 		assert.equal(req.method, "POST")
 		assert.equal(req.path, "/path")
-
-		local body = req.serve.buf:take_s()
-		assert.equal(#body, req.len)
-		assert.equal(body, "foo")
-		req.serve.baton:resume()
+		assert.equal(req.body:tostring(), "foo")
 
 		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-
-		local body = response.client.buf:take_s()
-		assert.equal(#body, response.len)
-		assert.equal(body, "Hello world\n")
-		response.client.baton:resume()
+		assert.equal(response.body:tostring(), "Hello world\n")
 
 		c:close()
 		serve:close()
-		h:sleep(1)
 		assert.same(h.registered, {})
 	end,
 
@@ -141,18 +123,12 @@ return {
 		response = response:recv()
 		assert.equal(response.code, 200)
 
-		req.serve.conn:write(body)
-		req.serve.baton:resume()
-
-		response.client.conn:readinto(response.client.buf)
-		local body = response.client.buf:take_s()
-		assert.equal(#body, response.len)
-		assert.equal(body, "Hello world\n")
-		response.client.baton:resume()
+		req.conn:write(body)
+		req.response:close()
+		assert.equal(response.body:tostring(), "Hello world\n")
 
 		c:close()
 		serve:close()
-		h:sleep(1)
 		assert.same(h.registered, {})
 	end,
 
@@ -172,39 +148,20 @@ return {
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-		assert(not response.len)
+		assert(not response.body)
 		assert(response.chunks)
 
 		-- send chunk 1
 		req.response:send(17)
-		req.serve.baton:wait()
-		req.serve.conn:write("01234567012345678")
-		req.serve.baton:resume()
+		req.conn:write("01234567012345678")
 
-		local len = response.chunks:recv()
-
-		if #response.client.buf < len then
-			response.client.conn:readinto(response.client.buf)
-		end
-
-		local chunk = ffi.string(response.client.buf:slice(len))
-		response.client.buf:trim(len)
-		assert.equal(chunk, "01234567012345678")
-		response.client.baton:resume()
+		local chunk = response.chunks:recv()
+		assert.equal(chunk:tostring(), "01234567012345678")
 
 		-- send chunk 2
 		req.response:send("90123456701234567")
-
-		local len = response.chunks:recv()
-
-		if #response.client.buf < len then
-			response.client.conn:readinto(response.client.buf)
-		end
-
-		local chunk = ffi.string(response.client.buf:slice(len))
-		response.client.buf:trim(len)
-		assert.equal(chunk, "90123456701234567")
-		response.client.baton:resume()
+		local chunk = response.chunks:recv()
+		assert.equal(chunk:tostring(), "90123456701234567")
 
 		-- end response
 		req.response:close()
@@ -212,7 +169,104 @@ return {
 
 		c:close()
 		serve:close()
-		h:sleep(1)
+		assert.same(h.registered, {})
+	end,
+
+	test_proxy = function()
+		local function x(s, n)
+			ret = ""
+			for _ = 1, n do
+				ret = ret .. s
+			end
+			return ret
+		end
+
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		-- origin
+		local origin = h.http:listen(8000)
+		h:spawn(function()
+			for conn in origin do
+				h:spawn(function()
+					for req in conn do
+						req.response:send({levee.http.Status(200), {}, 10000})
+						for i = 1, 10 do
+							req.conn:write(x(".", 1000))
+							h:continue()
+						end
+						req.response:close()
+					end
+				end)
+			end
+		end)
+
+		-- proxy
+		local proxy = h.http:listen(8001)
+		h:spawn(function()
+			for conn in proxy do
+				h:spawn(function()
+					local backend = h.http:connect(8000)
+					for req in conn do
+						local res = backend:get(req.path):recv()
+						req.response:send({levee.http.Status(res.code), {}, #res.body})
+						res.body:splice(req.conn)
+						req.response:close()
+					end
+					backend:close()
+				end)
+			end
+		end)
+
+		-- client
+		local c = h.http:connect(8001)
+
+		local response = c:get("/"):recv()
+		assert.equal(response.code, 200)
+		assert(#response.body:tostring() == 10000)
+
+		local response = c:get("/"):recv()
+		assert.equal(response.code, 200)
+		assert(#response.body:tostring() == 10000)
+
+		c:close()
+		proxy:close()
+		origin:close()
+		assert.same(h.registered, {})
+	end,
+
+	test_sendfile = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen(8000)
+		h:spawn(function()
+			for conn in serve do
+				h:spawn(function()
+					for req in conn do
+						-- TODO: sanitize path
+						req:sendfile(req.path)
+					end
+				end)
+			end
+		end)
+
+		local c = h.http:connect(8000)
+
+		local res = c:get("/foo"):recv()
+		assert.equal(res.code, 404)
+		assert.equal(res.body:tostring(), "Not Found\n")
+
+		local filename = debug.getinfo(1, 'S').source:sub(2)
+		local res = c:get(filename):recv()
+		assert.equal(res.code, 200)
+		assert(res.body:tostring():find("wombat"))
+
+		c:close()
+		serve:close()
 		assert.same(h.registered, {})
 	end,
 }
+

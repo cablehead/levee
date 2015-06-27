@@ -6,15 +6,13 @@ return {
 
 		h:spawn(function()
 			for i = 1, 2 do
-				h:sleep(100)
+				h:sleep(10)
 				table.insert(beats, "tick")
 			end
 		end)
 
-		h:sleep(50)
-
 		for i = 1, 2 do
-			h:sleep(100)
+			h:sleep(10)
 			table.insert(beats, "tock")
 		end
 

@@ -96,12 +96,15 @@ end
 
 function Buffer:trim(len)
 	if not len or len >= self.len then
+		local ret = self.len
 		self.off = 0
 		self.len = 0
-	else
-		self.off = self.off + len
-		self.len = self.len - len
+		return ret
 	end
+
+	self.off = self.off + len
+	self.len = self.len - len
+	return len
 end
 
 
@@ -125,15 +128,20 @@ function Buffer:tail()
 end
 
 
-function Buffer:peek_s()
-	if self.len == 0ULL then return "" end
-	return ffi.string(self.buf + self.off, self.len)
+function Buffer:peek_s(len)
+	if len then
+		len = len < self.len and len or self.len
+	else
+		len = self.len
+	end
+	if len == 0ULL then return "" end
+	return ffi.string(self.buf + self.off, len)
 end
 
 
-function Buffer:take_s()
-	local value = self:peek_s()
-	self:trim()
+function Buffer:take_s(len)
+	local value = self:peek_s(len)
+	self:trim(#value)
 	return value
 end
 

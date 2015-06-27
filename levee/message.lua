@@ -16,6 +16,7 @@ function Pipe_mt:send(value)
 		local co = self.recver
 		self.recver = nil
 		self.hub.ready:push({co, value})
+		self.hub:continue()
 		return true
 	end
 
@@ -52,21 +53,24 @@ end
 
 
 function Pipe_mt:close()
+	if self.closed then
+		return
+	end
+
 	self.closed = true
 
 	if self.recver then
 		local co = self.recver
 		self.recver = nil
 		self.hub.ready:push({co})
-		return
-	end
-
-	if self.sender then
+	elseif self.sender then
 		local co = self.sender
 		self.sender = nil
 		self.hub.ready:push({co})
-		return
 	end
+
+	self.hub:continue()
+	return true
 end
 
 
@@ -76,44 +80,6 @@ local function Pipe(hub)
 end
 
 
---
--- Baton
---
-local Baton_mt = {}
-Baton_mt.__index = Baton_mt
-
-
-function Baton_mt:resume()
-	assert(self.co)
-	local co = self.co
-	self.co = nil
-	self.hub.ready:push({co})
-end
-
-
-function Baton_mt:swap()
-	assert(self.co)
-	local co = self.co
-	self.co = coroutine.running()
-	self.hub.ready:push({co})
-	return self.hub:_coyield()
-end
-
-
-function Baton_mt:wait()
-	assert(not self.co)
-	self.co = coroutine.running()
-	return self.hub:_coyield()
-end
-
-
-local function Baton(hub)
-	local self = setmetatable({hub=hub}, Baton_mt)
-	return self
-end
-
-
 return {
 	Pipe = Pipe,
-	Baton = Baton,
 	}

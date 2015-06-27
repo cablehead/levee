@@ -21,7 +21,7 @@ function Status:__call(code, reason)
 	if reason then
 		return string.format("HTTP/1.1 %d %s\r\n", code, reason)
 	end
-	return Status[200]
+	return Status[code]
 end
 
 setmetatable(Status, Status)
@@ -144,6 +144,67 @@ end
 
 
 --
+-- Stream
+--
+local Stream_mt = {}
+Stream_mt.__index = Stream_mt
+
+function Stream_mt:__tostring()
+	return ("levee.http.Stream: len=%s buffered=%s"):format(
+		tonumber(self.len), #self.buf)
+end
+
+function Stream_mt:__len()
+	return self.len
+end
+
+function Stream_mt:readin()
+	return self.conn:readinto(self.buf)
+end
+
+function Stream_mt:value()
+	return self.buf:slice(self.len)
+end
+
+function Stream_mt:trim(len)
+	if len then
+		assert(len <= self.len)
+	else
+		len = self.len
+	end
+	local got = self.buf:trim(len)
+	self.len = self.len - got
+	if self.len == 0 then
+		self.done:close()
+	end
+end
+
+function Stream_mt:splice(conn)
+	while true do
+		local n, err = conn:write(self:value())
+		self:trim()
+		if self.len == 0 then break end
+		self:readin()
+	end
+end
+
+function Stream_mt:tostring()
+	local ret = {}
+	while true do
+		local seg = self.buf:take_s(self.len)
+		table.insert(ret, seg)
+		self.len = self.len - #seg
+		if self.len == 0 then
+			break
+		end
+		self:readin()
+	end
+	self.done:close()
+	return table.concat(ret)
+end
+
+
+--
 -- Parser
 --
 local function parser_next(self)
@@ -204,9 +265,17 @@ function Client_mt:reader()
 
 		-- content-length
 		if not _next[2] then
-			res.len = _next[3]
+			-- TODO: handle Content-Length == 0
+
+			res.body = setmetatable({
+				len = tonumber(_next[3]),
+				conn = self.conn,
+				buf = self.buf,
+				-- TODO: done should be an ultra lightweight primitive
+				done = self.hub:pipe(), }, Stream_mt)
+
 			response:send(res)
-			self.baton:wait()
+			res.body.done:recv()
 
 		-- chunked tranfer
 		else
@@ -217,8 +286,15 @@ function Client_mt:reader()
 				_next = parser_next(self)
 				if not _next then return end
 				if not _next[1] then break end
-				res.chunks:send(_next[2])
-				self.baton:wait()
+
+				local chunk = setmetatable({
+					len = tonumber(_next[2]),
+					conn = self.conn,
+					buf = self.buf,
+					done = self.hub:pipe(), }, Stream_mt)
+
+				res.chunks:send(chunk)
+				chunk.done:recv()
 			end
 
 			res.chunks:close()
@@ -289,7 +365,44 @@ end
 -- Server
 --
 local Request_mt = {}
-Request_mt.__index = ServeRequest_mt
+Request_mt.__index = Request_mt
+
+function Request_mt:_sendfile(name)
+	local no = C.open(name, C.O_RDONLY)
+	if no < 0 then return -1 end
+
+	local st = ffi.new("struct stat")
+	local rc = C.fstat64(no, st)
+	if rc < 0 then return -1 end
+	-- check this is a regular file
+	if bit.band(st.st_mode, C.S_IFREG) == 0 then return -1 end
+
+	self.response:send({Status(200), {}, st.st_size})
+
+	local len = ffi.new("off_t[1]")
+	local sent = 0
+
+	while true do
+		len[0] = st.st_size - sent
+		local rc = C.sendfile(no, self.conn.no, sent, len, nil, 0)
+		if rc == 0 then
+			break
+		end
+		sent = sent + len[0]
+		local ev = self.conn.w_ev:recv()
+		assert(ev > 0)  -- TODO: handle shutdown on error
+	end
+
+	self.response:close()
+	return 0
+end
+
+function Request_mt:sendfile(name)
+	local rc = self:_sendfile(name)
+	if rc < 0 then
+		self.response:send({Status(404), {}, "Not Found\n"})
+	end
+end
 
 function Request_mt:__tostring()
 	return ("levee.http.Request: %s %s"):format(self.method, self.path)
@@ -349,7 +462,7 @@ function Server_mt:writer()
 			end
 			self.iov:reset()
 
-			self.baton:wait()
+			assert(not response:recv())
 
 		else
 				self.iov:write("Transfer-Encoding")
@@ -363,36 +476,44 @@ function Server_mt:writer()
 				end
 				self.iov:reset()
 
-				for len in response do
-					if type(len) == "string" then
-						self.iov:write(num2hex(#len))
+				local function write_chunk(response, chunk)
+					if type(chunk) == "string" then
+						self.iov:write(num2hex(#chunk))
 						self.iov:write(EOL)
-						self.iov:write(len)
+						self.iov:write(chunk)
 						self.iov:write(EOL)
 						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
 							return
 						end
 						self.iov:reset()
+
+						chunk = response:recv()
 
 					else
-						self.iov:write(num2hex(len))
+						self.iov:write(num2hex(chunk))
 						self.iov:write(EOL)
 						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
 							return
 						end
 						self.iov:reset()
 
-						self.baton:swap()
+						chunk = response:recv()
 
 						self.iov:write(EOL)
 						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							self:close()
 							return
 						end
 						self.iov:reset()
 					end
+
+					if not chunk then return true end
+					return write_chunk(response, chunk)
+				end
+
+				local ok = write_chunk(response, response:recv())
+				if not ok then
+					self:close()
+					return
 				end
 
 				self.iov:write("0")
@@ -413,7 +534,10 @@ function Server_mt:reader()
 
 	while true do
 		_next = parser_next(self)
-		if not _next then return end
+		if not _next then
+			self:close()
+			return
+		end
 
 		req = setmetatable({
 			serve = self,
@@ -421,24 +545,35 @@ function Server_mt:reader()
 			path=_next[2],
 			version=_next[3],
 			headers={},
+			conn = self.conn,
 			response = self.hub:pipe(), }, Request_mt)
 
 		while true do
 			_next = parser_next(self)
-			if not _next then return end
+			if not _next then
+				self:close()
+				return
+			end
 			if not _next[1] then break end
 			req.headers[_next[1]] = _next[2]
 		end
 
 		if _next[2] then error("TODO: chunked") end
 
-		req.len = _next[3]
+		local len = _next[3]
+
+		if len > 0 then
+			req.body = setmetatable({
+				len = len,
+				conn = self.conn,
+				buf = self.buf,
+				done = self.hub:pipe(), }, Stream_mt)
+		end
+
 		self.requests:send(req)
 		self.responses:send(req.response)
 
-		if req.len > 0 then
-			self.baton:wait()
-		end
+		if len > 0 then req.body.done:recv() end
 	end
 end
 
@@ -459,7 +594,6 @@ local function Server(hub, conn)
 	self.parser = parsers.http.Request()
 	self.buf = buffer(64*1024)
 	self.iov = iovec.Iovec(32)
-	self.baton = hub:baton()
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
 	return self
@@ -509,7 +643,6 @@ function HTTP_mt:connect(port, host)
 	m.parser = parsers.http.Response()
 	m.buf = buffer(64*1024)
 	m.iov = iovec.Iovec(32)
-	m.baton = self.hub:baton()
 
 	m.responses = self.hub:pipe()
 	self.hub:spawn(m.reader, m)

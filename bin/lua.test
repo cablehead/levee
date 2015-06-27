@@ -41,7 +41,7 @@ end
 
 
 local usage = [[
-Usage: lua.test [-v] [-k <match>] <path>]]
+Usage: lua.test [-v] [-x] [-k <match>] <path>]]
 
 
 function bad_usage()
@@ -58,6 +58,9 @@ function parse_argv()
 	while i <= #arg do
 		if arg[i] == "-v" then
 			argv.verbose = 1
+
+		elseif arg[i] == "-x" then
+			argv.exitfirst = 1
 
 		elseif arg[i] == "-k" then
 			i = i + 1
@@ -193,6 +196,8 @@ function main(argv)
 			w(txtblu..script..txtrst..'\n')
 		end
 
+		local done = false
+
 		for i, name in ipairs(to_run) do
 			local pattern = "    %-40s "
 			w(pattern:format(name))
@@ -212,8 +217,15 @@ function main(argv)
 					(COLORS[extra] or txtred)..' '..extra..txtrst..'\n',
 					extra == 'PASS' and '.' or extra:sub(1, 1))
 				stats[extra] = stats[extra] + 1
+			else
+				if argv.exitfirst then
+					done = true
+					break
+				end
 			end
 		end
+
+		if done then break end
 	end
 
 	io.write('\n')

@@ -29,6 +29,8 @@ return {
 			assert.equal(buf:peek_s(), x(".", size))
 		end
 
+		assert.equal(buf:peek_s(10), x(".", 10))
+
 		buf:trim(5120)
 		assert.equal(#buf, 5120)
 		assert.equal(buf:peek_s(), x(".", 5120))
