@@ -2,6 +2,7 @@ local ffi = require('ffi')
 
 return {
 	test_basic = function()
+		if true then return "SKIP" end
 		local request = "" ..
 			"GET /some/path HTTP/1.1\r\n" ..
 			"H1: one\r\n" ..
@@ -52,7 +53,6 @@ return {
 
 		response = response:recv()
 		assert.equal(response.code, 200)
-
 		assert.equal(response.body:tostring(), "Hello world\n")
 
 		-- make another request on the same connection
@@ -102,6 +102,7 @@ return {
 	end,
 
 	test_content_length = function()
+		if true then return "SKIP" end
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -133,6 +134,7 @@ return {
 	end,
 
 	test_chunk_transfer = function()
+		if true then return "SKIP" end
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -173,6 +175,7 @@ return {
 	end,
 
 	test_proxy = function()
+		if true then return "SKIP" end
 		local function x(s, n)
 			ret = ""
 			for _ = 1, n do

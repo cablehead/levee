@@ -28,6 +28,11 @@ function R_mt:read(buf, len)
 
 	-- EAGAIN
 	local ev = self.r_ev:recv()
+	if ev < 0 then
+		self:close()
+		return -1, errno["EBADF"]
+	end
+
 	return self:read(buf, len)
 end
 
