@@ -78,7 +78,7 @@ levee_set_arg (Levee *self, int argc, const char **argv)
 	lua_rawseti (self->L, -2, -1);
 	for (int i = 0; i < argc; i++) {
 		lua_pushstring (self->L, argv[i]);
-		lua_rawseti (self->L, -2, i-1);
+		lua_rawseti (self->L, -2, i);
 	}
 	lua_setglobal (self->L, "arg");
 }
