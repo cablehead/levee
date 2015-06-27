@@ -68,6 +68,14 @@ W_mt.__index = W_mt
 function W_mt:write(buf, len)
 	if self.closed then return -1, errno["EBADF"] end
 
+	if not len then
+		len = #buf
+	end
+
+	if type(buf) == "string" then
+		buf = ffi.cast("char*", buf)
+	end
+
 	local sent = 0
 
 	while true do
