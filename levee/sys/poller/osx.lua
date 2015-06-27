@@ -13,7 +13,6 @@ struct LeveePoller {
 	uintptr_t id;
 	struct timeval tv;
 	struct timespec ts;
-	int64_t ms;
 	struct kevent ev_in[EV_POLL_IN_MAX];
 	LeveePollerEvent ev_out[EV_POLL_OUT_MAX];
 };
@@ -117,15 +116,15 @@ end
 function Poller:poll(timeout)
 	local ts
 	if timeout then
-		if type(timeout) == "number" then
+		if timeout > 0 then
 			C.gettimeofday(self.tv, nil)
-			self.ms = timeout - (
+			local ms = timeout - (
 				(self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
-			if self.ms < 0 then
+			if ms < 0 then
 				return nil, 0
 			end
-			self.ts.tv_sec = (self.ms / 1000LL)
-			self.ts.tv_nsec = (self.ms % 1000LL) * 1000000LL
+			self.ts.tv_sec = (ms / 1000LL)
+			self.ts.tv_nsec = (ms % 1000LL) * 1000000LL
 			ts = self.ts
 		else
 			self.ts.tv_sec = 0
