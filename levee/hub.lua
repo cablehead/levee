@@ -132,8 +132,14 @@ function Hub_mt:pump()
 		self:_coresume(work[1], work[2])
 	end
 
-	local events, n = self.poller:poll(
-		(#self.ready > 0 or self.scheduled:peek()))
+	local timeout
+	if #self.ready > 0 then
+		timeout = 0
+	else
+		timeout = self.scheduled:peek()
+	end
+
+	local events, n = self.poller:poll(timeout)
 
 	if n == 0 and #self.ready == 0 then
 		local ms, co = self.scheduled:pop()
