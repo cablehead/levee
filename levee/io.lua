@@ -17,11 +17,6 @@ function R_mt:read(buf, len)
 
 	local n, err = sys.os.read(self.no, buf, len)
 
-	if n == 0 then
-		self:close()
-		return n, err
-	end
-
 	if n > 0 then
 		return n
 	end
@@ -68,14 +63,28 @@ W_mt.__index = W_mt
 function W_mt:write(buf, len)
 	if self.closed then return -1, errno["EBADF"] end
 
-	local n, err = sys.os.write(self.no, buf, len)
+	local sent = 0
 
-	if n < 0 then
-		self:close()
-		return n, err
+	while true do
+		local n, err = sys.os.write(self.no, buf + sent, len - sent)
+
+		if n <= 0 and err ~= errno["EAGAIN"] then
+			self:close()
+			return -1, err
+		end
+
+		if n < 0 then
+			n = 0
+		end
+
+		sent = sent + n
+		if sent == len then break end
+
+		self.w_ev:recv()
 	end
 
-	return n, err
+	self.hub:continue()
+	return len
 end
 
 

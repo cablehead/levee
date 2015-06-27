@@ -162,9 +162,13 @@ function Stream_mt:readin()
 	return self.conn:readinto(self.buf)
 end
 
+function Stream_mt:value()
+	return self.buf:slice(self.len)
+end
+
 function Stream_mt:trim(len)
 	if len then
-		assert(len < self.len)
+		assert(len <= self.len)
 	else
 		len = self.len
 	end
@@ -176,12 +180,11 @@ function Stream_mt:trim(len)
 end
 
 function Stream_mt:splice(conn)
-	while self.len > 0 do
-		self:readin()
-		-- TODO: write should probably have a continue
-		local n, err = conn:write(self.buf:value())
-		assert(n == #self.buf)
+	while true do
+		local n, err = conn:write(self:value())
 		self:trim()
+		if self.len == 0 then break end
+		self:readin()
 	end
 end
 
@@ -265,7 +268,7 @@ function Client_mt:reader()
 			-- TODO: handle Content-Length == 0
 
 			res.body = setmetatable({
-				len = _next[3],
+				len = tonumber(_next[3]),
 				conn = self.conn,
 				buf = self.buf,
 				-- TODO: done should be an ultra lightweight primitive
@@ -285,7 +288,7 @@ function Client_mt:reader()
 				if not _next[1] then break end
 
 				local chunk = setmetatable({
-					len = _next[2],
+					len = tonumber(_next[2]),
 					conn = self.conn,
 					buf = self.buf,
 					done = self.hub:pipe(), }, Stream_mt)
