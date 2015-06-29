@@ -231,6 +231,7 @@ return {
 		c:close()
 		proxy:close()
 		origin:close()
+		h:sleep(100)
 		assert.same(h.registered, {})
 	end,
 
