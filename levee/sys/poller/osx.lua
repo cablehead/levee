@@ -42,6 +42,7 @@ Poller.__index = Poller
 function Poller:__new()
 	local self = ffi.new(self, C.kqueue(), 0, 0)
 	if self.fd < 0 then Errno:error("kqueue") end
+	C.gettimeofday(self.tv, nil)
 	return self
 end
 
@@ -117,9 +118,7 @@ function Poller:poll(timeout)
 	local ts
 	if timeout then
 		if timeout > 0 then
-			C.gettimeofday(self.tv, nil)
-			local ms = timeout - (
-				(self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
+			local ms = self:reltime(timeout)
 			if ms < 0 then
 				return nil, 0
 			end
@@ -137,9 +136,20 @@ function Poller:poll(timeout)
 		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, ts)
 
 	if n < 0 then Errno:error("kevent") end
+	C.gettimeofday(self.tv, nil)
 
 	self.ev_in_pos = 0
 	return self.ev_out, n
+end
+
+
+function Poller:abstime(rel)
+	return rel + ((self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
+end
+
+
+function Poller:reltime(abs)
+	return abs - ((self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
 end
 
 

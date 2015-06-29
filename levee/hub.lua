@@ -1,5 +1,5 @@
 local sys = require("levee.sys")
-local Scheduler = require("levee.scheduler")
+local Heap = require("levee.heap")
 local FIFO = require("levee.fifo")
 local message = require("levee.message")
 
@@ -88,13 +88,15 @@ end
 
 
 function Hub_mt:spawn_later(ms, f, a)
+	ms = self.poller:abstime(ms)
 	local co = coroutine.create(f)
-	self.scheduled:add(ms, co)
+	self.scheduled:push(ms, co)
 end
 
 
 function Hub_mt:sleep(ms)
-	self.scheduled:add(ms, coroutine.running())
+	ms = self.poller:abstime(ms)
+	self.scheduled:push(ms, coroutine.running())
 	self:_coyield()
 end
 
@@ -168,7 +170,7 @@ local function Hub()
 	local self = setmetatable({}, Hub_mt)
 
 	self.ready = FIFO()
-	self.scheduled = Scheduler()
+	self.scheduled = Heap()
 	self.registered = {}
 	self.poller = sys.poller()
 
