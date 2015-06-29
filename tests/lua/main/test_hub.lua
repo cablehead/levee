@@ -46,15 +46,24 @@ return {
 		assert.equal(r_ev:recv(), -1)
 		assert.equal(w_ev:recv(), -1)
 	end,
+
+	test_times = function()
+		local levee = require("levee")
+		local h = levee.Hub()
+		local abs = h.poller:abstime(100LL)
+		local rel = h.poller:reltime(abs)
+		assert.equal(100LL, rel)
+	end,
 	
 	test_sleep = function()
+		local ffi = require("ffi")
 		local levee = require("levee")
 		local time = require("levee.time")
 		local h = levee.Hub()
 		local start = time.now()
 		h:sleep(100)
 		local stop = time.now()
-		local diff = stop - start
-		assert.same(math.floor(diff:seconds() * 10), 1)
+		local diff = (stop - start):seconds()
+		assert(diff > 0.09 and diff < 0.11, diff)
 	end,
 }
