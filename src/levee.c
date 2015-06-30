@@ -92,6 +92,7 @@ report_error (Levee *self)
 		const char *msg = lua_tostring (self->L, -1);
 		if (msg == NULL) msg = "(error object is not a string)";
 		fprintf (stderr, "levee: %s\n", msg);
+		fflush (stderr);
 		lua_pop (self->L, 1);
 	}
 }
@@ -102,7 +103,7 @@ levee_load_file (Levee *self, const char *path)
 	assert (self != NULL);
 	assert (path != NULL);
 
-	if (luaL_loadfile (self->L, path) < 0) {
+	if (luaL_loadfile (self->L, path)) {
 		report_error (self);
 		return -1;
 	}
@@ -115,7 +116,7 @@ levee_load_script (Levee *self, const char *script, size_t len, const char *name
 	assert (self != NULL);
 	assert (script != NULL);
 
-	if (luaL_loadbuffer (self->L, script, len, name) < 0) {
+	if (luaL_loadbuffer (self->L, script, len, name)) {
 		report_error (self);
 		return -1;
 	}
@@ -128,7 +129,7 @@ levee_run (Levee *self, bool bg)
 	(void)bg;
 	assert (self != NULL);
 
-	if (lua_pcall (self->L, 0, 0, 0) < 0) {
+	if (lua_pcall (self->L, 0, 0, 0)) {
 		report_error (self);
 		return -1;
 	}
