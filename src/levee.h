@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <stddef.h>
 
 #ifdef __linux__
 # include <sys/epoll.h>
@@ -13,6 +14,11 @@
 # include <sys/event.h>
 # define LEVEE_KQUEUE
 #endif
+
+#define container_of(ptr, type, member) __extension__ ({   \
+	const __typeof( ((type *)0)->member ) *__mptr = (ptr); \
+	(type *)( (char *)__mptr - offsetof(type,member) );    \
+})
 
 typedef struct Levee Levee;
 
