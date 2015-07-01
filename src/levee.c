@@ -16,10 +16,15 @@
 
 #include "levee_cdef.h"
 
+#define LEVEE_LOCAL 0
+#define LEVEE_BG 1
+
 struct Levee {
 	lua_State *L;
 	pthread_t thread;
 	char *last_error;
+	int state;
+	int narg;
 };
 
 extern int
@@ -54,17 +59,14 @@ levee_create (void)
 		return NULL;
 	}
 	self->L = L;
+	self->state = LEVEE_LOCAL;
 	self->last_error = NULL;
 	return self;
 }
 
-void
-levee_destroy (Levee *self)
+static void
+destroy (Levee *self)
 {
-	if (self == NULL) {
-		return;
-	}
-
 	if (self->L) {
 		lua_close (self->L);
 		self->L = NULL;
@@ -74,9 +76,25 @@ levee_destroy (Levee *self)
 }
 
 void
+levee_destroy (Levee *self)
+{
+	if (self == NULL) {
+		return;
+	}
+	if (self->state != LEVEE_LOCAL) {
+		return;
+	}
+	destroy (self);
+}
+
+void
 levee_set_arg (Levee *self, int argc, const char **argv)
 {
 	assert (self != NULL);
+
+	if (self->state != LEVEE_LOCAL) {
+		return;
+	}
 
 	lua_createtable (self->L, argc+1, 0);
 	lua_pushstring (self->L, "levee");
@@ -93,6 +111,11 @@ levee_get_error (Levee *self)
 {
 	static const char *invalid_type = "(error object is not a string)";
 	static const char *oom = "(out of memory)";
+	static const char *bg = "invalid access of background state";
+
+	if (self->state != LEVEE_LOCAL) {
+		return bg;
+	}
 
 	const char *ret = NULL;
 
@@ -139,6 +162,9 @@ levee_load_file (Levee *self, const char *path)
 	assert (self != NULL);
 	assert (path != NULL);
 
+	if (self->state != LEVEE_LOCAL) {
+		return false;
+	}
 	if (luaL_loadfile (self->L, path)) {
 		return false;
 	}
@@ -151,38 +177,78 @@ levee_load_string (Levee *self, const char *script, size_t len, const char *name
 	assert (self != NULL);
 	assert (script != NULL);
 
+	if (self->state != LEVEE_LOCAL) {
+		return false;
+	}
 	if (luaL_loadbuffer (self->L, script, len, name)) {
 		return false;
 	}
 	return true;
 }
 
+static void *
+run (void *data)
+{
+	Levee *self = data;
+	if (lua_pcall (self->L, self->narg, 0, 0)) {
+		return false;
+	}
+	destroy (self);
+	return NULL;
+}
+
 bool
 levee_run (Levee *self, int narg, bool bg)
 {
-	(void)bg;
 	assert (self != NULL);
+
+	if (self->state != LEVEE_LOCAL) {
+		return false;
+	}
 
 	if (lua_type (self->L, -1 - narg) != LUA_TFUNCTION) {
 		lua_pushstring (self->L, "lua state is not callable");
 		return false;
 	}
 
+	if (bg) {
+		pthread_attr_t attr;
+		if (pthread_attr_init (&attr) != 0) {
+			lua_pushfstring (self->L, "failed to initialize pthread attributes: %s", strerror (errno));
+			return false;
+		}
+		if (pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED) != 0) {
+			lua_pushfstring (self->L, "failed to set pthread attribute: %s", strerror (errno));
+			return false;
+		}
+		self->state = LEVEE_BG;
+		self->narg = narg;
+		if (pthread_create (&self->thread, &attr, run, self) != 0) {
+			self->state = LEVEE_LOCAL;
+			lua_pushfstring (self->L, "failed to create pthread: %s", strerror (errno));
+			return false;
+		}
+		return true;
+	}
+
 	if (lua_pcall (self->L, narg, 0, 0)) {
 		return false;
 	}
+
 	return true;
 }
 
 void
 levee_push_number (Levee *self, double num)
 {
+	if (self->state != LEVEE_LOCAL) return;
 	lua_pushnumber (self->L, num);
 }
 
 void
 levee_push_string (Levee *self, const char *str, size_t len)
 {
+	if (self->state != LEVEE_LOCAL) return;
 	lua_pushlstring (self->L, str, len);
 }
 
