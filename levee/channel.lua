@@ -9,7 +9,9 @@ Sender_mt.__index = Sender_mt
 
 
 function Sender_mt:__tostring()
-	return string.format("levee.ChannelSender: reciever=%d channel=%d", self.recv_id, self.chan:event_id())
+	return string.format(
+		"levee.ChannelSender: reciever=%d channel=%d",
+		self.recv_id, self.chan:event_id())
 end
 
 
