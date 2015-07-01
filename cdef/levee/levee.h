@@ -6,14 +6,23 @@ levee_create (void);
 extern void
 levee_destroy (Levee *self);
 
-extern int
+extern bool
 levee_load_file (Levee *self, const char *path);
 
-extern int
+extern bool
 levee_load_string (Levee *self, const char *script, size_t len, const char *name);
 
-extern void
-levee_set_arg (Levee *self, int argc, const char **argv);
+extern bool
+levee_run (Levee *self, int nargs, bool bg);
 
-extern int
-levee_run (Levee *self, bool bg);
+extern void
+levee_push_number (Levee *self, double num);
+
+extern void
+levee_push_string (Levee *self, const char *str, size_t len);
+
+extern void
+levee_pop (Levee *self);
+
+extern const char *
+levee_get_error (Levee *self);

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <err.h>
 #include <sysexits.h>
 #include <signal.h>
@@ -18,6 +19,7 @@
 struct Levee {
 	lua_State *L;
 	pthread_t thread;
+	char *last_error;
 };
 
 extern int
@@ -52,6 +54,7 @@ levee_create (void)
 		return NULL;
 	}
 	self->L = L;
+	self->last_error = NULL;
 	return self;
 }
 
@@ -66,6 +69,7 @@ levee_destroy (Levee *self)
 		lua_close (self->L);
 		self->L = NULL;
 	}
+	free (self->last_error);
 	free (self);
 }
 
@@ -84,57 +88,102 @@ levee_set_arg (Levee *self, int argc, const char **argv)
 	lua_setglobal (self->L, "arg");
 }
 
+const char *
+levee_get_error (Levee *self)
+{
+	static const char *invalid_type = "(error object is not a string)";
+	static const char *oom = "(out of memory)";
+
+	const char *ret = NULL;
+
+	free (self->last_error);
+	self->last_error = NULL;
+
+	if (!lua_isnil (self->L, -1)) {
+		size_t len;
+		const char *msg = lua_tolstring (self->L, -1, &len);
+		if (msg == NULL) {
+			ret = invalid_type;
+		}
+		else {
+			self->last_error = strndup (msg, len);
+			if (self->last_error == NULL) {
+				ret = oom;
+			}
+			else {
+				ret = self->last_error;
+			}
+		}
+		lua_pop (self->L, 1);
+	}
+
+	return ret;
+}
+
 static void
 report_error (Levee *self)
 {
 	assert (self != NULL);
 
-	if (!lua_isnil (self->L, -1)) {
-		const char *msg = lua_tostring (self->L, -1);
-		if (msg == NULL) msg = "(error object is not a string)";
+	const char *msg = levee_get_error (self);
+	if (msg) {
 		fprintf (stderr, "levee: %s\n", msg);
 		fflush (stderr);
 		lua_pop (self->L, 1);
 	}
 }
 
-int
+bool
 levee_load_file (Levee *self, const char *path)
 {
 	assert (self != NULL);
 	assert (path != NULL);
 
 	if (luaL_loadfile (self->L, path)) {
-		report_error (self);
-		return -1;
+		return false;
 	}
-	return 0;
+	return true;
 }
 
-int
+bool
 levee_load_string (Levee *self, const char *script, size_t len, const char *name)
 {
 	assert (self != NULL);
 	assert (script != NULL);
 
 	if (luaL_loadbuffer (self->L, script, len, name)) {
-		report_error (self);
-		return -1;
+		return false;
 	}
-	return 0;
+	return true;
 }
 
-int
-levee_run (Levee *self, bool bg)
+bool
+levee_run (Levee *self, int narg, bool bg)
 {
 	(void)bg;
 	assert (self != NULL);
 
-	if (lua_pcall (self->L, 0, 0, 0)) {
-		report_error (self);
-		return -1;
+	if (lua_type (self->L, -1 - narg) != LUA_TFUNCTION) {
+		lua_pushstring (self->L, "lua state is not callable");
+		return false;
 	}
-	return 0;
+
+	if (lua_pcall (self->L, narg, 0, 0)) {
+		return false;
+	}
+	return true;
+}
+
+void
+levee_push_number (Levee *self, double num)
+{
+	lua_pushnumber (self->L, num);
+}
+
+void
+levee_push_string (Levee *self, const char *str, size_t len)
+{
+	lua_pushlstring (self->L, str, len);
 }
 
 int
@@ -150,7 +199,8 @@ main (int argc, const char *argv[])
 	levee_set_arg (state, argc-1, argv+1);
 
 	int rc = 0;
-	if (levee_load_file (state, argv[1]) || levee_run (state, false)) {
+	if (!levee_load_file (state, argv[1]) || !levee_run (state, 0, false)) {
+		report_error (state);
 		rc = EX_DATAERR;
 	}
 	levee_destroy (state);
