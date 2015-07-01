@@ -54,6 +54,9 @@ return {
 
 		r:close()
 
+		-- continue is required to flush the close
+		h:continue()
+
 		local n, err = w:write("foo")
 		assert(n <= 0)
 		assert(err > 0)

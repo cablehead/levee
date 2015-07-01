@@ -15,8 +15,6 @@ struct LeveePoller {
 	struct timespec ts;
 	struct kevent ev_in[EV_POLL_IN_MAX];
 	LeveePollerEvent ev_out[EV_POLL_OUT_MAX];
-	int closing[EV_POLL_IN_MAX];
-	uint8_t closing_count;
 };
 ]]
 
@@ -59,21 +57,12 @@ function Poller:__gc()
 end
 
 
-local function flush_close(self)
-	for i=0,self.closing_count do
-		C.close(self.closing[i])
-	end
-	self.closing_count = 0
-end
-
-
 local function next_event(self)
 	if self.ev_in_pos == C.EV_POLL_IN_MAX then
 		-- flush pending events if the list is full
 		local rc = C.kevent(self.fd, self.ev_in, C.EV_POLL_IN_MAX, nil, 0, nil)
 		if rc < 0 then Errno:error("kevent") end
 		self.ev_in_pos = 0
-		flush_close(self)
 	end
 	local ev = self.ev_in[self.ev_in_pos]
 	self.ev_in_pos = self.ev_in_pos + 1
@@ -102,30 +91,7 @@ function Poller:register(fd, r, w)
 end
 
 function Poller:unregister(fd, r, w)
-	--[[
-	if r then
-		local ev = next_event(self)
-		ev.ident = fd
-		ev.filter = C.EVFILT_READ
-		ev.flags = C.EV_DELETE
-		ev.fflags = 0
-		ev.data = 0
-	end
-
-	if w then
-		local ev = next_event(self)
-		ev.ident = fd
-		ev.filter = C.EVFILT_WRITE
-		ev.flags = C.EV_DELETE
-		ev.fflags = 0
-		ev.data = 0
-	end
-	--]]
-
-	self.closing[self.closing_count] = fd
-	self.closing_count = self.closing_count + 1
-	-- TODO: shouldn't close until the en_in is flushed
-	--C.close(fd)
+	-- noop
 end
 
 
@@ -149,7 +115,6 @@ function Poller:poll(timeout)
 
 	local n = C.kevent(
 		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, ts)
-	flush_close(self)
 
 	if n < 0 then Errno:error("kevent") end
 	C.gettimeofday(self.tv, nil)

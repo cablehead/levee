@@ -1,5 +1,6 @@
 #!./build/bin/levee
 
+-- vim: set ft=lua:
 
 function dirname(str)
 	if str:match(".-/.-") then
@@ -211,7 +212,7 @@ function main(argv)
 					status = 1
 					stats.FAIL = stats.FAIL + 1
 				end)
-			if success then
+			if success and extra ~= 'IGNORE' then
 				if not extra then extra = 'PASS' end
 				w(
 					(COLORS[extra] or txtred)..' '..extra..txtrst..'\n',
