@@ -40,4 +40,51 @@ return {
 		poller:unregister(r, true)
 		poller:unregister(w, false, true)
 	end,
+
+	test_close_behavior = function()
+		if true then return "IGNORE" end
+		print()
+		print()
+
+		local ffi = require('ffi')
+		local C = ffi.C
+
+		local r, w = sys.os.pipe()
+		print("RW", r, w)
+		local poller = sys.poller()
+
+		print("STEP", 1)
+
+
+		poller:register(r, true)
+		poller:register(w, false, true)
+
+		print("STEP", 2)
+
+		ffi.C.close(r)
+
+		local events, n = poller:poll(0)
+		print("N", n)
+		for i = 0, n - 1 do
+			print(events[i]:value())
+		end
+		print()
+
+		print("STEP", 3)
+
+		local events, n = poller:poll(0)
+		print("N", n)
+		for i = 0, n - 1 do
+			print(events[i]:value())
+		end
+		print()
+
+		local events, n = poller:poll(0)
+		print("N", n)
+		for i = 0, n - 1 do
+			print(events[i]:value())
+		end
+		print()
+
+	end
 }
