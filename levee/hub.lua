@@ -1,8 +1,11 @@
+local ffi = require('ffi')
+local C = ffi.C
+
+
 local sys = require("levee.sys")
 local Heap = require("levee.heap")
 local FIFO = require("levee.fifo")
 local message = require("levee.message")
-
 
 
 local State_mt = {}
@@ -117,9 +120,14 @@ end
 
 
 function Hub_mt:unregister(no, r, w)
-	self.poller:unregister(no, r, w)
 	local r = self.registered[no]
 	if r then
+		table.insert(self.closing, no)
+
+		-- this is only needed if a platform doesn't remove an fd from a poller on
+		-- fd close
+		self.poller:unregister(no, r, w)
+
 		if r[1] then r[1]:set(true) end
 		if r[2] then r[2]:set(true) end
 		self.registered[no] = nil
@@ -139,6 +147,13 @@ function Hub_mt:pump()
 		timeout = 0
 	else
 		timeout = self.scheduled:peek()
+	end
+
+	if #self.closing > 0 then
+		for i = 1, #self.closing do
+			C.close(self.closing[i])
+		end
+		self.closing = {}
 	end
 
 	local events, n = self.poller:poll(timeout)
@@ -173,6 +188,7 @@ local function Hub()
 	self.scheduled = Heap()
 	self.registered = {}
 	self.poller = sys.poller()
+	self.closing = {}
 
 	self.parent = coroutine.running()
 	self.loop = coroutine.create(function() self:main() end)
