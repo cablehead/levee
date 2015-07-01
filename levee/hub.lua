@@ -1,7 +1,7 @@
 local sys = require("levee.sys")
 local Heap = require("levee.heap")
 local FIFO = require("levee.fifo")
-local message = require("levee.message")
+local Channel = require("levee.channel")
 
 
 
@@ -94,6 +94,13 @@ function Hub_mt:spawn_later(ms, f, a)
 end
 
 
+function Hub_mt:spawn_thread(f)
+	local chan = self:channel()
+	local recv = chan:listen()
+	local fstr = string.dump(f, false)
+end
+
+
 function Hub_mt:sleep(ms)
 	ms = self.poller:abstime(ms)
 	self.scheduled:push(ms, coroutine.running())
@@ -127,6 +134,17 @@ function Hub_mt:unregister(no, r, w)
 end
 
 
+-- TODO: should this just be a normal State object?
+function Hub_mt:channel()
+	if self.chan == nil then
+		self.chan = Channel(self)
+		self.chan_id = self.chan:event_id()
+		self.poller:register(self.chan_id, true, false)
+	end
+	return self.chan
+end
+
+
 function Hub_mt:pump()
 	local num = #self.ready
 	for _ = 1, num do
@@ -150,10 +168,14 @@ function Hub_mt:pump()
 
 	for i = 0, n - 1 do
 		local no, r_ev, w_ev, e_ev = events[i]:value()
-		local r = self.registered[no]
-		if r then
-			if r_ev then r[1]:set(e_ev) end
-			if w_ev then r[2]:set(e_ev) end
+		if no == self.chan_id then
+			self.chan:pump()
+		else
+			local r = self.registered[no]
+			if r then
+				if r_ev then r[1]:set(e_ev) end
+				if w_ev then r[2]:set(e_ev) end
+			end
 		end
 	end
 end

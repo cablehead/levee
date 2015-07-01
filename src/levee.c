@@ -11,6 +11,7 @@
 #include <lualib.h>
 
 #include "levee.h"
+#include "chan.h"
 
 #include "levee_cdef.h"
 

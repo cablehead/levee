@@ -48,6 +48,8 @@ local headers = {
 	include("ioctl", os),
 	include("poller", os),
 	include("heap", "heap"),
+	include("list", "list"),
+	include("channel", "channel"),
 	include("siphon", "error"),
 	include("siphon", "http"),
 }
