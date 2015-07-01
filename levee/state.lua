@@ -1,25 +1,60 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+ffi.cdef[[
+struct LeveeState {
+	Levee *child;
+};
+]]
+
 local State_mt = {}
 State_mt.__index = State_mt
 
 
-local function check(self, ok)
+local access_error = "invalid access of background state"
+
+
+local function check(child, ok)
 	if ok then
 		return true
 	end
-	return false, ffi.string(C.levee_get_error(self))
+	return false, ffi.string(C.levee_get_error(child))
+end
+
+
+function State_mt:__new()
+	local state = ffi.new(self)
+	state.child = C.levee_create()
+	return state
+end
+
+
+function State_mt:__gc()
+	if self.child then
+		C.levee_destroy(self.child)
+		self.child = nil
+	end
+end
+
+
+function State_mt:__tostring()
+	return string.format("levee.State: %p", self)
 end
 
 
 function State_mt:load_file(path)
-	return check(self, C.levee_load_file(self, path))
+	if self.child == nil then
+		return false, access_error
+	end
+	return check(self.child, C.levee_load_file(self.child, path))
 end
 
 
 function State_mt:load_string(str, name)
-	return check(self, C.levee_load_string(self, str, #str, name))
+	if self.child == nil then
+		return false, access_error
+	end
+	return check(self.child, C.levee_load_string(self.child, str, #str, name))
 end
 
 
@@ -30,30 +65,38 @@ end
 
 
 function State_mt:push(val)
+	if self.child == nil then
+		return
+	end
 	if type(val) == "number" then
-		C.levee_push_number(self, val)
+		C.levee_push_number(self.child, val)
 	elseif type(val) == "string" then
-		C.levee_push_number(self, val, #val)
+		C.levee_push_number(self.child, val, #val)
 	end
 end
 
 
 function State_mt:pop(n)
-	C.levee_pop(self, n or 1)
+	if self.child == nil then
+		return
+	end
+	C.levee_pop(self.child, n or 1)
 end
 
 
 function State_mt:run(narg, bg)
-	return check(self, C.levee_run(self, narg, not not bg))
+	if self.child == nil then
+		return false, access_error
+	end
+	local child = self.child
+	if bg then
+		self.child = nil
+	end
+	return check(child, C.levee_run(child, narg, not not bg))
 end
 
 
-ffi.metatype("Levee", State_mt)
-
-
-local function State()
-	return ffi.gc(C.levee_create(), C.levee_destroy)
-end
+local State = ffi.metatype("struct LeveeState", State_mt)
 
 
 return State
