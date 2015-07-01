@@ -1,5 +1,6 @@
 return {
 	Hub = require("levee.hub"),
+	State = require("levee.state"),
 	sys = require("levee.sys"),
 	time = require("levee.time"),
 	errno = require("levee.errno"),

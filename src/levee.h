@@ -15,6 +15,8 @@
 # define LEVEE_KQUEUE
 #endif
 
+#define len(arr) (sizeof (arr) / sizeof ((arr)[0]))
+
 #define container_of(ptr, type, member) __extension__ ({   \
 	const __typeof( ((type *)0)->member ) *__mptr = (ptr); \
 	(type *)( (char *)__mptr - offsetof(type,member) );    \
@@ -32,7 +34,7 @@ extern int
 levee_load_file (Levee *self, const char *path);
 
 extern int
-levee_load_script (Levee *self, const char *script, size_t len, const char *name);
+levee_load_string (Levee *self, const char *script, size_t len, const char *name);
 
 extern void
 levee_set_arg (Levee *self, int argc, const char **argv);

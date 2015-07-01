@@ -112,7 +112,7 @@ levee_load_file (Levee *self, const char *path)
 }
 
 int
-levee_load_script (Levee *self, const char *script, size_t len, const char *name)
+levee_load_string (Levee *self, const char *script, size_t len, const char *name)
 {
 	assert (self != NULL);
 	assert (script != NULL);
