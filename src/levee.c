@@ -158,20 +158,32 @@ levee_load_string (Levee *self, const char *script, size_t len, const char *name
 }
 
 bool
-levee_run (Levee *self, bool bg)
+levee_run (Levee *self, int narg, bool bg)
 {
 	(void)bg;
 	assert (self != NULL);
 
-	if (lua_type (self->L, -1) != LUA_TFUNCTION) {
+	if (lua_type (self->L, -1 - narg) != LUA_TFUNCTION) {
 		lua_pushstring (self->L, "lua state is not callable");
 		return false;
 	}
 
-	if (lua_pcall (self->L, 0, 0, 0)) {
+	if (lua_pcall (self->L, narg, 0, 0)) {
 		return false;
 	}
 	return true;
+}
+
+void
+levee_push_number (Levee *self, double num)
+{
+	lua_pushnumber (self->L, num);
+}
+
+void
+levee_push_string (Levee *self, const char *str, size_t len)
+{
+	lua_pushlstring (self->L, str, len);
 }
 
 int
@@ -187,7 +199,7 @@ main (int argc, const char *argv[])
 	levee_set_arg (state, argc-1, argv+1);
 
 	int rc = 0;
-	if (!levee_load_file (state, argv[1]) || !levee_run (state, false)) {
+	if (!levee_load_file (state, argv[1]) || !levee_run (state, 0, false)) {
 		report_error (state);
 		rc = EX_DATAERR;
 	}

@@ -24,14 +24,27 @@ end
 
 
 function State_mt:load_function(fn)
-	local str = string.dump(fn)
 	-- TODO: what should the name be?
-	return self:load_string(fn, "main")
+	return self:load_string(string.dump(fn), "main")
 end
 
 
-function State_mt:run(bg)
-	return check(self, C.levee_run(self, not not bg))
+function State_mt:push(val)
+	if type(val) == "number" then
+		C.levee_push_number(self, val)
+	elseif type(val) == "string" then
+		C.levee_push_number(self, val, #val)
+	end
+end
+
+
+function State_mt:pop(n)
+	C.levee_pop(self, n or 1)
+end
+
+
+function State_mt:run(narg, bg)
+	return check(self, C.levee_run(self, narg, not not bg))
 end
 
 
