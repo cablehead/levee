@@ -5,6 +5,7 @@ local C = ffi.C
 local sys = require("levee.sys")
 local Heap = require("levee.heap")
 local FIFO = require("levee.fifo")
+local message = require("levee.message")
 local Channel = require("levee.channel")
 
 
