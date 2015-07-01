@@ -48,8 +48,8 @@ local headers = {
 	include("ioctl", os),
 	include("poller", os),
 	include("heap", "heap"),
-	include("netparse", "error"),
-	include("netparse", "http"),
+	include("siphon", "error"),
+	include("siphon", "http"),
 }
 
 print(table.concat(headers, "\n"))

@@ -65,9 +65,9 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 -include $(wildcard $(OBJ)/*.d)
 
-$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(BUILD)/netparse/libnetparse.a $(OBJS_LEVEE)
+$(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(BUILD)/siphon/libsiphon.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
-	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -Wl,-force_load,$(BUILD)/netparse/libnetparse.a -o $@
+	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -Wl,-force_load,$(BUILD)/siphon/libsiphon.a -o $@
 
 $(LIB)/levee.so: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(LIB)
@@ -92,12 +92,12 @@ $(TMP)/levee_cdef.h: $(LUAJIT) $(shell find $(PROJECT)/cdef -type f)
 	$(LUAJIT) $(PROJECT)/cdef/manifest.lua | xxd -i >> $@
 	echo ", 0};" >> $@
 
-$(BUILD)/netparse/Makefile:
-	@mkdir -p $(BUILD)/netparse
-	cd $(BUILD)/netparse && cmake $(PROJECT)/src/netparse -DCMAKE_BUILD_TYPE=Release
+$(BUILD)/siphon/Makefile:
+	@mkdir -p $(BUILD)/siphon
+	cd $(BUILD)/siphon && cmake $(PROJECT)/src/siphon -DCMAKE_BUILD_TYPE=Release
 
-$(BUILD)/netparse/libnetparse.a: $(BUILD)/netparse/Makefile
-	$(MAKE) -C $(BUILD)/netparse
+$(BUILD)/siphon/libsiphon.a: $(BUILD)/siphon/Makefile
+	$(MAKE) -C $(BUILD)/siphon
 
 $(LUAJIT_SRC)/Makefile:
 	git submodule update --init $(LUAJIT_SRC)
