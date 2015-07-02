@@ -6,6 +6,10 @@
 #include <assert.h>
 #include <pthread.h>
 
+#ifdef __linux__
+# include <sys/sendfile.h>
+#endif
+
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -336,7 +340,7 @@ levee_print_stack (Levee *self, const char *msg)
  * called from ffi
  */
 int
-levee_fstat(int fd, struct levee_stat *buf)
+levee_fstat (int fd, struct levee_stat *buf)
 {
 	struct stat st;
 	int rc;
@@ -346,5 +350,31 @@ levee_fstat(int fd, struct levee_stat *buf)
 
 	buf->st_size = st.st_size;
 	buf->st_mode = st.st_mode;
+	return rc;
+}
+
+ssize_t
+levee_sendfile (int s, int fd, size_t off, size_t len)
+{
+	ssize_t rc = -1;
+#if defined(__APPLE__)
+
+	off_t size = len;
+	rc = sendfile (fd, s, off, &size, NULL, 0) < 0 ? -1 : size;
+
+#elif defined(BSD)
+
+	off_t size = len;
+	rc = sendfile (fd, s, off, size, NULL, &size, 0) < 0 ? -1 : size;
+
+#elif defined(__linux__)
+
+	off_t offset = off;
+	rc = sendfile (s, fd, &offset, len);
+
+#else
+# error sendfile not supported
+#endif
+
 	return rc;
 }
