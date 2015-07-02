@@ -4,44 +4,6 @@ local C = ffi.C
 local message = require("levee.message")
 
 
-local Sender_mt = {}
-Sender_mt.__index = Sender_mt
-
-
-function Sender_mt:__tostring()
-	local chan_id = C.levee_chan_event_id(self.chan)
-	return string.format(
-		"levee.ChannelSender: listen=%d channel=%d",
-		tonumber(self.recv_id),
-		tonumber(chan_id))
-end
-
-
-function Sender_mt:send(val)
-	-- TODO: check value type and call proper send
-	return C.levee_chan_send_i64(self, val)
-end
-
-
-function Sender_mt:connect(chan)
-	local recv_id = C.levee_chan_connect(self, chan.chan)
-	if recv_id < 0 then
-		-- TODO: expose connection error
-		return nil
-	end
-	return Recver(chan, recv_id)
-end
-
-
-function Sender_mt:close()
-	C.levee_chan_sender_close()
-end
-
-
-ffi.metatype("LeveeChanSender", Sender_mt)
-
-
-
 local Recver_mt = {}
 Recver_mt.__index = Recver_mt
 
@@ -54,6 +16,8 @@ end
 function Recver_mt:pump(node)
 	if node.type == C.LEVEE_CHAN_I64 then
 		self.queue:send(node.as.i64)
+	elseif node.type == C.LEVEE_CHAN_SND then
+		self.queue:send(C.levee_chan_sender_ref(node.as.sender))
 	end
 end
 
@@ -83,6 +47,46 @@ end
 local function Recver(chan, id)
 	return setmetatable({chan=chan, id=id, queue=chan.hub.queue()}, Recver_mt)
 end
+
+
+local Sender_mt = {}
+Sender_mt.__index = Sender_mt
+
+
+function Sender_mt:__tostring()
+	local chan_id = C.levee_chan_event_id(self.chan)
+	return string.format(
+		"levee.ChannelSender: listen=%d channel=%d",
+		tonumber(self.recv_id),
+		tonumber(chan_id))
+end
+
+
+function Sender_mt:send(val)
+	-- TODO: check value type and call proper send
+	return C.levee_chan_send_i64(self, val)
+end
+
+
+function Sender_mt:connect(chan)
+	local recv_id = C.levee_chan_connect(self, chan.chan)
+	if recv_id < 0 then
+		-- TODO: expose connection error
+		return nil
+	end
+	recv_id = tonumber(recv_id)
+	local recver = Recver(chan, recv_id)
+	chan.listeners[recv_id] = recver
+	return recver
+end
+
+
+function Sender_mt:close()
+	C.levee_chan_sender_close()
+end
+
+
+ffi.metatype("LeveeChanSender", Sender_mt)
 
 
 

@@ -20,4 +20,33 @@ return {
 		assert.equal(recver:recv(), 2)
 		assert.equal(recver:recv(), 3)
 	end,
+
+	test_connect = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local parent = {}
+		local child = {}
+
+		parent.chan = h:channel()
+		parent.recver = parent.chan:bind()
+
+		child.chan = h:channel()
+		child.sender = parent.recver:create_sender()
+		child.recver = child.sender:connect(child.chan)
+
+		h:continue()
+		h:continue()
+
+		parent.sender = parent.recver:recv()
+
+		parent.sender:send(123)
+		h:continue()
+		assert.equal(child.recver:recv(), 123)
+
+		child.sender:send(321)
+		h:continue()
+		assert.equal(parent.recver:recv(), 321)
+	end,
 }
