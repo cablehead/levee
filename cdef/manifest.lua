@@ -36,10 +36,10 @@ end
 local headers = {
 	include("std", arch),
 	include("std", "std"),
+	include("types", os),
 	include("time", "time"),
 	include("time", os),
 	include("stat", "stat"),
-	include("stat", os),
 	include("sendfile", "sendfile"),
 	include("math", "math"),
 	include("socket", "socket"),

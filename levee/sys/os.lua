@@ -71,6 +71,12 @@ local function pipe()
 	return fds[0], fds[1]
 end
 
+local function fstat(no)
+	local st = ffi.new("struct levee_stat")
+	local rc = C.levee_fstat(no, st)
+	if rc < 0 then return end
+	return st
+end
 
 return {
 	nonblock = nonblock,
@@ -80,4 +86,5 @@ return {
 	write = write,
 	close = close,
 	pipe = pipe,
+	fstat = fstat,
 }

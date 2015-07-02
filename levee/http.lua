@@ -5,6 +5,7 @@ local parsers = require("levee.parsers")
 local meta = require("levee.meta")
 local iovec = require("levee.iovec")
 local buffer = require("levee.buffer")
+local sys = require("levee.sys")
 
 
 local VERSION = "HTTP/1.1"
@@ -371,9 +372,8 @@ function Request_mt:_sendfile(name)
 	local no = C.open(name, C.O_RDONLY)
 	if no < 0 then return -1 end
 
-	local st = ffi.new("struct stat")
-	local rc = C.fstat64(no, st)
-	if rc < 0 then return -1 end
+	local st = sys.os.fstat(no)
+	if not st then return -1 end
 	-- check this is a regular file
 	if bit.band(st.st_mode, C.S_IFREG) == 0 then return -1 end
 

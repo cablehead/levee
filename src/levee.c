@@ -330,3 +330,21 @@ levee_print_stack (Levee *self, const char *msg)
 	}
 	fprintf (stderr, "\n");  /* end the listing */
 }
+
+/*
+ * wrapping fstat as it's a macro on most systems which can't be directly
+ * called from ffi
+ */
+int
+levee_fstat(int fd, struct levee_stat *buf)
+{
+	struct stat st;
+	int rc;
+
+	rc = fstat(fd, &st);
+	if (rc < 0) return rc;
+
+	buf->st_size = st.st_size;
+	buf->st_mode = st.st_mode;
+	return rc;
+}

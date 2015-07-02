@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <sys/types.h>
 #include <stddef.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #ifdef __linux__
 # include <sys/epoll.h>
@@ -80,6 +82,26 @@ levee_get_error (Levee *self);
 
 extern void
 levee_set_arg (Levee *self, int argc, const char **argv);
+
+
+struct levee_stat {
+	// unsigned long long  st_dev;       /* Device.  */
+	// unsigned long long  st_ino;       /* File serial number.  */
+	unsigned int        st_mode;      /* File mode.  */
+	// unsigned int        st_nlink;     /* Link count.  */
+	// unsigned int        st_uid;       /* User ID of the file's owner.  */
+	// unsigned int        st_gid;       /* Group ID of the file's group. */
+	// unsigned long long  st_rdev;      /* Device number, if device.  */
+	long long           st_size;      /* Size of file, in bytes.  */
+	// int                 st_blksize;   /* Optimal block size for I/O.  */
+	// long long           st_blocks;    /* Number 512-byte blocks allocated. */
+	// struct timespec     st_atime;     /* Time of last access.  */
+	// struct timespec     st_mtime;     /* Time of last modification.  */
+	// struct timespec     st_ctime;     /* Time of last status change.  */
+};
+
+extern int
+levee_fstat(int fd, struct levee_stat *buf);
 
 #endif
 
