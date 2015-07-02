@@ -9,7 +9,11 @@ Recver_mt.__index = Recver_mt
 
 
 function Recver_mt:__tostring()
-	return string.format("levee.ChannelRecver: id=%d", tonumber(self.id))
+	local chan_id = C.levee_chan_event_id(self.chan.chan)
+	return string.format(
+		"levee.ChannelRecver: chan=%d id=%d",
+		tonumber(chan_id),
+		tonumber(self.id))
 end
 
 
@@ -56,9 +60,9 @@ Sender_mt.__index = Sender_mt
 function Sender_mt:__tostring()
 	local chan_id = C.levee_chan_event_id(self.chan)
 	return string.format(
-		"levee.ChannelSender: listen=%d channel=%d",
-		tonumber(self.recv_id),
-		tonumber(chan_id))
+		"levee.ChannelSender: chan=%d id=%d",
+		tonumber(chan_id),
+		tonumber(self.recv_id))
 end
 
 

@@ -388,7 +388,7 @@ levee_chan_connect (LeveeChanSender *self, LeveeChan **chan)
 		goto out;
 	}
 
-	if (send_node (sender, node) < 0) {
+	if (send_node (self, node) < 0) {
 		id = -1;
 		err = errno;
 	}
