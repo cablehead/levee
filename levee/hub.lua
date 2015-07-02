@@ -59,6 +59,11 @@ function Hub_mt:pipe()
 end
 
 
+function Hub_mt:queue(size)
+	return message.Queue(self, size)
+end
+
+
 function Hub_mt:_coresume(co, value)
 	if co ~= self.parent then
 		local status, message = coroutine.resume(co, value)
