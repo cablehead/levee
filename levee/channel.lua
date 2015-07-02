@@ -49,7 +49,7 @@ end
 
 
 local function Recver(chan, id)
-	return setmetatable({chan=chan, id=id, queue=chan.hub.queue()}, Recver_mt)
+	return setmetatable({chan=chan, id=id, queue=chan.hub:queue()}, Recver_mt)
 end
 
 

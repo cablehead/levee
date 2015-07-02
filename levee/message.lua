@@ -177,9 +177,36 @@ local function Queue(hub, size)
 end
 
 
+--
+-- Pair
+
+-- Convenience to namespace a sender / recver pair
+--
+
+local Pair_mt = {}
+Pair_mt.__index = Pair_mt
+
+
+function Pair_mt:send(value)
+	return self.sender:send(value)
+end
+
+
+function Pair_mt:recv()
+	return self.recver:recv()
+end
+
+
+local function Pair(sender, recver)
+	return setmetatable({sender=sender, recver=recver}, Pair_mt)
+end
+
+
+
 ----
 
 return {
 	Pipe = Pipe,
 	Queue = Queue,
+	Pair = Pair,
 	}

@@ -66,7 +66,7 @@ end
 
 
 function Hub_mt:_coresume(co, value)
-	if co ~= self.parent then
+	if co ~= self._pcoro then
 		local status, message = coroutine.resume(co, value)
 		if not status then
 			error(message)
@@ -79,7 +79,7 @@ end
 
 
 function Hub_mt:_coyield()
-	if coroutine.running() ~= self.parent then return coroutine.yield() end
+	if coroutine.running() ~= self._pcoro then return coroutine.yield() end
 
 	local status, message = coroutine.resume(self.loop)
 	if not status then
@@ -218,7 +218,7 @@ local function Hub()
 	self.poller = sys.poller()
 	self.closing = {}
 
-	self.parent = coroutine.running()
+	self._pcoro = coroutine.running()
 	self.loop = coroutine.create(function() self:main() end)
 
 	self.io = require("levee.io")(self)

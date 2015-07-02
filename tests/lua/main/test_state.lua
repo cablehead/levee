@@ -2,65 +2,47 @@ return {
 	test_core = function()
 		local levee = require("levee")
 
-		--
-		-- quick Pair class, should go in levee.message
-		local Pair_mt = {}
-		Pair_mt.__index = Pair_mt
-
-		function Pair_mt:send()
-			return self.sender:send()
-		end
-
-		function Pair_mt:recv()
-			return self.recver:recv()
-		end
-
-		local function Pair(sender, recver)
-			return setmetatable({sender=sender, recver=recver}, Pair_mt)
-		end
-		--
-
-		local function bootstrap(sender, f)
-			local h = levee.Hub()
-
-			local chan = h:channel()
-			local recver = chan:bind()
-			sender:send(recver:create_sender())
-
-			h.parent = Pair(sender, recver)
-
-			f(h)
-		end
-
 		local function spawn(h, f)
-			local chan = h:channel()
-			local recver = chan:bind()
-			local sender = recver:create_sender()
+			local recver = h:channel():bind()
 
-			local s = levee.State()
+			local state = levee.State()
 
-			if s:load_function(bootstrap) then
-				s:push(sender)
-				s:push(f)
-				s:run(2, true)
+			if state:load_function(f) then
+				state:push(recver:create_sender())
+				state:run(1, true)
 			end
 
-			print()
-			print()
-			print("this will fail as we can't send 'senders' yet")
-			print()
-			local other = recver:recv()
-			print("Yuzzah! working")
-			return Pair(other, recver)
+			return levee.message.Pair(recver:recv(), recver)
 		end
 
-		local function produce(h)
-			h.parent:send(1)
+
+		local function produce(sender)
+			local function run()
+				local levee = require("levee")
+
+				local h = levee.Hub()
+				local recver = sender:connect(h:channel())
+
+				h.parent = levee.message.Pair(sender, recver)
+				assert(h.parent:recv() == 123)
+				h.parent:send(321)
+			end
+
+			local ok, err = pcall(run)
+			if not ok then
+				print("ERROR:", err)
+			end
 		end
 
 		-- main
-		h = levee.Hub()
+
+		local h = levee.Hub()
+
 		local child = spawn(h, produce)
-		print(child:recv())
+
+		child:send(123)
+
+		assert.equal(child:recv(), 321)
+
 	end,
 }
