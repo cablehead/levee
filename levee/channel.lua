@@ -10,8 +10,10 @@ Sender_mt.__index = Sender_mt
 
 function Sender_mt:__tostring()
 	local chan_id = C.levee_chan_event_id(self.chan)
-	return string.format("levee.ChannelSender: listen=%d channel=%d",
-		tonumber(self.recv_id), tonumber(chan_id))
+	return string.format(
+		"levee.ChannelSender: listen=%d channel=%d",
+		tonumber(self.recv_id),
+		tonumber(chan_id))
 end
 
 
@@ -27,7 +29,7 @@ function Sender_mt:connect(chan)
 		-- TODO: expose connection error
 		return nil
 	end
-	return Reciever(chan, recv_id)
+	return Recver(chan, recv_id)
 end
 
 
@@ -40,16 +42,16 @@ ffi.metatype("LeveeChanSender", Sender_mt)
 
 
 
-local Reciever_mt = {}
-Reciever_mt.__index = Reciever_mt
+local Recver_mt = {}
+Recver_mt.__index = Recver_mt
 
 
-function Reciever_mt:__tostring()
-	return string.format("levee.ChannelReciever: id=%d", tonumber(self.id))
+function Recver_mt:__tostring()
+	return string.format("levee.ChannelRecver: id=%d", tonumber(self.id))
 end
 
 
-function Reciever_mt:pump(node)
+function Recver_mt:pump(node)
 	if node.type == C.LEVEE_CHAN_I64 then
 		print(node.as.i64)
 	end
@@ -57,7 +59,7 @@ end
 
 
 -- TODO: find a better name
-function Reciever_mt:create_sender()
+function Recver_mt:create_sender()
 	-- TODO: do we need to track senders
 	local sender = C.levee_chan_sender_create(self.chan.chan, self.id)
 	if sender == nil then
@@ -68,8 +70,8 @@ function Reciever_mt:create_sender()
 end
 
 
-local function Reciever(chan, id)
-	return setmetatable({chan=chan, id=id}, Reciever_mt)
+local function Recver(chan, id)
+	return setmetatable({chan=chan, id=id}, Recver_mt)
 end
 
 
@@ -96,7 +98,7 @@ function Channel_mt:bind()
 		return nil
 	end
 
-	local recv = Reciever(self, id)
+	local recv = Recver(self, id)
 	self.listeners[id] = recv
 	return recv
 end
@@ -110,7 +112,7 @@ function Channel_mt:pump()
 		if recv then
 			recv:pump(head)
 		else
-			print("no reciever", recv_id)
+			print("no recver", recv_id)
 		end
 		head = C.levee_chan_recv_next(head)
 	end
