@@ -1,7 +1,7 @@
-local message = require("levee.message")
 local ffi = require('ffi')
 local C = ffi.C
 
+local message = require("levee.message")
 
 
 local Sender_mt = {}
@@ -53,8 +53,18 @@ end
 
 function Recver_mt:pump(node)
 	if node.type == C.LEVEE_CHAN_I64 then
-		print(node.as.i64)
+		self.queue:send(node.as.i64)
 	end
+end
+
+
+function Recver_mt:recv()
+	return self.queue:recv()
+end
+
+
+function Recver_mt:__call()
+	return self.queue:recv()
 end
 
 
@@ -71,7 +81,7 @@ end
 
 
 local function Recver(chan, id)
-	return setmetatable({chan=chan, id=id}, Recver_mt)
+	return setmetatable({chan=chan, id=id, queue=chan.hub.queue()}, Recver_mt)
 end
 
 
