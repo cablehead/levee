@@ -659,8 +659,13 @@ function HTTP_mt:listen(port, host)
 end
 
 
-return {
-	Status = Status,
-	__plugin = function(hub)
-		return setmetatable({hub = hub}, HTTP_mt)
-	end, }
+local M_mt = {}
+M_mt.__index = M_mt
+
+
+function M_mt.__call(self, hub)
+	return setmetatable({hub = hub}, HTTP_mt)
+end
+
+
+return setmetatable({Status = Status}, M_mt)
