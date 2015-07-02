@@ -16,7 +16,7 @@ return {
 		assert.equal(p:recv(), "2")
 	end,
 
-	test_iter = function()
+	test_pipe_iter = function()
 		local h = require("levee").Hub()
 		local p = h:pipe()
 
@@ -35,7 +35,7 @@ return {
 		end
 	end,
 
-	test_close_recver = function()
+	test_pipe_close_recver = function()
 		local h = require("levee").Hub()
 		local p = h:pipe()
 
@@ -55,5 +55,53 @@ return {
 
 		p:close()
 		assert.equal(state, "done")
+	end,
+
+	test_queue = function()
+		local h = require("levee").Hub()
+		local q = h:queue()
+
+		-- test send and then recv
+		q:send("1")
+		q:send("2")
+		q:send("3")
+		assert.equal(q:recv(), "1")
+		assert.equal(q:recv(), "2")
+		assert.equal(q:recv(), "3")
+
+		-- test recv and then send
+		local state
+		h:spawn(function() state = q:recv() end)
+		q:send("1")
+		h:continue()
+		assert.equal(state, "1")
+
+		-- test close
+		q:send("1")
+		q:send("2")
+		q:send("3")
+		q:close()
+		assert.equal(q:recv(), "1")
+		assert.equal(q:recv(), "2")
+		assert.equal(q:recv(), "3")
+		assert.equal(q:recv(), nil)
+	end,
+
+	test_queue_size = function()
+		local h = require("levee").Hub()
+
+		local q = h:queue(3)
+
+		h:spawn(function()
+			for i = 1, 10 do q:send(i) end
+			q:close()
+		end)
+
+		local check = 0
+		for i in q do
+			check = check + 1
+			assert.equal(i, check)
+		end
+		assert.equal(check, 10)
 	end,
 }
