@@ -20,6 +20,8 @@ return {
 	end,
 
 	test_register = function()
+		local ffi = require("ffi")
+
 		local levee = require("levee")
 		local os = levee.sys.os
 
@@ -34,11 +36,10 @@ return {
 
 		os.write(w, "foo")
 
-		-- TODO:
-		-- OSX signals write ready after a previous write
-		-- I *think* Linux won't signal write ready until EAGAIN has been triggered
-		--
-		-- assert.equal(w_ev:recv(), 1)
+		-- linux requires a read until writable will signal again
+		if ffi.os:lower() ~= "linux" then
+			assert.equal(w_ev:recv(), 1)
+		end
 
 		assert.equal(r_ev:recv(), 1)
 
