@@ -15,7 +15,7 @@ end
 
 
 function Bloom_mt:is_capable(hint, fpp)
-	return C.sp_bloom_is_capable(self, hint, fpp)
+	return C.sp_bloom_is_capable(self, hint, fpp or 0.01)
 end
 
 
