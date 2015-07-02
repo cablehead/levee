@@ -54,6 +54,7 @@ local headers = {
 	include("siphon", "http"),
 	include("siphon", "hash"),
 	include("siphon", "rand"),
+	include("siphon", "bloom"),
 	include("levee", "levee"),
 }
 

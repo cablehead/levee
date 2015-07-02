@@ -7,6 +7,4 @@ return {
 	iovec = require("levee.iovec"),
 	http = require("levee.http"),
 	buffer = require("levee.buffer"),
-	hash = require("levee.hash"),
-	rand = require("levee.rand")
 }
