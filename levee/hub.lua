@@ -230,6 +230,8 @@ local function Hub()
 	self.http = require("levee.http")(self)
 	self.thread = require("levee.thread")(self)
 
+	self.is_linux = ffi.os:lower() == "linux"
+
 	return self
 end
 

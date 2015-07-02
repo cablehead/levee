@@ -21,7 +21,8 @@ function R_mt:read(buf, len)
 		return n
 	end
 
-	if err ~= errno["EAGAIN"] then
+	-- TODO: on linux does n == 0 *always* mean the fd has closed?
+	if err ~= errno["EAGAIN"] or (n == 0 and self.hub.is_linux) then
 		self:close()
 		return n, err
 	end
