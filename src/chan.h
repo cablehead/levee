@@ -1,11 +1,11 @@
 #ifndef LEVEE_CHAN_H
 #define LEVEE_CHAN_H
 
-#include "levee.h"
-#include "list.h"
-
 typedef struct LeveeChan LeveeChan;
 typedef struct LeveeChanSender LeveeChanSender;
+
+#include "levee.h"
+#include "list.h"
 
 typedef enum {
 	LEVEE_CHAN_EOF,
@@ -38,7 +38,7 @@ typedef struct {
 struct LeveeChan {
 	LeveeList msg;
 	LeveeChanSender *send_head;
-	uint64_t ref;
+	int64_t ref;
 	int64_t recv_id;
 	int loopfd;
 	int chan_id;
@@ -47,7 +47,7 @@ struct LeveeChan {
 struct LeveeChanSender {
 	LeveeChanSender *next;
 	LeveeChan **chan;
-	uint64_t ref;
+	int64_t ref;
 	int64_t recv_id;
 	bool eof;
 };

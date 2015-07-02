@@ -12,6 +12,7 @@ State_mt.__index = State_mt
 
 
 local access_error = "invalid access of background state"
+local sender_type = ffi.typeof("LeveeChanSender *")
 
 
 local function check(child, ok)
@@ -72,6 +73,12 @@ function State_mt:push(val)
 		C.levee_push_number(self.child, val)
 	elseif type(val) == "string" then
 		C.levee_push_number(self.child, val, #val)
+	elseif type(val) == "boolean" then
+		C.levee_push_bool(self.child, val)
+	elseif type(val) == "cdata" and ffi.typeof(val) == sender_type then
+		C.levee_push_sender(self.child, val)
+	else
+		C.levee_push_nil(self.child)
 	end
 end
 

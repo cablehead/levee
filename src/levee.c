@@ -12,7 +12,6 @@
 #include <lualib.h>
 
 #include "levee.h"
-#include "chan.h"
 
 #include "levee_cdef.h"
 
@@ -50,6 +49,11 @@ levee_create (void)
 	lua_pushstring (L, levee_cdef);
 	lua_call (L, 1, 0);
 	lua_pop (L, 1);  // pop ffi module
+
+	lua_getglobal (L, "require");
+	lua_pushstring (L, "levee.channel");
+	lua_call (L, 1, 1);
+	lua_pop (L, 1);
 
 	Levee *self = malloc (sizeof *self);
 	if (self == NULL) {
@@ -190,6 +194,7 @@ static void *
 run (void *data)
 {
 	Levee *self = data;
+
 	if (lua_pcall (self->L, self->narg, 0, 0)) {
 		return false;
 	}
@@ -250,6 +255,89 @@ levee_push_string (Levee *self, const char *str, size_t len)
 {
 	if (self->state != LEVEE_LOCAL) return;
 	lua_pushlstring (self->L, str, len);
+}
+
+void
+levee_push_bool (Levee *self, bool val)
+{
+	if (self->state != LEVEE_LOCAL) return;
+	lua_pushboolean (self->L, val);
+}
+
+void
+levee_push_nil (Levee *self)
+{
+	if (self->state != LEVEE_LOCAL) return;
+	lua_pushnil (self->L);
+}
+
+void
+levee_push_sender (Levee *self, LeveeChanSender *sender)
+{
+	if (self->state != LEVEE_LOCAL) return;
+
+	// put ffi module on the stack
+	lua_getglobal (self->L, "require");
+	lua_pushstring (self->L, "ffi");
+	lua_call (self->L, 1, 1); // stack: ffi
+
+	// get ffi.C.levee_chan_sender_ref
+	lua_getfield (self->L, -1, "C"); // stack: ffi C
+	lua_getfield (self->L, -2, "gc"); // stack: ffi C gc
+	lua_getfield (self->L, -2, "levee_chan_sender_ref"); // stack: ffi C gc ref
+
+	// call ffi.C.levee_chan_sender_ref(sender)
+	lua_pushlightuserdata (self->L, sender); // stack: ffi C gc ref sender
+	lua_call (self->L, 1, 1); // stack: ffi C gc sender
+
+	// call ffi.gc(sender, ffi.C.levee_chan_sender_unref)
+	lua_getfield (self->L, -3, "levee_chan_sender_unref"); // stack: ffi C gc sender unref
+	lua_call (self->L, 2, 1); // stack: ffi C sender
+
+	lua_remove (self->L, -2); // stack: ffi sender
+	lua_remove (self->L, -2); // stack: sender
+}
+
+void
+levee_pop (Levee *self, int n)
+{
+	if (self->state != LEVEE_LOCAL) return;
+	lua_pop (self->L, n);
+}
+
+void
+levee_print_stack (Levee *self, const char *msg)
+{
+	if (self->state != LEVEE_LOCAL) return;
+	fprintf (stderr, "%s: ", msg);
+	int i;
+	int top = lua_gettop (self->L);
+	for (i=1; i<=top; i++) {
+		int t = lua_type (self->L, i);
+		switch (t) {
+			case LUA_TSTRING:
+				fprintf (stderr, "\"%s\"", lua_tostring (self->L, i));
+				break;
+			case LUA_TBOOLEAN:
+				fprintf (stderr, lua_toboolean (self->L, i) ? "true" : "false");
+				break;
+			case LUA_TNUMBER:
+				fprintf (stderr, "%g", lua_tonumber (self->L, i));
+				break;
+			case LUA_TNIL:
+				fprintf (stderr, "nil");
+				break;
+			default:
+				lua_getglobal (self->L, "type");
+				lua_pushvalue (self->L, i);
+				lua_call (self->L, 1, 1);
+				fprintf (stderr, "%s", lua_tostring (self->L, -1));
+				lua_pop (self->L, 1);
+				break;
+		}
+		fprintf (stderr, "  ");  /* put a separator */
+	}
+	fprintf (stderr, "\n");  /* end the listing */
 }
 
 int

@@ -9,9 +9,9 @@ Sender_mt.__index = Sender_mt
 
 
 function Sender_mt:__tostring()
-	return string.format(
-		"levee.ChannelSender: reciever=%d channel=%d",
-		self.recv_id, self.chan:event_id())
+	local chan_id = C.levee_chan_event_id(self.chan)
+	return string.format("levee.ChannelSender: listen=%d channel=%d",
+		tonumber(self.recv_id), tonumber(chan_id))
 end
 
 
@@ -59,12 +59,12 @@ end
 -- TODO: find a better name
 function Reciever_mt:create_sender()
 	-- TODO: do we need to track senders
-	local self = C.levee_chan_sender_create(self.chan.chan, self.id)
-	if self == nil then
+	local sender = C.levee_chan_sender_create(self.chan.chan, self.id)
+	if sender == nil then
 		-- TODO: some errors should not halt (e.g closed channel)
 		Errno:error("levee_chan_sender_create")
 	end
-	return ffi.gc(self, C.levee_chan_sender_unref)
+	return ffi.gc(sender, C.levee_chan_sender_unref)
 end
 
 

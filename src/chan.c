@@ -271,7 +271,7 @@ levee_chan_sender_ref (LeveeChanSender *self)
 		return NULL;
 	}
 
-	self->ref++;
+	__sync_add_and_fetch (&self->ref, 1);
 	return self;
 }
 
@@ -279,14 +279,12 @@ void
 levee_chan_sender_unref (LeveeChanSender *self)
 {
 	if (self != NULL) {
-		if (self->ref > 1) {
-			self->ref--;
-			return;
+		if (__sync_sub_and_fetch (&self->ref, 1) == 0) {
+			levee_chan_sender_close (self);
+			self->chan = NULL;
+			self->ref = 0;
+			free (self);
 		}
-		levee_chan_sender_close (self);
-		self->chan = NULL;
-		self->ref = 0;
-		free (self);
 	}
 }
 
