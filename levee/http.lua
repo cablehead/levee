@@ -370,37 +370,42 @@ Request_mt.__index = Request_mt
 
 function Request_mt:_sendfile(name)
 	local no = C.open(name, C.O_RDONLY)
-	if no < 0 then return -1 end
+	if no < 0 then return false, -1 end
 
 	local st = sys.os.fstat(no)
-	if not st then return -1 end
+	if not st then return false, no end
 	-- check this is a regular file
-	if bit.band(st.st_mode, C.S_IFREG) == 0 then return -1 end
+	if bit.band(st.st_mode, C.S_IFREG) == 0 then return false, no end
 
 	self.response:send({Status(200), {}, st.st_size})
 
-	local len = ffi.new("off_t[1]")
-	local sent = 0
+	local off = 0
 
 	while true do
-		len[0] = st.st_size - sent
-		local rc = C.sendfile(no, self.conn.no, sent, len, nil, 0)
-		if rc == 0 then
-			break
+		local n = C.levee_sendfile(self.conn.no, no, off, st.st_size - off)
+
+		if n > 0 then
+			off = off + n
+			if off == st.st_size then
+				break
+			end
 		end
-		sent = sent + len[0]
+
 		local ev = self.conn.w_ev:recv()
 		assert(ev > 0)  -- TODO: handle shutdown on error
 	end
 
 	self.response:close()
-	return 0
+	return true, no
 end
 
 function Request_mt:sendfile(name)
-	local rc = self:_sendfile(name)
-	if rc < 0 then
+	local ok, no = self:_sendfile(name)
+	if not ok then
 		self.response:send({Status(404), {}, "Not Found\n"})
+	end
+	if no > 0 then
+		C.close(no)
 	end
 end
 
