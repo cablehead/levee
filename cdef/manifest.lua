@@ -53,6 +53,7 @@ local headers = {
 	include("siphon", "error"),
 	include("siphon", "http"),
 	include("siphon", "hash"),
+	include("siphon", "rand"),
 	include("levee", "levee"),
 }
 

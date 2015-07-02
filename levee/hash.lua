@@ -1,8 +1,8 @@
+local rand = require('levee.rand')
 local ffi = require('ffi')
 local C = ffi.C
 
-local metro_seed = math.random(4294967295)
-print(metro_seed)
+local metro_seed = rand.integer()
 
 local function crc32(val, len)
 	return C.sp_crc32(0ULL, val, len or #val)
