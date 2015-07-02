@@ -3,6 +3,7 @@ return {
 		local levee = require("levee")
 
 		local h = levee.Hub()
+		h:continue()
 
 		local chan = h:channel()
 		local recver = chan:bind()
@@ -13,7 +14,6 @@ return {
 		sender:send(3)
 
 		-- normally these two halves would be running in different threads
-		h:continue()
 		h:continue()
 
 		assert.equal(recver:recv(), 1)
