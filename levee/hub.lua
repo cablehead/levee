@@ -223,7 +223,9 @@ local function Hub()
 
 	self.io = require("levee.io")(self)
 	self.tcp = require("levee.tcp")(self)
+	-- TODO: consolidate on either __plugin, or staight callable
 	self.http = require("levee.http").__plugin(self)
+	self.thread = require("levee.thread")(self)
 
 	return self
 end

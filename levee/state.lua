@@ -72,7 +72,7 @@ function State_mt:push(val)
 	if type(val) == "number" then
 		C.levee_push_number(self.child, val)
 	elseif type(val) == "string" then
-		C.levee_push_number(self.child, val, #val)
+		C.levee_push_string(self.child, val, #val)
 	elseif type(val) == "boolean" then
 		C.levee_push_bool(self.child, val)
 	elseif type(val) == "cdata" and ffi.typeof(val) == sender_type then

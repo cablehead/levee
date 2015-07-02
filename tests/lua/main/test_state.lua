@@ -28,6 +28,7 @@ return {
 				h.parent:send(321)
 			end
 
+			-- TODO: we should work an optional error message into Pipe close
 			local ok, err = pcall(run)
 			if not ok then
 				print("ERROR:", err)
