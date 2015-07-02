@@ -52,6 +52,7 @@ local headers = {
 	include("channel", "channel"),
 	include("siphon", "error"),
 	include("siphon", "http"),
+	include("siphon", "hash"),
 	include("levee", "levee"),
 }
 
