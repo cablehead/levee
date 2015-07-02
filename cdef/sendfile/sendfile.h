@@ -1,2 +1,1 @@
-int sendfile(
-	int fd, int s, off_t offset, off_t *len, struct sf_hdtr *hdtr, int flags);
+extern ssize_t levee_sendfile (int s, int fd, size_t off, size_t len);

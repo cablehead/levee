@@ -39,7 +39,6 @@ local headers = {
 	include("time", "time"),
 	include("time", os),
 	include("stat", "stat"),
-	include("stat", os),
 	include("sendfile", "sendfile"),
 	include("math", "math"),
 	include("socket", "socket"),
