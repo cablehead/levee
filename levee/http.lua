@@ -622,6 +622,11 @@ function Listener_mt:loop()
 end
 
 
+function Listener_mt:addr()
+	return self.serve:addr()
+end
+
+
 function Listener_mt:close()
 	self.serve:close()
 	self.recver:close()

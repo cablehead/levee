@@ -10,9 +10,9 @@ return {
 		local levee = require("levee")
 
 		local h = levee.Hub()
-		local serve = h.http:listen(8000)
+		local serve = h.http:listen()
 
-		local c = h.tcp:connect(8000)
+		local c = h.tcp:connect(serve:addr():port())
 		c:write(request)
 
 		local s = serve:recv()
@@ -37,9 +37,9 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen(8000)
+		local serve = h.http:listen()
 
-		local c = h.http:connect(8000)
+		local c = h.http:connect(serve:addr():port())
 		local response = c:get("/path")
 
 		local s = serve:recv()
@@ -76,8 +76,8 @@ return {
 		local levee = require("levee")
 
 		local h = levee.Hub()
-		local serve = h.http:listen(8000)
-		local c = h.http:connect(8000)
+		local serve = h.http:listen()
+		local c = h.http:connect(serve:addr():port())
 		local s = serve:recv()
 
 		local response = c:post("/path", {data="foo"})
@@ -104,9 +104,9 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen(8000)
+		local serve = h.http:listen()
 
-		local c = h.http:connect(8000)
+		local c = h.http:connect(serve:addr():port())
 		local response = c:get("/path")
 
 		local s = serve:recv()
@@ -135,8 +135,8 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen(8000)
-		local c = h.http:connect(8000)
+		local serve = h.http:listen()
+		local c = h.http:connect(serve:addr():port())
 		local s = serve:recv()
 
 		local response = c:get("/path")
@@ -184,7 +184,7 @@ return {
 		local h = levee.Hub()
 
 		-- origin
-		local origin = h.http:listen(8000)
+		local origin = h.http:listen()
 		h:spawn(function()
 			for conn in origin do
 				h:spawn(function()
@@ -201,11 +201,11 @@ return {
 		end)
 
 		-- proxy
-		local proxy = h.http:listen(8001)
+		local proxy = h.http:listen()
 		h:spawn(function()
 			for conn in proxy do
 				h:spawn(function()
-					local backend = h.http:connect(8000)
+					local backend = h.http:connect(origin:addr():port())
 					for req in conn do
 						local res = backend:get(req.path):recv()
 						req.response:send({levee.http.Status(res.code), {}, #res.body})
@@ -218,7 +218,7 @@ return {
 		end)
 
 		-- client
-		local c = h.http:connect(8001)
+		local c = h.http:connect(proxy:addr():port())
 
 		local response = c:get("/"):recv()
 		assert.equal(response.code, 200)
@@ -240,7 +240,7 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen(8000)
+		local serve = h.http:listen()
 		h:spawn(function()
 			for conn in serve do
 				h:spawn(function()
@@ -252,7 +252,7 @@ return {
 			end
 		end)
 
-		local c = h.http:connect(8000)
+		local c = h.http:connect(serve:addr():port())
 
 		local res = c:get("/foo"):recv()
 		assert.equal(res.code, 404)
