@@ -62,15 +62,19 @@ function Endpoint:__tostring()
 		local buf = ffi.new("char [16]")
 		local str = C.inet_ntop(C.AF_INET, self.addr.sin.sin_addr, buf, 16)
 		if str then
-			return string.format("%s:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin.sin_port)))
+			return string.format(
+				"%s:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin.sin_port)))
 		end
 	elseif self.addr.sa.sa_family == C.AF_INET6 then
 		local buf = ffi.new("char [48]")
 		local str = C.inet_ntop(C.AF_INET6, self.addr.sin6.sin6_addr, buf, 48)
 		if str then
-			return string.format("[%s]:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin6.sin6_port)))
+			return string.format(
+				"[%s]:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin6.sin6_port)))
 		end
-	elseif self.addr.sa.sa_family == C.AF_LOCAL then return ffi.string(self.addr.sun.sun_path) else
+	elseif self.addr.sa.sa_family == C.AF_LOCAL then
+		return ffi.string(self.addr.sun.sun_path)
+	else
 		return string.format("levee.Endpoint: %p", self)
 	end
 end
