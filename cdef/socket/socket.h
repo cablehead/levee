@@ -58,6 +58,14 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 ssize_t read(int fd, void *buf, size_t count);
 ssize_t readv(int d, const struct iovec *iov, int iovcnt);
 
+ssize_t recvfrom(
+	int socket, void * restrict buffer, size_t length, int flags,
+	struct sockaddr * restrict src_addr, socklen_t * restrict src_addrlen);
+
+ssize_t sendto(
+	int socket, const void *buffer, size_t length, int flags,
+	const struct sockaddr *dest_addr, socklen_t dest_len);
+
 ssize_t write(int fd, const void *buf, size_t count);
 ssize_t writev(int fildes, const struct iovec *iov, int iovcnt);
 
