@@ -31,6 +31,11 @@ function Listener_mt:loop()
 end
 
 
+function Listener_mt:addr()
+	return sys.endpoint:sockname(self.no)
+end
+
+
 function Listener_mt:close()
 	if self.closed then
 		return

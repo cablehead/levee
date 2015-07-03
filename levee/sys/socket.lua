@@ -32,7 +32,7 @@ local function listen(port, host, backlog)
 
 	local addr = sockaddr_in()
 	addr.sin_family = C.AF_INET
-	addr.sin_port = C.htons(port);
+	addr.sin_port = C.htons(port or 0);
 	C.inet_aton(host or "0.0.0.0", addr.sin_addr)
 	rc = C.bind(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
 	if rc < 0 then return nil, ffi.errno() end

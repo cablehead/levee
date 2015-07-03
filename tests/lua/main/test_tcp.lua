@@ -6,16 +6,16 @@ return {
 
 		local buf = levee.buffer(4096)
 
-		local serve = h.tcp:listen(8000)
+		local serve = h.tcp:listen()
 
-		local c1 = h.tcp:connect(8000)
+		local c1 = h.tcp:connect(serve:addr():port())
 		local s1 = serve:recv()
 
 		c1:write("m1.1")
 		s1:readinto(buf)
 		assert(buf:take_s() == "m1.1")
 
-		local c2 = h.tcp:connect(8000)
+		local c2 = h.tcp:connect(serve:addr():port())
 		local s2 = serve:recv()
 
 		c2:write("m2.1")

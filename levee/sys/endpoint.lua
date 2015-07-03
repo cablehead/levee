@@ -48,6 +48,15 @@ function Endpoint:peername(fd)
 end
 
 
+function Endpoint:port()
+	if self.addr.sa.sa_family == C.AF_INET then
+		return tonumber(C.ntohs(self.addr.sin.sin_port))
+	elseif self.addr.sa.sa_family == C.AF_INET6 then
+		return tonumber(C.ntohs(self.addr.sin6.sin6_port))
+	end
+end
+
+
 function Endpoint:__tostring()
 	if self.addr.sa.sa_family == C.AF_INET then
 		local buf = ffi.new("char [16]")
