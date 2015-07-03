@@ -22,8 +22,8 @@ local function connect(port, host)
 end
 
 
-local function listen(port, host, backlog)
-	local no = C.socket(C.PF_INET, C.SOCK_STREAM, 0)
+local function listen(domain, typ, port, host, backlog)
+	local no = C.socket(domain, typ, 0)
 	if no < 0 then return nil, ffi.errno() end
 
 	local on = ffi.new("int32_t[1]", 1)
@@ -31,14 +31,16 @@ local function listen(port, host, backlog)
 	if rc < 0 then return nil, ffi.errno() end
 
 	local addr = sockaddr_in()
-	addr.sin_family = C.AF_INET
+	addr.sin_family = domain
 	addr.sin_port = C.htons(port or 0);
-	C.inet_aton(host or "0.0.0.0", addr.sin_addr)
+	C.inet_aton(host or "127.0.0.1", addr.sin_addr)
 	rc = C.bind(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
 	if rc < 0 then return nil, ffi.errno() end
 
-	rc = C.listen(no, backlog or 256)
-	if rc < 0 then return nil, ffi.errno() end
+	if typ == C.SOCK_STREAM then
+		rc = C.listen(no, backlog or 256)
+		if rc < 0 then return nil, ffi.errno() end
+	end
 
 	return no
 end

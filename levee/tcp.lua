@@ -1,5 +1,8 @@
-local sys = require("levee.sys")
+local ffi = require("ffi")
+local C = ffi.C
+
 local errno = require("levee.errno")
+local sys = require("levee.sys")
 
 
 local function __recv(self)
@@ -64,7 +67,7 @@ end
 
 
 function TCP_mt:listen(port, host)
-	local no, err = sys.socket.listen(port, host)
+	local no, err = sys.socket.listen(C.AF_INET, C.SOCK_STREAM, port, host)
 	if err then
 		error(errno:message(err))
 	end
