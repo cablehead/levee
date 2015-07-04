@@ -41,3 +41,14 @@ struct sockaddr_un {
 	sa_family_t sun_family;
 	char sun_path[108];
 };
+
+struct addrinfo {
+	int ai_flags;               /* input flags */
+	int ai_family;              /* protocol family for socket */
+	int ai_socktype;            /* socket type */
+	int ai_protocol;            /* protocol for socket */
+	socklen_t ai_addrlen;       /* length of socket-address */
+	struct sockaddr *ai_addr;   /* socket-address for socket */
+	char *ai_canonname;         /* canonical name for service location */
+	struct addrinfo *ai_next;   /* pointer to next in list */
+};

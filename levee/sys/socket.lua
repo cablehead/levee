@@ -6,20 +6,38 @@ local C = ffi.C
 local sockaddr_in = ffi.typeof("struct sockaddr_in")
 
 
+local function getaddrinfo(host, port)
+	local hints = ffi.new("struct addrinfo")
+	hints.ai_family = C.AF_INET
+	hints.ai_socktype = C.SOCK_STREAM
+	local info = ffi.new("struct addrinfo *[1]")
+	local rc = C.getaddrinfo(host, port, hints, info)
+	assert(rc == 0)
+	return info[0], ffi.new("struct addrinfo *", info[0])
+end
+
+
 local function connect(port, host)
 	local no = C.socket(C.PF_INET, C.SOCK_STREAM, 0)
 	if no < 0 then return nil, ffi.errno() end
 
-	local addr = sockaddr_in()
-	addr.sin_family = C.AF_INET
-	addr.sin_port = C.htons(port);
-	C.inet_aton(host or "0.0.0.0", addr.sin_addr)
+	local info, ptr = getaddrinfo(host, tostring(port))
 
-	local rc = C.connect(
-		no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
-	if rc < 0 then return nil, ffi.errno() end
+	local err
 
-	return no
+	while ptr ~= nil do
+		local rc = C.connect(no, ptr.ai_addr, ptr.ai_addrlen)
+		if rc == 0 then
+			return no
+		else
+			err = ffi.errno()
+		end
+		ptr = ptr.ai_next
+	end
+
+	C.freeaddrinfo(info)
+
+	return nil, err
 end
 
 
@@ -59,6 +77,7 @@ local function accept(no)
 end
 
 return {
+	getaddrinfo = getaddrinfo,
 	connect = connect,
 	listen = listen,
 	accept = accept,
