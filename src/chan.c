@@ -36,10 +36,12 @@
 static inline int
 init (LeveeChan *self)
 {
-	self->chan_id = eventfd (0, EFD_NONBLOCK);
-	if (self->chan_id < 0) {
+	int id = eventfd (0, EFD_NONBLOCK);
+	if (id < 0) {
 		return -1;
 	}
+
+	self->chan_id = (uint64_t) id;
 
 	struct epoll_event ev = {
 		.events = EPOLLIN | EPOLLET | EPOLLERR | EPOLLHUP,
