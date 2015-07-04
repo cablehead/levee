@@ -35,7 +35,14 @@ struct Levee {
 	int narg;
 };
 
+typedef struct {
+	lua_CFunction init;
+} LeveeConfig;
+
 typedef struct Levee Levee;
+
+extern void
+levee_init (const LeveeConfig *cfg);
 
 extern Levee *
 levee_create (void);

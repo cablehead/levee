@@ -38,4 +38,9 @@ function Data_mt:value()
 end
 
 
+function Data_mt:string()
+	return ffi.string(self.val, self.len)
+end
+
+
 return ffi.metatype("struct LeveeData", Data_mt)

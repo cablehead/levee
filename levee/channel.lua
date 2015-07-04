@@ -90,7 +90,7 @@ function Sender_mt:send(val)
 	elseif type(val) == "number" or ffi.istype(ctype_dbl, val) then
 		return C.levee_chan_send_dbl(self, val)
 	elseif ffi.istype(ctype_ptr, val) then
-		local rc = C.levee_chan_send_dbl(self, val.val, val.len)
+		local rc = C.levee_chan_send_ptr(self, val.val, val.len)
 		if rc >= 0 then
 			val.val = nil
 			val.len = 0
