@@ -20,25 +20,28 @@ struct LeveePoller {
 
 local C = ffi.C
 
-
 local SIG_DFL = ffi.cast("sighandler_t", 0)
 local SIG_IGN = ffi.cast("sighandler_t", 1)
-
 
 local Event = {}
 Event.__index = Event
 
-local NAMESPACED = bit.lshift(1, 61)
-
 function Event:value()
-	local fd = self.ident
-	if fd < NAMESPACED then
-		fd = tonumber(fd)
+	if self.filter == C.EVFILT_USER then
+		-- channel
+		return nil, true
+
+	elseif self.filter == C.EVFILT_SIGNAL then
+		-- signal
+		return tonumber(self.ident), false, true
+
+	else
+		-- io
+		local r = self.filter == C.EVFILT_READ
+		local w = self.filter == C.EVFILT_WRITE
+		local e = bit.band(self.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0
+		return tonumber(self.ident), false, false, r, w, e
 	end
-	local r = self.filter == C.EVFILT_READ
-	local w = self.filter == C.EVFILT_WRITE
-	local e = bit.band(self.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0
-	return fd, r, w, e
 end
 
 ffi.metatype("LeveePollerEvent", Event)
@@ -79,7 +82,7 @@ local function next_event(self)
 end
 
 
-function Poller:register_signal(no)
+function Poller:signal_register(no)
 	local ev = next_event(self)
 
 	ev.ident = no
@@ -96,7 +99,7 @@ function Poller:register_signal(no)
 end
 
 
-function Poller:unregister_signal(no)
+function Poller:signal_unregister(no)
 	local ev = next_event(self)
 
 	ev.ident = no
@@ -110,6 +113,11 @@ function Poller:unregister_signal(no)
 	self.ev_in_pos = 0
 
 	C.signal(no, SIG_DFL)
+end
+
+
+function Poller:signal_clear(no)
+	-- noop
 end
 
 

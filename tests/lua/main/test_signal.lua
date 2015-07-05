@@ -4,28 +4,29 @@ local C = ffi.C
 
 return {
 	test_core = function()
-		print()
-		print()
-		print("---")
+		local h = require("levee").Hub()
 
-
-		local poller = require("levee.sys.poller")()
-
-		poller:register_signal(C.SIGTERM)
+		local r1 = h.signal(C.SIGALRM, C.SIGTERM)
+		local r2 = h.signal(C.SIGALRM)
 
 		local pid = C.getpid()
-		print("KILL", C.kill(pid, 15))
 
-		local ev_out, n = poller:poll(0)
-		print(n, ev_out)
-		print(ev_out[0].ident)
+		C.kill(pid, C.SIGALRM)
+		assert.equal(r1:recv(), C.SIGALRM)
+		assert.equal(r2:recv(), C.SIGALRM)
 
-		poller:unregister_signal(C.SIGTERM)
-		local pid = C.getpid()
-		print("KILL", C.kill(pid, 15))
+		C.kill(pid, C.SIGTERM)
+		assert.equal(r1:recv(), C.SIGTERM)
 
-		local ev_out, n = poller:poll(0)
-		print(n, ev_out)
+		r1:close()
+		C.kill(pid, C.SIGALRM)
+		assert.equal(r2:recv(), C.SIGALRM)
 
+		r2:close()
+
+		assert.same(h.signal.registered, {})
+		assert.same(h.signal.reverse, {})
+
+		-- C.kill(pid, C.SIGALRM)
 	end,
 }

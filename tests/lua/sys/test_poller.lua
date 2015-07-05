@@ -21,7 +21,7 @@ return {
 
 		local events, n = poller:poll()
 		assert.equal(n, 1)
-		assert.same({w, false, true, false}, {events[0]:value()})
+		assert.same({w, false, false, false, true, false}, {events[0]:value()})
 
 		local events, n = poller:poll(rel_to_abs(100))
 		assert.equal(n, 0)
@@ -29,13 +29,13 @@ return {
 		sys.os.write(w, "foo")
 		local events, n = poller:poll()
 		assert(n <= 2)
-		assert.same({r, true, false, false}, {events[n-1]:value()})
+		assert.same({r, false, false, true, false, false}, {events[n-1]:value()})
 
 
 		sys.os.close(w)
 		local events, n = poller:poll()
 		assert.equal(n, 1)
-		assert.same({r, true, false, true}, {events[0]:value()})
+		assert.same({r, false, false, true, false, true}, {events[0]:value()})
 
 		poller:unregister(r, true)
 		poller:unregister(w, false, true)
