@@ -3,6 +3,8 @@ local Errno = require('levee.errno')
 
 ffi.cdef[[
 static const int EV_POLL_OUT_MAX = 64;
+static const int SIGNAL_MAX = 32;
+static const int SIZEOF_SIGNALFD_SIGINFO = 128;
 
 typedef struct epoll_event LeveePollerEvent;
 
@@ -11,21 +13,40 @@ struct LeveePoller {
 	int tmp[1];
 	struct timeval tv;
 	struct epoll_event ev[EV_POLL_OUT_MAX];
+	int sigs[SIGNAL_MAX];
+	char buf[SIZEOF_SIGNALFD_SIGINFO];
 };
 ]]
 
 local C = ffi.C
+
+local LEVEE_POLL_MASK    = 0x0FFFFFFFFULL
+local LEVEE_POLL_CHANNEL = 0x100000000ULL
+local LEVEE_POLL_SIGNAL  = 0x200000000ULL
 
 
 local Event = {}
 Event.__index = Event
 
 function Event:value()
-	local fd = tonumber(self.data.fd)
-	local r = bit.band(self.events, C.EPOLLIN) > 0
-	local w = bit.band(self.events, C.EPOLLOUT) > 0
-	local e = bit.band(self.events, bit.bor(C.EPOLLERR, C.EPOLLHUP)) > 0
-	return fd, r, w, e
+
+	if bit.band(LEVEE_POLL_CHANNEL, self.data.u64) > 0 then
+		-- channel
+		return nil, true
+
+	elseif bit.band(LEVEE_POLL_SIGNAL, self.data.u64) > 0 then
+		-- signal
+		local no = bit.band(LEVEE_POLL_MASK, self.data.u64)
+		return tonumber(no), false, true
+
+	else
+		-- io
+		local fd = tonumber(self.data.fd)
+		local r = bit.band(self.events, C.EPOLLIN) > 0
+		local w = bit.band(self.events, C.EPOLLOUT) > 0
+		local e = bit.band(self.events, bit.bor(C.EPOLLERR, C.EPOLLHUP)) > 0
+		return fd, false, false, r, w, e
+	end
 end
 
 ffi.metatype("LeveePollerEvent", Event)
@@ -52,6 +73,49 @@ function Poller:__gc()
 end
 
 
+function Poller:signal_register(no)
+	assert(self.sigs[no] == 0)
+
+	local sigset = ffi.new("sigset_t[1]")
+	local rc = C.sigaddset(sigset, no)
+	assert(rc == 0)
+
+	local fd = C.signalfd(-1, sigset, 0)
+	assert(fd > 0)
+	self.sigs[no] = fd
+
+	local ev = self.ev[0]
+	ev.events = bit.bor(C.EPOLLET, C.EPOLLERR, C.EPOLLHUP, C.EPOLLIN)
+	ev.data.u64 = bit.bor(LEVEE_POLL_SIGNAL, no)
+	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_ADD, fd, ev)
+	if rc < 0 then Errno:error("epoll_ctl") end
+
+	local rc = C.sigprocmask(C.SIG_BLOCK, sigset, nil)
+	assert(rc == 0)
+end
+
+
+function Poller:signal_unregister(no)
+	assert(self.sigs[no] > 0)
+
+	local sigset = ffi.new("sigset_t[1]")
+	local rc = C.sigaddset(sigset, no)
+	assert(rc == 0)
+
+	local rc = C.sigprocmask(C.SIG_UNBLOCK, sigset, nil)
+	assert(rc == 0)
+
+	C.close(self.sigs[no])
+	self.sigs[no] = 0
+end
+
+
+function Poller:signal_clear(no)
+	assert(self.sigs[no] > 0)
+	C.read(self.sigs[no], self.buf, C.SIZEOF_SIGNALFD_SIGINFO)
+end
+
+
 function Poller:register(fd, r, w)
 	local ev = self.ev[0]
 	ev.events = bit.bor(C.EPOLLET, C.EPOLLERR, C.EPOLLHUP)
@@ -61,7 +125,7 @@ function Poller:register(fd, r, w)
 	if w then
 		ev.events = bit.bor(ev.events, C.EPOLLOUT)
 	end
-	ev.data.fd = fd
+	ev.data.u64 = fd
 	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_ADD, fd, ev)
 	if rc < 0 then Errno:error("epoll_ctl") end
 end

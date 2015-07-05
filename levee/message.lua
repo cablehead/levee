@@ -168,6 +168,10 @@ function Queue_mt:close()
 	elseif #self.fifo > 0 then
 		self.fifo:push(nil)
 	end
+
+	if self.on_close then
+		self.on_close(self)
+	end
 end
 
 

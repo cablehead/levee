@@ -25,9 +25,7 @@ function State_mt:recv()
 end
 
 
-function State_mt:set(err)
-	local value = err and -1 or 1
-
+function State_mt:set(value)
 	if not self.co then
 		self.value = value
 		return
@@ -49,6 +47,59 @@ local function State(hub)
 	return self
 end
 
+
+local Signal_mt = {}
+Signal_mt.__index = Signal_mt
+
+
+function Signal_mt:__call(...)
+	local recver = self.hub:queue()
+	self.reverse[recver] = {}
+
+	local sigs = {...}
+	for i = 1, #sigs do
+		local no = sigs[i]
+
+		if not self.registered[no] then
+			self.hub.poller:signal_register(no)
+			self.registered[no] = {}
+		end
+
+		self.registered[no][recver] = 1
+		table.insert(self.reverse[recver], no)
+	end
+
+	recver.on_close = function(recver) self:unregister(recver) end
+	return recver
+end
+
+
+function Signal_mt:unregister(recver)
+	local sigs = self.reverse[recver]
+	for i = 1, #sigs do
+		local no = sigs[i]
+		self.registered[no][recver] = nil
+
+		if not next(self.registered[no]) then
+			self.hub.poller:signal_unregister(no)
+			self.registered[no] = nil
+		end
+	end
+	self.reverse[recver]= nil
+end
+
+
+function Signal_mt:trigger(no)
+	self.hub.poller:signal_clear(no)
+	for recver, _ in pairs(self.registered[no]) do
+		recver:send(no)
+	end
+end
+
+
+local function Signal(hub)
+	return setmetatable({hub = hub, registered = {}, reverse = {}}, Signal_mt)
+end
 
 
 local Hub_mt = {}
@@ -141,8 +192,8 @@ function Hub_mt:unregister(no, r, w)
 		-- fd close
 		self.poller:unregister(no, r, w)
 
-		if r[1] then r[1]:set(true) end
-		if r[2] then r[2]:set(true) end
+		if r[1] then r[1]:set(-1) end
+		if r[2] then r[2]:set(-1) end
 		self.registered[no] = nil
 	end
 end
@@ -152,7 +203,6 @@ end
 function Hub_mt:channel()
 	if self.chan == nil then
 		self.chan = Channel(self)
-		self.chan_id = self.chan:event_id()
 	end
 	return self.chan
 end
@@ -191,14 +241,19 @@ function Hub_mt:pump()
 	end
 
 	for i = 0, n - 1 do
-		local no, r_ev, w_ev, e_ev = events[i]:value()
-		if no == self.chan_id then
+		local no, c_ev, s_ev, r_ev, w_ev, e_ev = events[i]:value()
+
+		if c_ev then
 			self.chan:pump()
+
+		elseif s_ev then
+			self.signal:trigger(no)
+
 		else
 			local r = self.registered[no]
 			if r then
-				if r_ev then r[1]:set(e_ev) end
-				if w_ev then r[2]:set(e_ev) end
+				if r_ev then r[1]:set(e_ev and -1 or 1) end
+				if w_ev then r[2]:set(e_ev and -1 or 1) end
 			end
 		end
 	end
@@ -217,6 +272,9 @@ local function Hub()
 
 	self.ready = FIFO()
 	self.scheduled = Heap()
+
+	self.signal = Signal(self)
+
 	self.registered = {}
 	self.poller = sys.poller()
 	self.closing = {}
@@ -230,6 +288,7 @@ local function Hub()
 	self.http = require("levee.http")(self)
 	self.thread = require("levee.thread")(self)
 
+	-- TODO: remove - this isn't right
 	self.is_linux = ffi.os:lower() == "linux"
 
 	return self

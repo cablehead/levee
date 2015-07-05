@@ -45,7 +45,7 @@ init (LeveeChan *self)
 
 	struct epoll_event ev = {
 		.events = EPOLLIN | EPOLLET | EPOLLERR | EPOLLHUP,
-		.data = { .fd = self->chan_id }
+		.data = { .u64 = LEVEE_POLL_CHANNEL }
 	};
 	if (epoll_ctl (self->loopfd, EPOLL_CTL_ADD, self->chan_id, &ev) < 0) {
 		close (self->chan_id);

@@ -27,6 +27,10 @@
 #include "chan.h"
 #include "lua.h"
 
+#define LEVEE_POLL_MASK    (1ULL << 32) - 1
+#define LEVEE_POLL_CHANNEL (1ULL << 32)
+#define LEVEE_POLL_SIGNAL  (1ULL << 32) + 1
+
 struct Levee {
 	lua_State *L;
 	pthread_t thread;
