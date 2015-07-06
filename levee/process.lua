@@ -63,6 +63,7 @@ function M_mt:poweron()
 	end)
 end
 
+
 function M_mt:spawn(name, options)
 	options = options or {}
 	local io = options.io or {}
@@ -130,6 +131,11 @@ function M_mt:spawn(name, options)
 		local st = sys.os.fstat(no)
 		if st then C.close(no) end
 	end
+
+	-- clear blocked signals
+	-- local sigset = ffi.new("sigset_t[1]")
+	-- local rc = C.sigprocmask(C.SIG_SETMASK, sigset, nil)
+	-- assert(rc == 0)
 
 	local argv = options.argv or {}
 	table.insert(argv, 1, name)
