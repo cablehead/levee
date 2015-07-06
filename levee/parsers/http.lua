@@ -2,46 +2,46 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
-local HTTPParser = {}
-HTTPParser.__index = HTTPParser
+local HTTP_mt = {}
+HTTP_mt.__index = HTTP_mt
 
 
-function HTTPParser:__new()
+function HTTP_mt:__new()
 	return ffi.new(self)
 end
 
 
-function HTTPParser:__tostring()
+function HTTP_mt:__tostring()
 	return string.format(
-		"levee.HTTPParser: %s", self.response and "response" or "request")
+		"levee.parsers.HTTP: %s", self.response and "response" or "request")
 end
 
 
-function HTTPParser:init_request()
+function HTTP_mt:init_request()
 	return C.sp_http_init_request(self)
 end
 
 
-function HTTPParser:init_response()
+function HTTP_mt:init_response()
 	return C.sp_http_init_response(self)
 end
 
 
-function HTTPParser:reset()
+function HTTP_mt:reset()
 	return C.sp_http_reset(self)
 end
 
 
-function HTTPParser:next(buf, len)
+function HTTP_mt:next(buf, len)
 	return C.sp_http_next(self, buf, len)
 end
 
-function HTTPParser:is_done()
+function HTTP_mt:is_done()
 	return C.sp_http_is_done(self)
 end
 
 
-function HTTPParser:has_value()
+function HTTP_mt:has_value()
 	return
 		self.type == C.SP_HTTP_REQUEST or
 		self.type == C.SP_HTTP_RESPONSE or
@@ -51,7 +51,7 @@ function HTTPParser:has_value()
 end
 
 
-function HTTPParser:value(buf)
+function HTTP_mt:value(buf)
 	if self.type == C.SP_HTTP_REQUEST then
 		return
 			ffi.string(
@@ -85,7 +85,7 @@ function HTTPParser:value(buf)
 end
 
 
-local allocate = ffi.metatype("SpHttp", HTTPParser)
+local allocate = ffi.metatype("SpHttp", HTTP_mt)
 
 
 return {
