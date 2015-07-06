@@ -53,4 +53,13 @@ M.waitpid = function(pid, options)
 end
 
 
+if ffi.os:lower() == "linux" then
+	M.set_pdeathsig = function()
+		C.prctl(C.PR_SET_PDEATHSIG, C.SIGKILL, 0, 0, 0)
+	end
+else
+	M.set_pdeathsig = function() end
+end
+
+
 return M
