@@ -5,6 +5,14 @@ local errno = require("levee.errno")
 local sys = require("levee.sys")
 
 
+ffi.cdef[[
+struct LeveeDatagram {
+	struct LeveeBuffer *buffer;
+	struct sockaddr *addr;
+};
+]]
+
+
 local Socket_mt = {}
 Socket_mt.__index = Socket_mt
 
