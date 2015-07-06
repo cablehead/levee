@@ -129,7 +129,9 @@ function M_mt:spawn(name, options)
 
 	for no = 3, 65535 do
 		local st = sys.os.fstat(no)
-		if st then C.close(no) end
+		if st then
+			C.fcntl(no, C.F_SETFD, 1LL)  -- FD_CLOEXEC needs to be a long
+		end
 	end
 
 	-- clear blocked signals
