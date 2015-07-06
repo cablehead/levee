@@ -95,8 +95,9 @@ function Poller:signal_register(no)
 	if rc < 0 then Errno:error("kevent") end
 	self.ev_in_pos = 0
 
-	-- TODO: ugh, need to understand what ignore does
-	-- if SIGCHLD is ignored, it won't fire in kevent
+	-- don't ignore on SIGCHLD as that will cause the child to be reaped before
+	-- we see the signal
+	-- https://en.wikipedia.org/wiki/Child_process#End_of_life
 	if no ~= C.SIGCHLD then
 		C.signal(no, SIG_IGN)
 	end
