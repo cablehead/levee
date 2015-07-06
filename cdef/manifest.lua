@@ -52,11 +52,13 @@ local headers = {
 	include("channel", "channel"),
 	include("siphon", "common"),
 	include("siphon", "error"),
+	include("siphon", "utf8"),
 	include("siphon", "http"),
 	include("siphon", "uri"),
 	include("siphon", "hash"),
 	include("siphon", "rand"),
 	include("siphon", "bloom"),
+	include("siphon", "json"),
 	include("levee", "levee"),
 }
 

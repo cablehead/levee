@@ -146,4 +146,11 @@ function Buffer:take_s(len)
 end
 
 
+function Buffer:push_s(s)
+	self:ensure(#s)
+	ffi.copy(self:tail(), s)
+	self:bump(#s)
+end
+
+
 return ffi.metatype("struct LeveeBuffer", Buffer)
