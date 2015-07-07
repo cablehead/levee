@@ -56,23 +56,23 @@ function Json_mt:stream_next(conn, buf)
 end
 
 
-function Json_mt:stream_consume(conn, buf)
+function Json_mt:stream_value(conn, buf)
 	self:stream_next(conn, buf)
 
 	if self.type == C.SP_JSON_OBJECT then
 		local ob = {}
 		while true do
-			local key = self:stream_consume(conn, buf)
+			local key = self:stream_value(conn, buf)
 			if key == C.SP_JSON_OBJECT_END then
 				return ob
 			end
-			ob[key] = self:stream_consume(conn, buf)
+			ob[key] = self:stream_value(conn, buf)
 		end
 
 	elseif self.type == C.SP_JSON_ARRAY then
 		local arr = {}
 		while true do
-			local item = self:stream_consume(conn, buf)
+			local item = self:stream_value(conn, buf)
 			if item == C.SP_JSON_ARRAY_END then
 				return arr
 			end
@@ -92,8 +92,17 @@ function Json_mt:stream_consume(conn, buf)
 		return false
 
 	else
+		-- should only be SP_JSON_OBJECT_END and SP_JSON_ARRAY_END
 		return self.type
 	end
+end
+
+
+function Json_mt:stream_consume(conn, buf)
+	local value = self:stream_value(conn, buf)
+	assert(self:is_done())
+	self:reset()
+	return value
 end
 
 

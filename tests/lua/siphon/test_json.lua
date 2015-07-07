@@ -7,7 +7,8 @@ return {
 				'oo": "bar", "neste',
 				'd": {"alist": ',
 				'[1, 2, 3], "yes": tr',
-				'ue, "no": false}}', }}
+				'ue, "no": false}}{',
+				'"foo": "bar"}', }}
 		conn.__index = conn
 
 		function conn:readinto(buf)
@@ -33,5 +34,8 @@ return {
 				alist = {1, 2, 3},
 				yes = true,
 				no = false, } })
+
+		local got = parser:stream_consume(conn, buf)
+		assert.same(got, {foo = "bar"})
 	end,
 }
