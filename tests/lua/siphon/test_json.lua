@@ -30,10 +30,8 @@ return {
 		assert(ok)
 		assert.same(got, {
 			int = 3,
-			-- foo
-		  oo = "bar",
-			-- nested
-			d = {
+		  foo = "bar",
+			nested = {
 				alist = {1, 2, 3},
 				yes = true,
 				no = false, } })
