@@ -45,64 +45,74 @@ function Json_mt:stream_next(conn, buf)
 		buf:trim(n)
 		-- need to read more if SP_JSON_NONE
 		if self.type ~= C.SP_JSON_NONE then
-			return
+			return true
 		end
 	end
 
 	local n, err = conn:readinto(buf)
-	assert(n > 0)
+	if n <= 0 then
+		-- connection died
+		return false
+	end
 
 	return self:stream_next(conn, buf)
 end
 
 
 function Json_mt:stream_value(conn, buf)
-	self:stream_next(conn, buf)
+	if not self:stream_next(conn, buf) then
+		return
+	end
 
 	if self.type == C.SP_JSON_OBJECT then
 		local ob = {}
 		while true do
-			local key = self:stream_value(conn, buf)
+			local ok, key = self:stream_value(conn, buf)
+			if not ok then return end
 			if key == C.SP_JSON_OBJECT_END then
-				return ob
+				return true, ob
 			end
-			ob[key] = self:stream_value(conn, buf)
+			local ok, value = self:stream_value(conn, buf)
+			if not ok then return end
+			ob[key] = value
 		end
 
 	elseif self.type == C.SP_JSON_ARRAY then
 		local arr = {}
 		while true do
-			local item = self:stream_value(conn, buf)
+			local ok, item = self:stream_value(conn, buf)
+			if not ok then return end
 			if item == C.SP_JSON_ARRAY_END then
-				return arr
+				return true, arr
 			end
 			table.insert(arr, item)
 		end
 
 	elseif self.type == C.SP_JSON_NUMBER then
-		return self.number
+		return true, self.number
 
 	elseif self.type == C.SP_JSON_STRING then
-		return ffi.string(self.utf8.buf, self.utf8.len)
+		return true, ffi.string(self.utf8.buf, self.utf8.len)
 
 	elseif self.type == C.SP_JSON_TRUE then
-		return true
+		return true, true
 
 	elseif self.type == C.SP_JSON_FALSE then
-		return false
+		return true, false
 
 	else
 		-- should only be SP_JSON_OBJECT_END and SP_JSON_ARRAY_END
-		return self.type
+		return true, self.type
 	end
 end
 
 
 function Json_mt:stream_consume(conn, buf)
-	local value = self:stream_value(conn, buf)
+	local ok, value = self:stream_value(conn, buf)
+	if not ok then return end
 	assert(self:is_done())
 	self:reset()
-	return value
+	return true, value
 end
 
 

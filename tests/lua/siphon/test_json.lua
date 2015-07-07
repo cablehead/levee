@@ -13,7 +13,9 @@ return {
 
 		function conn:readinto(buf)
 			local s = table.remove(self.stream, 1)
-			assert(s)
+			if not s then
+				return -1
+			end
 			buf:push_s(s)
 			return #s
 		end
@@ -24,7 +26,8 @@ return {
 		local buf = levee.buffer(4096)
 		local parser = levee.json()
 
-		local got = parser:stream_consume(conn, buf)
+		local ok, got = parser:stream_consume(conn, buf)
+		assert(ok)
 		assert.same(got, {
 			int = 3,
 			-- foo
@@ -35,7 +38,11 @@ return {
 				yes = true,
 				no = false, } })
 
-		local got = parser:stream_consume(conn, buf)
+		local ok, got = parser:stream_consume(conn, buf)
+		assert(ok)
 		assert.same(got, {foo = "bar"})
+
+		local ok, got = parser:stream_consume(conn, buf)
+		assert(not ok)
 	end,
 }
