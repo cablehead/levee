@@ -182,7 +182,11 @@ function Hub_mt:pump()
 
 	local events, n = self.poller:poll(timeout)
 
-	if n == 0 and #self.ready == 0 then
+	while true do
+		local timeout = self.scheduled:peek()
+		if not timeout or self.poller:reltime(timeout) > 0 then
+			break
+		end
 		local ms, co = self.scheduled:pop()
 		self:_coresume(co)
 	end
