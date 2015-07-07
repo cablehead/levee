@@ -21,7 +21,8 @@ OBJS_COMMON := $(OBJ)/heap.o $(OBJ)/list.o $(OBJ)/chan.o
 OBJS_LEVEE := \
 	$(OBJS_COMMON) \
 	$(OBJ)/liblevee.o \
-	$(OBJ)/levee.o
+	$(OBJ)/levee.o \
+	$(OBJ)/main.o
 
 TESTS := $(patsubst $(PROJECT)/tests/c/%.c,%,$(wildcard $(TEST_SRC)/c/*.c))
 

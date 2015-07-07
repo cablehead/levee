@@ -119,7 +119,7 @@ end
 
 local preload_function_tmpl = [[
 int
-luaopen_%s (lua_State *L) {
+luaopen_levee_bundle (lua_State *L) {
 	lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
 
 %s
@@ -128,29 +128,33 @@ luaopen_%s (lua_State *L) {
 }
 ]]
 
-local function preload_function(name, files)
+local function preload_function(files)
 	local calls = {}
 	for i,file in ipairs(files) do
 		table.insert(calls, preload_call(file))
 	end
-	return preload_function_tmpl:format(name, table.concat(calls, "\n"))
+	return preload_function_tmpl:format(table.concat(calls, "\n"))
 end
 
 
-local function bundle(root, sub)
+local function bundle(root, sub, all)
 	-- TODO: make debug mode externally configurable
 	local files = loadall(root, sub, true)
-	for i,file in ipairs(files) do
+	for i, file in ipairs(files) do
 		print(loader_function(file))
+		table.insert(all, file)
 	end
-	print(preload_function(sub, files))
 end
 
 print('#include <lua.h>')
 print('#include <lauxlib.h>')
 print('#include <lualib.h>')
+
+local files = {}
+
 for i=1,#arg,2 do
 	if not arg[i+1] then break end
-	bundle(arg[i], arg[i+1])
+	bundle(arg[i], arg[i+1], files)
 end
 
+print(preload_function(files))

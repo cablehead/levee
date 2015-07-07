@@ -32,6 +32,9 @@ levee_create (void);
 extern void
 levee_destroy (Levee *self);
 
+extern void
+levee_report_error (Levee *self);
+
 extern bool
 levee_load_file (Levee *self, const char *path);
 

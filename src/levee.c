@@ -2,7 +2,6 @@
 #include <string.h>
 #include <err.h>
 #include <sysexits.h>
-#include <signal.h>
 #include <errno.h>
 #include <assert.h>
 #include <pthread.h>
@@ -12,8 +11,8 @@
 #include <lualib.h>
 
 #include "levee.h"
-
 #include "levee_cdef.h"
+
 
 #define LEVEE_LOCAL 0
 #define LEVEE_BG 1
@@ -27,7 +26,7 @@ struct Levee {
 };
 
 extern int
-luaopen_levee (lua_State *L);
+luaopen_levee_bundle (lua_State *L);
 
 Levee *
 levee_create (void)
@@ -38,7 +37,7 @@ levee_create (void)
 	}
 
 	luaL_openlibs (L);
-	luaopen_levee (L);
+	luaopen_levee_bundle (L);
 
 	// put ffi module on the stack
 	lua_getglobal (L, "require");
@@ -147,8 +146,8 @@ levee_get_error (Levee *self)
 	return ret;
 }
 
-static void
-report_error (Levee *self)
+void
+levee_report_error (Levee *self)
 {
 	assert (self != NULL);
 
@@ -339,25 +338,3 @@ levee_print_stack (Levee *self, const char *msg)
 	}
 	fprintf (stderr, "\n");  /* end the listing */
 }
-
-int
-main (int argc, const char *argv[])
-{
-	if (argc < 2) {
-		errx (EX_NOINPUT, "script required");
-	}
-
-	signal (SIGPIPE, SIG_IGN);
-
-	Levee *state = levee_create ();
-	levee_set_arg (state, argc-1, argv+1);
-
-	int rc = 0;
-	if (!levee_load_file (state, argv[1]) || !levee_run (state, 0, false)) {
-		report_error (state);
-		rc = EX_DATAERR;
-	}
-	levee_destroy (state);
-	return rc;
-}
-
