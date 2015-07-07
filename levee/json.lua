@@ -39,7 +39,9 @@ end
 
 function Json_mt:stream_next(conn, buf)
 	local n = self:next(false, buf:value())
-	if n < 0 then error(("parse error: %s"):format(self)) end
+	if n < 0 then
+		return false, "parse error"
+	end
 
 	if n > 0 then
 		buf:trim(n)
