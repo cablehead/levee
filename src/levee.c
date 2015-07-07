@@ -17,14 +17,6 @@
 #define LEVEE_LOCAL 0
 #define LEVEE_BG 1
 
-struct Levee {
-	lua_State *L;
-	pthread_t thread;
-	char *last_error;
-	int state;
-	int narg;
-};
-
 extern int
 luaopen_levee_bundle (lua_State *L);
 
