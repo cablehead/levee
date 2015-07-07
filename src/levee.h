@@ -8,7 +8,7 @@
 
 #ifdef __linux__
 # include <sys/epoll.h>
-# include <sys/event.h>
+# include <sys/eventfd.h>
 # define LEVEE_EPOLL
 #else
 # include <sys/event.h>

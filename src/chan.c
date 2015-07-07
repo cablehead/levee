@@ -1,6 +1,7 @@
 #include "chan.h"
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -36,7 +37,10 @@ static inline void
 notify (LeveeChan *self)
 {
 	int64_t id = self->chan_id;
-	write (self->chan_id, &id, sizeof id);
+	ssize_t n = write (self->chan_id, &id, sizeof id);
+	if (n < 0) {
+		fprintf (stderr, "failed to write to eventfd: %s\n", strerror (errno));
+	}
 }
 
 #elif defined(LEVEE_KQUEUE)

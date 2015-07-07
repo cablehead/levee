@@ -38,17 +38,18 @@ LUAJIT_ARG := \
 
 LUAJIT := $(LUAJIT_DST)/bin/luajit
 
-CFLAGS:= -Wall -Wextra -Werror -pedantic -std=c99 -O2 -pthread -fomit-frame-pointer -march=native \
+CFLAGS:= -Wall -Wextra -Werror -pedantic -std=gnu99 -O2 -fomit-frame-pointer -march=native \
 	-I$(PROJECT)/src \
 	-I$(PROJECT)/src/siphon/include \
 	-I$(TMP) \
 	-I$(LUAJIT_DST)/include/luajit-2.1
+LDFLAGS:= -pthread
 ifeq (Darwin,$(OS))
-  LDFLAGS:= $(LDFLAGS) -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
+  LDFLAGS:= $(LDFLAGS) -Wl,-force_load,$(BUILD)/siphon/libsiphon.a -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
 endif
 ifeq (Linux,$(OS))
-  CFLAGS:= $(CFLAGS) -D_BSD_SOURCE
-  LDFLAGS:= -Wl,-export-dynamic -lm -ldl
+  CFLAGS:= $(CFLAGS) -D_BSD_SOURCE -D_GNU_SOURCE
+  LDFLAGS:= $(LDFLAGS) -Wl,--whole-archive,$(BUILD)/siphon/libsiphon.a,--no-whole-archive -Wl,--export-dynamic -lm -ldl -static-libgcc
 endif
 
 all: $(BIN)/levee
@@ -72,11 +73,11 @@ luajit: $(LUAJIT) $(LUAJIT_DST)/lib/libluajit-5.1.a
 
 $(BIN)/levee: $(LUAJIT_DST)/lib/libluajit-5.1.a $(BUILD)/siphon/libsiphon.a $(OBJS_LEVEE)
 	@mkdir -p $(BIN)
-	$(CC) $(LDFLAGS) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a -Wl,-force_load,$(BUILD)/siphon/libsiphon.a -o $@
+	$(CC) $(OBJS_LEVEE) $(LUAJIT_DST)/lib/libluajit-5.1.a $(LDFLAGS) -o $@
 
 $(LIB)/levee.so: $(LUAJIT_DST)/lib/libluajit-5.1.a $(OBJS_LEVEE)
 	@mkdir -p $(LIB)
-	$(CC) $(LDFLAGS) -dynamic -lluajit-5.1 $(OBJS_LEVEE) -o $@
+	$(CC) -dynamic -lluajit-5.1 $(OBJS_LEVEE) $(LDFLAGS) -o $@
 
 $(OBJ)/%.o: $(SRC)/%.c
 	@mkdir -p $(OBJ)
