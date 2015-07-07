@@ -30,7 +30,7 @@ return {
 		assert(ok)
 		assert.same(got, {
 			int = 3,
-		  foo = "bar",
+			foo = "bar",
 			nested = {
 				alist = {1, 2, 3},
 				yes = true,
