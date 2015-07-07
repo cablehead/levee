@@ -643,8 +643,13 @@ HTTP_mt.__index = HTTP_mt
 function HTTP_mt:connect(port, host)
 	local m = setmetatable({}, Client_mt)
 
+	local conn, err = self.hub.tcp:connect(port, host)
+	if not conn then
+		return conn, err
+	end
+
 	m.hub = self.hub
-	m.conn = self.hub.tcp:connect(port, host)
+	m.conn = conn
 	m.parser = parsers.http.Response()
 	m.buf = buffer(64*1024)
 	m.iov = iovec.Iovec(32)

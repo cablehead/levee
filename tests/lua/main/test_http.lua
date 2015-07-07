@@ -267,5 +267,12 @@ return {
 		serve:close()
 		assert.same(h.registered, {})
 	end,
+
+	test_connect_fail = function()
+		local levee = require("levee")
+		local h = levee.Hub()
+		local conn, err = h.http:connect(50000)
+		assert(not conn)
+	end,
 }
 

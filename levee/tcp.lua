@@ -60,7 +60,10 @@ TCP_mt.__index = TCP_mt
 
 
 function TCP_mt:connect(port, host)
-	local no = sys.socket.connect(port, host or "127.0.0.1")
+	local no, err = sys.socket.connect(port, host or "127.0.0.1")
+	if not no then
+		return no, err
+	end
 	sys.os.nonblock(no)
 	return self.hub.io:rw(no)
 end
