@@ -1,4 +1,4 @@
-#!./build/bin/levee
+#!/usr/bin/env levee
 
 -- vim: set ft=lua:
 
@@ -14,7 +14,8 @@ end
 local path = dirname(arg[0])
 
 package.path = string.format(
-	'%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s', path, path, path, package.path)
+	'./?/init.lua;%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s',
+		path, path, path, package.path)
 
 local math = require('math')
 local io = require('io')
