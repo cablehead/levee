@@ -47,7 +47,7 @@ local function loadall(root, sub, debug)
 	local dir = root .. "/" .. sub
 	local match = "^" .. root .. "/(.+)/([^/]+).lua$"
 	local t = {}
-	for path in io.popen("find " .. dir .. " -name '*.lua'"):lines() do
+	for path in io.popen("find -L " .. dir .. " -name '*.lua'"):lines() do
 		local dir, name = path:match(match)
 		local f = loadinfo(path, dir, name, debug)
 		if f then
