@@ -5,7 +5,6 @@ return {
 		local h = levee.Hub()
 
 		local buf = levee.buffer(4096)
-
 		local serve = h.tcp:listen()
 
 		local c1 = h.tcp:connect(serve:addr():port())

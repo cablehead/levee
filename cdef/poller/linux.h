@@ -29,7 +29,7 @@ typedef union epoll_data {
 struct epoll_event {
 	uint32_t events;
 	epoll_data_t data;
-};
+} __attribute__((packed));
 
 extern int epoll_create1(int flags);
 extern int epoll_ctl(int epfd, int op, int fd, struct epoll_event *ev);

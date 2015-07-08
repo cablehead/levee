@@ -153,7 +153,6 @@ function Hub_mt:channel()
 	if self.chan == nil then
 		self.chan = Channel(self)
 		self.chan_id = self.chan:event_id()
-		self.poller:register(self.chan_id, true, false)
 	end
 	return self.chan
 end
@@ -230,6 +229,8 @@ local function Hub()
 	self.udp = require("levee.udp")(self)
 	self.http = require("levee.http")(self)
 	self.thread = require("levee.thread")(self)
+
+	self.is_linux = ffi.os:lower() == "linux"
 
 	return self
 end

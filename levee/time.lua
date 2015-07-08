@@ -387,13 +387,10 @@ local function try_iso8601(self, str)
 	self.base.tm_sec = tonumber(sec)
 	self.base.tm_isdst = -1
 	if tzh and tzm then
-		self.base.tm_gmtoff = tonumber(tzh)*60*60 + tonumber(tzm)*60
-		self.tv.tv_sec = C.mktime(self.base)
-	else
-		self.base.tm_gmtoff = 0
-		-- TODO improve timegm usage
-		self.tv.tv_sec = C.timegm(self.base)
+		self.base.tm_sec = self.base.tm_sec - tonumber(tzh)*60*60 + tonumber(tzm)*60
 	end
+	self.base.tm_gmtoff = 0
+	self.tv.tv_sec = C.timegm(self.base)
 	self.tv.tv_usec = tonumber(usec) or 0
 	return true
 end
