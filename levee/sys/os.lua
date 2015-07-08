@@ -16,12 +16,12 @@ local function nonblock(no)
 end
 
 
-local nonblock_child
+local nonblock_accept
 
 if ffi.os:lower() == "linux" then
-	nonblock_child = nonblock
+	nonblock_accept = nonblock
 else
-	nonblock_child = function() end
+	nonblock_accept = function() end
 end
 
 local function read(no, buf, len)
@@ -74,7 +74,7 @@ end
 
 return {
 	nonblock = nonblock,
-	nonblock_child = nonblock_child,
+	nonblock_accept = nonblock_accept,
 	read = read,
 	reads = reads,
 	write = write,

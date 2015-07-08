@@ -1,3 +1,4 @@
+local nonblock_accept = require("levee.sys.os").nonblock_accept
 local ffi = require("ffi")
 local C = ffi.C
 
@@ -53,6 +54,7 @@ local function accept(no)
 	if accepted < 0 then
 		return nil, ffi.errno()
 	end
+	nonblock_accept(accepted)
 	return accepted
 end
 
