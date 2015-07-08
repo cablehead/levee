@@ -153,7 +153,6 @@ function Hub_mt:channel()
 	if self.chan == nil then
 		self.chan = Channel(self)
 		self.chan_id = self.chan:event_id()
-		self.poller:register(self.chan_id, true, false)
 	end
 	return self.chan
 end
