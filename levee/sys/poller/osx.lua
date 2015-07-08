@@ -96,21 +96,22 @@ end
 
 
 function Poller:poll(timeout)
-	local ts
+	local ts = nil
 	if timeout then
 		if timeout > 0 then
 			local ms = self:reltime(timeout)
 			if ms < 0 then
-				return nil, 0
+				self.ts.tv_sec = 0
+				self.ts.tv_nsec = 0
+			else
+				self.ts.tv_sec = (ms / 1000LL)
+				self.ts.tv_nsec = (ms % 1000LL) * 1000000LL
 			end
-			self.ts.tv_sec = (ms / 1000LL)
-			self.ts.tv_nsec = (ms % 1000LL) * 1000000LL
-			ts = self.ts
 		else
 			self.ts.tv_sec = 0
 			self.ts.tv_nsec = 0
-			ts = self.ts
 		end
+		ts = self.ts
 	end
 
 	local n = C.kevent(

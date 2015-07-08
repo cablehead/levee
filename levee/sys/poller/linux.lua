@@ -9,6 +9,7 @@ typedef struct epoll_event LeveePollerEvent;
 struct LeveePoller {
 	int fd;
 	int tmp[1];
+	struct timeval tv;
 	struct epoll_event ev[EV_POLL_OUT_MAX];
 };
 ]]
@@ -67,18 +68,36 @@ end
 
 
 function Poller:unregister(fd)
-	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_DEL, fd, nil)
-	if rc >= 0 then
-		C.close(fd)
-	end
+	-- noop
 end
 
 
-function Poller:poll()
-	-- local n = C.epoll_wait(self.fd, self.ev, C.EV_POLL_OUT_MAX, -1)
-	local n = C.epoll_wait(self.fd, self.ev, 1, -1)
+function Poller:poll(timeout)
+	local ms = -1
+	if timeout then
+		if timeout > 0 then
+			ms = self:reltime(timeout)
+			if ms < 0 then
+				ms = 0
+			end
+		else
+			ms = 0
+		end
+	end
+	local n = C.epoll_wait(self.fd, self.ev, 1, ms)
 	if n < 0 then Errno:error("epoll_wait") end
+	C.gettimeofday(self.tv, nil)
 	return self.ev, n
+end
+
+
+function Poller:abstime(rel)
+	return rel + ((self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
+end
+
+
+function Poller:reltime(abs)
+	return abs - ((self.tv.tv_sec * 1000LL) + (self.tv.tv_usec / 1000LL))
 end
 
 
