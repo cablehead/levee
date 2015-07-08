@@ -33,6 +33,32 @@
 
 #if defined(LEVEE_EPOLL)
 
+static inline int
+init (LeveeChan *self)
+{
+	self->chan_id = eventfd (0, EFD_NONBLOCK);
+	if (self->chan_id < 0) {
+		return -1;
+	}
+
+	struct epoll_event ev = {
+		.events = EPOLLIN | EPOLLET | EPOLLERR | EPOLLHUP,
+		.data = { .fd = self->chan_id }
+	};
+	if (epoll_ctl (self->loopfd, EPOLL_CTL_ADD, self->chan_id, &ev) < 0) {
+		close (self->chan_id);
+		return -1;
+	}
+
+	return 0;
+}
+
+static inline void
+final (LeveeChan *self)
+{
+	close (self->chan_id);
+}
+
 static inline void
 notify (LeveeChan *self)
 {
@@ -46,6 +72,29 @@ notify (LeveeChan *self)
 #elif defined(LEVEE_KQUEUE)
 
 static int channel_id = 0;
+
+static inline int
+init (LeveeChan *self)
+{
+	self->chan_id = __sync_fetch_and_add (&channel_id, 1);
+	struct kevent kev = {
+		.ident = (uintptr_t)self->chan_id,
+		.filter = EVFILT_USER,
+		.flags = EV_ADD | EV_CLEAR,
+	};
+	return kevent (self->loopfd, &kev, 1, NULL, 0, NULL);
+}
+
+static inline void
+final (LeveeChan *self)
+{
+	struct kevent kev = {
+		.ident = (uintptr_t)self->chan_id,
+		.filter = EVFILT_USER,
+		.flags = EV_DELETE,
+	};
+	kevent (self->loopfd, &kev, 1, NULL, 0, NULL);
+}
 
 static inline void
 notify (LeveeChan *self)
@@ -105,33 +154,10 @@ levee_chan_create (LeveeChan **chan, int loopfd)
 	self->loopfd = loopfd;
 	self->send_head = NULL;
 
-#ifdef LEVEE_EPOLL
-	self->chan_id = eventfd (0, EFD_NONBLOCK);
-	if (self->chan_id < 0) {
+	if (init (self) < 0) {
 		free (self);
 		return -1;
 	}
-
-	struct epoll_event ev;
-	ev.events = EPOLLIN;
-	ev.data.fd = self->chan_id;
-	if (epoll_ctl (loopfd, EPOLL_CTL_ADD, self->chan_id, &ev) < 0) {
-		close (self->chan_id);
-		free (self);
-		return -1;
-	}
-#else
-	self->chan_id = __sync_fetch_and_add (&channel_id, 1);
-	struct kevent kev = {
-		.ident = (uintptr_t)self->chan_id,
-		.filter = EVFILT_USER,
-		.flags = EV_ADD | EV_CLEAR,
-	};
-	if (kevent (loopfd, &kev, 1, NULL, 0, NULL) < 0) {
-		free (self);
-		return -1;
-	}
-#endif
 
 	*chan = self;
 	return 0;
@@ -211,6 +237,7 @@ again:
 		send = next;
 	}
 
+	final (ch);
 	free (ch);
 }
 
@@ -415,6 +442,13 @@ levee_chan_recv (LeveeChan **self)
 	LeveeChanNode *node = NULL;
 	LeveeChan *chan = levee_chan_ref (self);
 	if (chan != NULL) {
+#if defined(LEVEE_EPOLL)
+		int64_t id;
+		ssize_t n = read (chan->chan_id, &id, sizeof id);
+		if (n < 0) {
+			fprintf (stderr, "failed to read to eventfd: %s\n", strerror (errno));
+		}
+#endif
 		LeveeNode *tail = levee_list_drain (&chan->msg, false);
 
 		// reverse the list and register any connect messages
