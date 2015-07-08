@@ -4,6 +4,7 @@ static const int AF_INET6 = PF_INET6;
 static const int SOL_SOCKET    = 1;
 static const int SO_REUSEADDR  = 2;
 static const int SO_ACCEPTCONN = 30;
+static const int SO_DOMAIN     = 39;
 
 typedef uint16_t sa_family_t;
 
