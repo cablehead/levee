@@ -1,2 +1,4 @@
 return {
-	http = require("levee.parsers.http"), }
+	http = require("levee.parsers.http"),
+	uri = require("levee.parsers.uri"),
+}

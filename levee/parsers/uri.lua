@@ -9,7 +9,7 @@ struct LeveeURI {
 ]]
 
 
-local names = {
+local module = {
 	scheme = C.SP_URI_SCHEME,
 	user = C.SP_URI_USER,
 	password = C.SP_URI_PASSWORD,
@@ -21,6 +21,7 @@ local names = {
 }
 
 
+local URI
 local URI_mt = {}
 URI_mt.__index = URI_mt
 
@@ -32,35 +33,59 @@ end
 
 function URI_mt:parse(str, len)
 	local len = C.sp_uri_parse(self.base, str, len or #str)
-	return len > 0
+	return len >= 0
 end
 
 
-function URI_mt:sub(first, last)
-	if not first then
-		first = C.SP_URI_SEGMENT_FIRST
-		last = C.SP_URI_SEGMENT_LAST
-	elseif not last then
-		if type(first) == "string" then
-			first = names[first]
-		end
-		if C.sp_uri_range(self.base, first, first, self.rng) == 0 then
-			return tonumber(self.rng.off+1), tonumber(self.rng.off+self.rng.len)
-		end
+function URI_mt:sub(first, last, valid)
+	local rc
+	if valid then
+		rc = C.sp_uri_sub(self.base, first, last, self.rng)
 	else
-		if type(first) == "string" then
-			first = names[first]
-		end
-		if type(last) == "string" then
-			last = names[last]
-		end
+		rc = C.sp_uri_range(self.base, first, last, self.rng)
 	end
-	if C.sp_uri_sub(self.base, first, last, self.rng) == 0 then
-		return tonumber(self.rng.off+1), tonumber(self.rng.off+self.rng.len)
+	if rc >= 0 then
+		return
+			tonumber(self.rng.off+1),
+			tonumber(self.rng.off+self.rng.len)
 	end
 end
 
 
-local URI = ffi.metatype("struct LeveeURI", URI_mt)
+function URI_mt:segment(seg)
+	if C.sp_uri_has_segment(self.base, seg) then
+		return
+			tonumber(self.base.seg[seg].off+1),
+			tonumber(self.base.seg[seg].off+self.base.seg[seg].len)
+	end
+end
 
-return URI
+
+function URI_mt:join_parser(self_str, other_par, other_str)
+	local out = URI()
+	local len = #self_str + #other_str
+	local buf = ffi.new("char [?]", len)
+
+	len = C.sp_uri_join(
+		self.base, self_str,
+		other_par.base, other_str,
+		out.base, buf, len)
+
+	if len >= 0 then
+		return out, ffi.string(ffi.cast("void *", buf), len)
+	end
+end
+
+
+function URI_mt:join_string(self_str, other_str)
+	local other_par = URI()
+	if C.sp_uri_parse(other_par.base, other_str, #other_str) >= 0 then
+		return self:join_parser(self_str, other_par, other_str)
+	end
+end
+
+
+URI = ffi.metatype("struct LeveeURI", URI_mt)
+
+module.URI = URI
+return module
