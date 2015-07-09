@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <pthread.h>
+#include <sys/socket.h>
 
 #ifdef __linux__
 # include <sys/sendfile.h>

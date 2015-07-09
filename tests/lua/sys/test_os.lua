@@ -14,13 +14,5 @@ return {
 		local st = sys.os.fstat(no)
 		assert(st.st_size > 0)
 		assert(bit.band(st.st_mode, C.S_IFREG) ~= 0)
-
-		local r, w = sys.os.pipe()
-
-		local n = C.levee_sendfile(w, no, 0, st.st_size)
-		assert.equal(n, st.st_size)
-
-		local s = sys.os.reads(r, 4096)
-		assert.equal(#s, st.st_size)
 	end,
 }
