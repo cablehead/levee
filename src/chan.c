@@ -149,10 +149,10 @@ levee_chan_create (LeveeChan **chan, int loopfd)
 	}
 
 	levee_list_init (&self->msg);
+	levee_list_init (&self->senders);
 	self->ref = 1;
 	self->recv_id = 0;
 	self->loopfd = loopfd;
-	self->send_head = NULL;
 
 	if (init (self) < 0) {
 		free (self);
@@ -230,15 +230,40 @@ again:
 		node = next;
 	}
 
-	LeveeChanSender *send = ch->send_head;
-	while (send != NULL) {
-		LeveeChanSender *next = send->next;
-		levee_chan_sender_unref (send);
-		send = next;
-	}
-
 	final (ch);
 	free (ch);
+}
+
+void
+levee_chan_close (LeveeChan **self)
+{
+	assert (self != NULL);
+
+	LeveeChan *ch = levee_chan_ref (self);
+	if (ch == NULL) {
+		return;
+	}
+
+	int id = ch->chan_id;
+	if (id == -1) {
+		goto out;
+	}
+
+	if (!__sync_bool_compare_and_swap (&ch->chan_id, id, -1)) {
+		goto out;
+	}
+
+	close (id);
+
+	LeveeNode *node = levee_list_drain (&ch->senders, false);
+	while (node != NULL) {
+		LeveeNode *next = node->next;
+		levee_chan_sender_unref (container_of (node, LeveeChanSender, node));
+		node = next;
+	}
+
+out:
+	levee_chan_unref (self);
 }
 
 int
@@ -284,7 +309,7 @@ levee_chan_sender_create (LeveeChan **self, int64_t recv_id)
 		goto out;
 	}
 
-	snd->next = NULL;
+	snd->node.next = NULL;
 	snd->chan = self;
 	snd->ref = 1;
 	snd->recv_id = recv_id;
@@ -458,8 +483,7 @@ levee_chan_recv (LeveeChan **self)
 			do {
 				LeveeChanNode *n = container_of (root, LeveeChanNode, base);
 				if (n->type == LEVEE_CHAN_SND) {
-					n->as.sender->next = chan->send_head;
-					chan->send_head = n->as.sender;
+					levee_list_push (&chan->senders, &n->as.sender->node);
 				}
 				next = root->next;
 				root->next = tail;

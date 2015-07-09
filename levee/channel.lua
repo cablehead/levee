@@ -108,6 +108,11 @@ function Channel_mt:event_id()
 end
 
 
+function Channel_mt:close()
+	C.levee_chan_close(self.chan)
+end
+
+
 -- TODO: what would be a better name?
 function Channel_mt:bind()
 	local id = tonumber(C.levee_chan_next_recv_id(self.chan))
