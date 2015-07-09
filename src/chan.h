@@ -36,8 +36,7 @@ typedef struct {
 } LeveeChanNode;
 
 struct LeveeChan {
-	LeveeList msg;
-	LeveeChanSender *send_head;
+	LeveeList msg, senders;
 	int64_t ref;
 	int64_t recv_id;
 	int loopfd;
@@ -45,7 +44,7 @@ struct LeveeChan {
 };
 
 struct LeveeChanSender {
-	LeveeChanSender *next;
+	LeveeNode node;
 	LeveeChan **chan;
 	int64_t ref;
 	int64_t recv_id;
@@ -60,6 +59,9 @@ levee_chan_ref (LeveeChan **self);
 
 extern void
 levee_chan_unref (LeveeChan **self);
+
+extern void
+levee_chan_close (LeveeChan **self);
 
 extern int
 levee_chan_event_id (LeveeChan **self);

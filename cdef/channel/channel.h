@@ -55,6 +55,9 @@ levee_chan_ref (LeveeChan **self);
 extern void
 levee_chan_unref (LeveeChan **self);
 
+extern void
+levee_chan_close (LeveeChan **self);
+
 extern int
 levee_chan_event_id (LeveeChan **self);
 
