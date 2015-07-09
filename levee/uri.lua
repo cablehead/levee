@@ -6,7 +6,7 @@ local URI_mt = {}
 
 local ranges = {
 	userinfo = { uriparser.user, uriparser.password, false },
-	netloc = { uriparser.user, uriparser.port, false }
+	authority = { uriparser.user, uriparser.port, false }
 }
 
 
