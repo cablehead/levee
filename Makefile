@@ -2,7 +2,7 @@ PREFIX := /usr/local
 
 OS := $(shell uname)
 PROJECT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-BUILD ?= $(PROJECT)/build
+BUILD ?= $(PROJECT)/build/legacy
 
 SRC := $(PROJECT)/src
 OBJ := $(BUILD)/obj
@@ -43,13 +43,12 @@ CFLAGS:= -Wall -Wextra -Werror -pedantic -std=gnu99 -O2 -fomit-frame-pointer -ma
 	-I$(PROJECT)/src/siphon/include \
 	-I$(TMP) \
 	-I$(LUAJIT_DST)/include/luajit-2.1
-LDFLAGS:= -pthread
 ifeq (Darwin,$(OS))
-  LDFLAGS:= $(LDFLAGS) -Wl,-force_load,$(BUILD)/siphon/libsiphon.a -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
+  LDFLAGS:= -Wl,-force_load,$(BUILD)/siphon/libsiphon.a -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic
 endif
 ifeq (Linux,$(OS))
   CFLAGS:= $(CFLAGS) -D_BSD_SOURCE -D_GNU_SOURCE
-  LDFLAGS:= $(LDFLAGS) -Wl,--whole-archive,$(BUILD)/siphon/libsiphon.a,--no-whole-archive -Wl,--export-dynamic -lm -ldl -static-libgcc
+  LDFLAGS:= -pthread -Wl,--whole-archive,$(BUILD)/siphon/libsiphon.a,--no-whole-archive -Wl,--export-dynamic -lm -ldl -static-libgcc
 endif
 
 all: $(BIN)/levee
@@ -90,13 +89,11 @@ $(OBJ)/%.o: $(TMP)/%.c
 $(TMP)/liblevee.c: $(LUAJIT) $(TMP)/levee_cdef.h $(PROJECT)/bin/bundle.lua \
 		$(shell find $(PROJECT)/levee -type f)
 	@mkdir -p $(TMP)
-	$(LUAJIT) $(PROJECT)/bin/bundle.lua $(PROJECT) levee > $@
+	$(LUAJIT) $(PROJECT)/bin/bundle.lua $@ $(PROJECT) levee
 
 $(TMP)/levee_cdef.h: $(LUAJIT) $(shell find $(PROJECT)/cdef -type f)
 	@mkdir -p $(TMP)
-	echo "const char levee_cdef[] = {" > $@
-	$(LUAJIT) $(PROJECT)/cdef/manifest.lua | xxd -i >> $@
-	echo ", 0};" >> $@
+	$(LUAJIT) $(PROJECT)/cdef/manifest.lua $@
 
 $(BUILD)/siphon/Makefile:
 	@mkdir -p $(BUILD)/siphon

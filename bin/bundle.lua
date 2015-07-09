@@ -1,5 +1,16 @@
 local ffi = require('ffi')
+local io = require('io')
 local uname = ffi.os:lower()
+
+local out
+if arg[1] == "-" then
+	out = io.stdout
+else
+	out = io.open(arg[1], "w")
+	if out == nil then
+		error("failed to open '"..arg[1].."' for writing")
+	end
+end
 
 local function check(ok, ...)
 	if ok then return ok, ... end
@@ -58,8 +69,7 @@ local function loadall(root, sub, debug)
 end
 
 
-local function bytecode_array(file)
-	local s = file.bytecode
+local function bytearray(s, indent)
 	local bytes, lines = {}, {}
 	local n, m = 0, 0
 	for i=1,#s do
@@ -73,7 +83,12 @@ local function bytecode_array(file)
 		bytes[n] = byte
 	end
 	table.insert(lines, table.concat(bytes, ",", 1, n))
-	return table.concat(lines, ",\n\t\t")
+	return table.concat(lines, ",\n" .. indent)
+end
+
+
+local function bytecode_array(file)
+	return bytearray(file.bytecode, "\t\t")
 end
 
 
@@ -141,20 +156,22 @@ local function bundle(root, sub, all)
 	-- TODO: make debug mode externally configurable
 	local files = loadall(root, sub, true)
 	for i, file in ipairs(files) do
-		print(loader_function(file))
+		out:write(loader_function(file))
+		out:write("\n")
 		table.insert(all, file)
 	end
 end
 
-print('#include <lua.h>')
-print('#include <lauxlib.h>')
-print('#include <lualib.h>')
+out:write('#include <lua.h>\n')
+out:write('#include <lauxlib.h>\n')
+out:write('#include <lualib.h>\n')
 
 local files = {}
 
-for i=1,#arg,2 do
+for i=2,#arg,2 do
 	if not arg[i+1] then break end
 	bundle(arg[i], arg[i+1], files)
 end
 
-print(preload_function(files))
+out:write(preload_function(files))
+out:write("\n")
