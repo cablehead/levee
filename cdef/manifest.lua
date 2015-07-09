@@ -1,4 +1,6 @@
 local ffi = require("ffi")
+local os = require("os")
+local io = require("io")
 
 function dirname(str)
 	if str:match(".-/.-") then
@@ -62,4 +64,15 @@ local headers = {
 	include("levee", "levee"),
 }
 
-print(table.concat(headers, "\n"))
+io.write("const char levee_cdef[] =\n\t\"")
+local n = 0
+for _,hdr in ipairs(headers) do
+	for i=1,#hdr do
+		if n > 0 and n % 20 == 0 then
+			io.write("\"\n\t\"")
+		end
+		io.write(string.format("\\x%02x", string.byte(hdr, i)))
+		n = n + 1
+	end
+end
+print("\";")
