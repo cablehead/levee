@@ -6,9 +6,9 @@ set(SIPHON_INC "${SIPHON_DIR}/include")
 
 externalproject_add(siphon_project
 	GIT_REPOSITORY git@github.com:imgix/siphon.git
-	GIT_TAG 7eea26a
+	GIT_TAG 81f451f
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/siphon_project"
-	UPDATE_COMMAND ""
+	UPDATE_COMMAND git pull origin master
 	CMAKE_ARGS
 		"-G${CMAKE_GENERATOR}"
 		"-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"

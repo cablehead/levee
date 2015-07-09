@@ -9,7 +9,7 @@ externalproject_add(luajit_project
 	GIT_REPOSITORY http://luajit.org/git/luajit-2.0.git
 	GIT_TAG 28d8728
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/luajit_project"
-	UPDATE_COMMAND ""
+	UPDATE_COMMAND git pull origin master
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND make
 		XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT
