@@ -13,26 +13,26 @@ struct LeveeBuffer {
 
 local C = ffi.C
 
-local Buffer = {}
-Buffer.__index = Buffer
+local Buffer_mt = {}
+Buffer_mt.__index = Buffer_mt
 
 
-function Buffer:__new(hint)
+function Buffer_mt:__new(hint)
 	return ffi.new(self):ensure(hint or 0)
 end
 
 
-function Buffer:__tostring()
+function Buffer_mt:__tostring()
 	return string.format("levee.Buffer: off=%u, len=%u, cap=%u", self.off, self.len, self.cap)
 end
 
 
-function Buffer:__len()
+function Buffer_mt:__len()
 	return self.len
 end
 
 
-function Buffer:ensure(hint)
+function Buffer_mt:ensure(hint)
 	local cap = self.len + hint
 
 	if cap <= self.cap then
@@ -89,12 +89,12 @@ function Buffer:ensure(hint)
 end
 
 
-function Buffer:available()
+function Buffer_mt:available()
 	return self.cap - (self.off + self.len)
 end
 
 
-function Buffer:trim(len)
+function Buffer_mt:trim(len)
 	if not len or len >= self.len then
 		local ret = self.len
 		self.off = 0
@@ -108,27 +108,27 @@ function Buffer:trim(len)
 end
 
 
-function Buffer:bump(len)
+function Buffer_mt:bump(len)
 	self.len = self.len + len
 end
 
 
-function Buffer:slice(len)
+function Buffer_mt:slice(len)
 	return self.buf + self.off, len < self.len and len or self.len
 end
 
 
-function Buffer:value()
+function Buffer_mt:value()
 	return self.buf + self.off, self.len
 end
 
 
-function Buffer:tail()
+function Buffer_mt:tail()
 	return self.buf + self.off + self.len, self:available()
 end
 
 
-function Buffer:peek_s(len)
+function Buffer_mt:peek_s(len)
 	if len then
 		len = len < self.len and len or self.len
 	else
@@ -139,18 +139,18 @@ function Buffer:peek_s(len)
 end
 
 
-function Buffer:take_s(len)
+function Buffer_mt:take_s(len)
 	local value = self:peek_s(len)
 	self:trim(#value)
 	return value
 end
 
 
-function Buffer:push_s(s)
+function Buffer_mt:push_s(s)
 	self:ensure(#s)
 	ffi.copy(self:tail(), s)
 	self:bump(#s)
 end
 
 
-return ffi.metatype("struct LeveeBuffer", Buffer)
+return ffi.metatype("struct LeveeBuffer", Buffer_mt)
