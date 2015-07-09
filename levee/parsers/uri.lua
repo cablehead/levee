@@ -33,7 +33,7 @@ end
 
 function URI_mt:parse(str, len)
 	local len = C.sp_uri_parse(self.base, str, len or #str)
-	return len > 0
+	return len >= 0
 end
 
 
@@ -44,7 +44,7 @@ function URI_mt:sub(first, last, valid)
 	else
 		rc = C.sp_uri_range(self.base, first, last, self.rng)
 	end
-	if rc == 0 then
+	if rc >= 0 then
 		return
 			tonumber(self.rng.off+1),
 			tonumber(self.rng.off+self.rng.len)
