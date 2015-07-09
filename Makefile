@@ -2,7 +2,7 @@ PREFIX := /usr/local
 
 OS := $(shell uname)
 PROJECT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-BUILD ?= $(PROJECT)/build
+BUILD ?= $(PROJECT)/build/legacy
 
 SRC := $(PROJECT)/src
 OBJ := $(BUILD)/obj
