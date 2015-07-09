@@ -1,7 +1,14 @@
 local ffi = require('ffi')
 local C = ffi.C
+local Data = require('levee.data')
 
 local message = require("levee.message")
+
+
+local ctype_ptr = ffi.typeof("struct LeveeData")
+local ctype_dbl = ffi.typeof("double")
+local ctype_u64 = ffi.typeof("uint64_t")
+local ctype_i64 = ffi.typeof("int64_t")
 
 
 local Recver_mt = {}
@@ -18,8 +25,18 @@ end
 
 
 function Recver_mt:pump(node)
-	if node.type == C.LEVEE_CHAN_I64 then
+	if node.type == C.LEVEE_CHAN_NIL then
+		self.queue:send(nil)
+	elseif node.type == C.LEVEE_CHAN_PTR then
+		local data = Data(node.as.ptr.val, node.as.ptr.len)
+		node.as.ptr.val = nil
+		self.queue:send(data)
+	elseif node.type == C.LEVEE_CHAN_DBL then
+		self.queue:send(tonumber(node.as.dbl))
+	elseif node.type == C.LEVEE_CHAN_I64 then
 		self.queue:send(node.as.i64)
+	elseif node.type == C.LEVEE_CHAN_U64 then
+		self.queue:send(node.as.u64)
 	elseif node.type == C.LEVEE_CHAN_SND then
 		self.queue:send(C.levee_chan_sender_ref(node.as.sender))
 	end
@@ -68,7 +85,22 @@ end
 
 function Sender_mt:send(val)
 	-- TODO: check value type and call proper send
-	return C.levee_chan_send_i64(self, val)
+	if val == nil then
+		return C.levee_chan_send_nil(self)
+	elseif type(val) == "number" or ffi.istype(ctype_dbl, val) then
+		return C.levee_chan_send_dbl(self, val)
+	elseif ffi.istype(ctype_ptr, val) then
+		local rc = C.levee_chan_send_dbl(self, val.val, val.len)
+		if rc >= 0 then
+			val.val = nil
+			val.len = 0
+		end
+		return rc
+	elseif ffi.istype(ctype_i64) then
+		return C.levee_chan_send_i64(self, val)
+	elseif ffi.istype(ctype_u64) then
+		return C.levee_chan_send_i64(self, val)
+	end
 end
 
 
