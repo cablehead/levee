@@ -1,6 +1,8 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local errno = require("levee.errno")
+
 
 local Json_mt = {}
 Json_mt.__index = Json_mt
@@ -40,7 +42,7 @@ end
 function Json_mt:stream_next(conn, buf)
 	local n = self:next(false, buf:value())
 	if n < 0 then
-		return false, "parse error"
+		return false, ffi.string(C.sp_strerror(n))
 	end
 
 	if n > 0 then
@@ -51,10 +53,12 @@ function Json_mt:stream_next(conn, buf)
 		end
 	end
 
+	buf:ensure(64*1024)
+
 	local n, err = conn:readinto(buf)
 	if n <= 0 then
 		-- connection died
-		return false
+		return false, errno:message(err)
 	end
 
 	return self:stream_next(conn, buf)
@@ -62,20 +66,19 @@ end
 
 
 function Json_mt:stream_value(conn, buf)
-	if not self:stream_next(conn, buf) then
-		return
-	end
+	local ok, err = self:stream_next(conn, buf)
+	if not ok then return ok, err end
 
 	if self.type == C.SP_JSON_OBJECT then
 		local ob = {}
 		while true do
 			local ok, key = self:stream_value(conn, buf)
-			if not ok then return end
+			if not ok then return ok, key end
 			if key == C.SP_JSON_OBJECT_END then
 				return true, ob
 			end
 			local ok, value = self:stream_value(conn, buf)
-			if not ok then return end
+			if not ok then return ok, value end
 			ob[key] = value
 		end
 
@@ -83,7 +86,7 @@ function Json_mt:stream_value(conn, buf)
 		local arr = {}
 		while true do
 			local ok, item = self:stream_value(conn, buf)
-			if not ok then return end
+			if not ok then return ok, item end
 			if item == C.SP_JSON_ARRAY_END then
 				return true, arr
 			end
@@ -111,7 +114,7 @@ end
 
 function Json_mt:stream_consume(conn, buf)
 	local ok, value = self:stream_value(conn, buf)
-	if not ok then return end
+	if not ok then return ok, value end
 	assert(self:is_done())
 	self:reset()
 	return true, value
