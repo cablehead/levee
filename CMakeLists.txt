@@ -51,6 +51,6 @@ add_executable(
 	${CMAKE_CURRENT_BINARY_DIR}/liblevee.c
 )
 
-add_dependencies(levee luajit)
-target_link_libraries(levee libsiphon libluajit)
+add_dependencies(levee libluajit libsiphon)
+target_link_libraries(levee ${LUAJIT_LIB} ${SIPHON_LIB})
 

@@ -15,10 +15,10 @@ externalproject_add(siphon_project
 		"-DCMAKE_INSTALL_PREFIX=${SIPHON_DIR}"
 )
 
-if("${CMAKE_SYSTEM_NAME}" EQUAL "Linux")
-	set(SIPHON_LIB "-Wl,--whole-archive,${SIPHON_LIB},--no-whole-archive")
-elseif("${CMAKE_SYSTEM_NAME}" EQUAL "Darwin")
-	set(SIPHON_LIB "-Wl,-force_load,${SIPHON_LIB}")
+if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
+	set(SIPHON_LIB -Wl,--whole-archive,${SIPHON_LIB},--no-whole-archive)
+elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+	set(SIPHON_LIB -Wl,-force_load,${SIPHON_LIB})
 endif()
 
 add_library(libsiphon STATIC IMPORTED)
