@@ -64,15 +64,32 @@ local headers = {
 	include("levee", "levee"),
 }
 
-io.write("const char levee_cdef[] =\n\t\"")
-local n = 0
-for _,hdr in ipairs(headers) do
-	for i=1,#hdr do
-		if n > 0 and n % 20 == 0 then
-			io.write("\"\n\t\"")
-		end
-		io.write(string.format("\\x%02x", string.byte(hdr, i)))
-		n = n + 1
-	end
+local out
+if arg[1] == "-" or arg[1] == nil then
+	out = io.stdout
+else
+	out = io.open(arg[1], "w")
 end
-print("\";")
+
+
+local function bytearray(s, indent)
+	local bytes, lines = {}, {}
+	local n, m = 0, 0
+	for i=1,#s do
+		local byte = tostring(string.byte(s, i))
+		m = m + #byte + 1
+		if m > 78 then
+			table.insert(lines, table.concat(bytes, ",", 1, n))
+			n, m = 0, #byte + 1
+		end
+		n = n + 1
+		bytes[n] = byte
+	end
+	table.insert(lines, table.concat(bytes, ",", 1, n))
+	return table.concat(lines, ",\n" .. indent)
+end
+
+
+out:write("const char levee_cdef[] = {\n\t")
+out:write(bytearray(table.concat(headers, "\n"), "\t"))
+out:write(",0\n};\n")
