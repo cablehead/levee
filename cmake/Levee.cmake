@@ -37,6 +37,7 @@ add_library(
 	src/list.c
 	${LEVEE_BUNDLE_OUTPUT}
 )
+add_dependencies(libleveebase libluajit libsiphon)
 set_target_properties(libleveebase PROPERTIES OUTPUT_NAME leveebase)
 
 add_custom_target(
