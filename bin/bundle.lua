@@ -134,7 +134,7 @@ end
 
 local preload_function_tmpl = [[
 int
-luaopen_levee_bundle (lua_State *L) {
+luaopen_%s_bundle (lua_State *L) {
 	lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
 
 %s
@@ -143,12 +143,12 @@ luaopen_levee_bundle (lua_State *L) {
 }
 ]]
 
-local function preload_function(files)
+local function preload_function(name, files)
 	local calls = {}
 	for i,file in ipairs(files) do
 		table.insert(calls, preload_call(file))
 	end
-	return preload_function_tmpl:format(table.concat(calls, "\n"))
+	return preload_function_tmpl:format(name, table.concat(calls, "\n"))
 end
 
 
@@ -168,10 +168,10 @@ out:write('#include <lualib.h>\n')
 
 local files = {}
 
-for i=2,#arg,2 do
+for i=3,#arg,2 do
 	if not arg[i+1] then break end
 	bundle(arg[i], arg[i+1], files)
 end
 
-out:write(preload_function(files))
+out:write(preload_function(arg[2], files))
 out:write("\n")

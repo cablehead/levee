@@ -89,7 +89,7 @@ $(OBJ)/%.o: $(TMP)/%.c
 $(TMP)/liblevee.c: $(LUAJIT) $(TMP)/levee_cdef.h $(PROJECT)/bin/bundle.lua \
 		$(shell find $(PROJECT)/levee -type f)
 	@mkdir -p $(TMP)
-	$(LUAJIT) $(PROJECT)/bin/bundle.lua $@ $(PROJECT) levee
+	$(LUAJIT) $(PROJECT)/bin/bundle.lua $@ levee $(PROJECT) levee
 
 $(TMP)/levee_cdef.h: $(LUAJIT) $(shell find $(PROJECT)/cdef -type f)
 	@mkdir -p $(TMP)
