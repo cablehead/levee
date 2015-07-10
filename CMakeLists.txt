@@ -9,48 +9,35 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	set(CMAKE_EXE_LINKER_FLAGS "-pthread -Wl,--export-dynamic -static-libgcc")
 	target_link_libraries(levee m dl)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	set(CMAKE_EXE_LINKER_FLAGS " -pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic")
+	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000 -Wl,-export_dynamic")
 else()
 	message(FATAL_ERROR "platform not supported yet: ${CMAKE_SYSTEM_NAME}")
 endif()
 
 include(cmake/Siphon.cmake)
 include(cmake/LuaJIT.cmake)
+include(cmake/Levee.cmake)
 
-include_directories(BEFORE src ${SIPHON_INC} ${LUAJIT_INC})
-include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR})
-
-add_custom_command(
-	OUTPUT
-		${PROJECT_SOURCE_DIR}/levee_cdef.h
-	COMMAND
-	luajit ${PROJECT_SOURCE_DIR}/cdef/manifest.lua ${CMAKE_CURRENT_BINARY_DIR}/levee_cdef.h
-	DEPENDS
-		${PROJECT_SOURCE_DIR}/cdef/manifest.lua
-	VERBATIM
-)
-
-add_custom_command(
-	OUTPUT
-		${CMAKE_CURRENT_BINARY_DIR}/liblevee.c
-	COMMAND 
-		luajit ${PROJECT_SOURCE_DIR}/bin/bundle.lua ${CMAKE_CURRENT_BINARY_DIR}/liblevee.c ${PROJECT_SOURCE_DIR} levee
-	DEPENDS
-		${PROJECT_SOURCE_DIR}/bin/bundle.lua
-		${PROJECT_SOURCE_DIR}/levee_cdef.h
-	VERBATIM
+include_directories(BEFORE
+	${LEVEE_INC}
+	${SIPHON_INC}
+	${LUAJIT_INC}
+	${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_executable(
 	levee
-	src/chan.c
-	src/heap.c
-	src/levee.c
-	src/list.c
 	src/main.c
-	${CMAKE_CURRENT_BINARY_DIR}/liblevee.c
 )
 
-add_dependencies(levee libluajit libsiphon)
-target_link_libraries(levee ${LUAJIT_LIB} ${SIPHON_LIB})
+if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
+	set(LEVEE_LIB -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
+	set(SIPHON_LIB -Wl,--whole-archive,${SIPHON_LIB},--no-whole-archive)
+elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+	set(LEVEE_LIB -Wl,-force_load,${LEVEE_LIB})
+	set(SIPHON_LIB -Wl,-force_load,${SIPHON_LIB})
+endif()
+
+add_dependencies(levee liblevee libluajit libsiphon)
+target_link_libraries(levee ${LEVEE_LIB} ${LUAJIT_LIB} ${SIPHON_LIB})
 
