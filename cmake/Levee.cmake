@@ -39,9 +39,15 @@ add_library(
 )
 set_target_properties(libleveebase PROPERTIES OUTPUT_NAME leveebase)
 
-add_custom_target(
-	liblevee ALL
+add_custom_command(OUTPUT ${LEVEE_LIB}
 	COMMAND ${LEVEE_LIB_SCRIPT} ${LEVEE_LIB} ${LEVEEBASE_LIB} ${LUAJIT_LIB} ${SIPHON_LIB}
-	BYPRODUCTS ${LEVEE_LIB_SCRIPT}
+	BYPRODUCTS ${LEVEE_LIB}
 	DEPENDS libleveebase libluajit libsiphon
 )
+
+add_library(liblevee STATIC IMPORTED)
+set_target_properties(liblevee PROPERTIES
+	IMPORTED_LOCATION ${LEVEE_LIB}
+	PUBLIC_HEADER "src/chan.h src/heap.h src/levee.h src/list.h"
+)
+add_dependencies(liblevee ${LEVEE_LIB})
