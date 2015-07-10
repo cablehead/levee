@@ -20,14 +20,6 @@
 extern int
 luaopen_levee_bundle (lua_State *L);
 
-struct Levee {
-	lua_State *L;
-	pthread_t thread;
-	char *last_error;
-	int state;
-	int narg;
-};
-
 Levee *
 levee_create (void)
 {

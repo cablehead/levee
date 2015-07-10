@@ -24,6 +24,16 @@
 
 #include "chan.h"
 
+#include <lua.h>
+
+struct Levee {
+	lua_State *L;
+	pthread_t thread;
+	char *last_error;
+	int state;
+	int narg;
+};
+
 typedef struct Levee Levee;
 
 extern Levee *
