@@ -32,7 +32,19 @@ add_executable(
 
 install(TARGETS levee RUNTIME DESTINATION bin)
 install(FILES ${LEVEE_LIB} DESTINATION lib)
-install(FILES src/chan.h src/heap.h src/levee.h src/list.h DESTINATION include/levee)
+install(FILES
+	src/chan.h
+	src/heap.h
+	src/levee.h
+	src/list.h
+	${LUAJIT_INC}/lauxlib.h
+	${LUAJIT_INC}/lua.h
+	${LUAJIT_INC}/lua.hpp
+	${LUAJIT_INC}/luaconf.h
+	${LUAJIT_INC}/luajit.h
+	${LUAJIT_INC}/lualib.h
+	DESTINATION include/levee
+)
 
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 	set(LEVEE_LIB -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)

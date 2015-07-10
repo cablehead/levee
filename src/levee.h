@@ -23,8 +23,7 @@
 })
 
 #include "chan.h"
-
-#include <lua.h>
+#include "lua.h"
 
 struct Levee {
 	lua_State *L;
