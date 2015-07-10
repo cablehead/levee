@@ -39,13 +39,16 @@ static const int SOCK_DGRAM = 2;
 
 int socket(int domain, int type, int protocol);
 
-int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
-int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+int getsockopt(
+	int sockfd, int level, int optname, void *optval, socklen_t *optlen);
+int setsockopt(
+	int sockfd, int level, int optname, const void *optval, socklen_t optlen);
 
 uint16_t htons(uint16_t hostshort);
 uint16_t ntohs(uint16_t netshort);
 int inet_aton(const char *cp, struct in_addr *inp);
-const char *inet_ntop(int af, const void * restrict src, char * restrict dst, socklen_t size);
+const char *inet_ntop(
+	int af, const void * restrict src, char * restrict dst, socklen_t size);
 
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
