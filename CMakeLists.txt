@@ -32,12 +32,10 @@ add_executable(
 
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 	set(LEVEE_LIB -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
-	set(SIPHON_LIB -Wl,--whole-archive,${SIPHON_LIB},--no-whole-archive)
 elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
 	set(LEVEE_LIB -Wl,-force_load,${LEVEE_LIB})
-	set(SIPHON_LIB -Wl,-force_load,${SIPHON_LIB})
 endif()
 
-add_dependencies(levee liblevee libluajit libsiphon)
-target_link_libraries(levee ${LEVEE_LIB} ${LUAJIT_LIB} ${SIPHON_LIB})
+add_dependencies(levee liblevee)
+target_link_libraries(levee ${LEVEE_LIB})
 

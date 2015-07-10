@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set +e
+
 OUTPUT=$1
 shift
 
@@ -15,7 +17,7 @@ if [[ ! $1 ]]; then
 fi
 
 # create temp directory and delete on exit
-OUTPUT_TMP="$(dirname "$OUTPUT")/$(mktemp -d "$(basename "$OUTPUT").XXXXX")"
+OUTPUT_TMP=$(mktemp -d "$OUTPUT.XXXXX")
 trap "rm -r '$OUTPUT_TMP'" EXIT
 
 # copy all source libraries
