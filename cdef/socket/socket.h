@@ -34,6 +34,9 @@ static const int AF_UNIX = PF_UNIX;
 static const int AF_FILE = PF_FILE;
 static const int AF_INET = PF_INET;
 
+static const int AI_PASSIVE	  = 0x00000001;
+static const int AI_CANONNAME	= 0x00000002;
+
 static const int SOCK_STREAM = 1;
 static const int SOCK_DGRAM = 2;
 
@@ -77,3 +80,11 @@ int close(int fd);
 int getsockname(int socket, struct sockaddr *address, socklen_t *address_len);
 int getpeername(int socket, struct sockaddr *address, socklen_t *address_len);
 
+
+int getaddrinfo(
+	const char *node,     // e.g. "www.example.com" or IP
+	const char *service,  // e.g. "http" or port number
+	const struct addrinfo *hints,
+	struct addrinfo **res);
+
+void freeaddrinfo(struct addrinfo *ai);
