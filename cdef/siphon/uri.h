@@ -49,10 +49,10 @@ sp_uri_eq (const SpUri *a, const char *abuf, const SpUri *b, const char *bbuf);
 uint16_t
 sp_uri_length (const SpUri *u);
 
-int
+SpUriSegment
 sp_uri_sub (const SpUri *u, SpUriSegment start, SpUriSegment end, SpRange16 *out);
 
-int
+SpUriSegment
 sp_uri_range (const SpUri *u, SpUriSegment start, SpUriSegment end, SpRange16 *out);
 
 int
