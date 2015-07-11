@@ -60,12 +60,8 @@ TCP_mt.__index = TCP_mt
 
 
 local function _connect(port, host)
-	local ffi = require("ffi")
-	local C = ffi.C
 	local sys = require("levee.sys")
-	local getaddrinfo = sys.socket.getaddrinfo
-	local connect = sys.socket.connect
-	return connect(port, host)
+	return sys.socket.connect(port, host)
 end
 
 
