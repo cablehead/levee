@@ -59,8 +59,19 @@ local TCP_mt = {}
 TCP_mt.__index = TCP_mt
 
 
+local function _connect(port, host)
+	local ffi = require("ffi")
+	local C = ffi.C
+	local sys = require("levee.sys")
+	local getaddrinfo = sys.socket.getaddrinfo
+	local connect = sys.socket.connect
+	return connect(port, host)
+end
+
+
 function TCP_mt:connect(port, host)
-	local no, err = sys.socket.connect(port, host or "127.0.0.1")
+	local recver = self.hub.thread:call(_connect, port, host or "127.0.0.1")
+	local no, err = recver:recv()
 	if not no then
 		return no, err
 	end

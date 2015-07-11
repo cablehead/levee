@@ -29,11 +29,18 @@ return {
 		c2:readinto(buf)
 		assert(buf:take_s() == "m2.2")
 
+		print()
+		print()
+
 		c1:close()
-		c2:close()
+		s2:close()
 		serve:close()
+
+		print("1")
 		s1:readinto(buf)
-		s2:readinto(buf)
+		print("2")
+		c2:readinto(buf)
+		print("3")
 		assert.same(h.registered, {})
 	end,
 }
