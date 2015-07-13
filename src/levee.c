@@ -17,8 +17,19 @@
 #define LEVEE_LOCAL 0
 #define LEVEE_BG 1
 
+static const LeveeConfig *config = NULL;
+
 extern int
 luaopen_levee_bundle (lua_State *L);
+
+void
+levee_init (const LeveeConfig *cfg)
+{
+	const LeveeConfig *old;
+	do {
+		old = config;
+	} while (!__sync_bool_compare_and_swap (&config, old, cfg));
+}
 
 Levee *
 levee_create (void)
@@ -45,6 +56,12 @@ levee_create (void)
 	lua_pushstring (L, "levee.channel");
 	lua_call (L, 1, 1);
 	lua_pop (L, 1);
+
+	__sync_synchronize ();
+	const LeveeConfig *cfg = config;
+	if (cfg != NULL && cfg->init != NULL) {
+		cfg->init (L);
+	}
 
 	Levee *self = malloc (sizeof *self);
 	if (self == NULL) {
