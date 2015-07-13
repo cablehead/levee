@@ -24,8 +24,13 @@ local C = ffi.C
 local Event = {}
 Event.__index = Event
 
+local NAMESPACED = bit.lshift(1, 61)
+
 function Event:value()
-	local fd = tonumber(self.ident)
+	local fd = self.ident
+	if fd < NAMESPACED then
+		fd = tonumber(fd)
+	end
 	local r = self.filter == C.EVFILT_READ
 	local w = self.filter == C.EVFILT_WRITE
 	local e = bit.band(self.flags, bit.bor(C.EV_EOF, C.EV_ERROR)) > 0

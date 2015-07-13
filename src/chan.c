@@ -73,10 +73,25 @@ notify (LeveeChan *self)
 
 static int channel_id = 0;
 
+static const uint64_t MAX_CHANNEL_ID = (1ULL << 61);
+
 static inline int
 init (LeveeChan *self)
 {
-	self->chan_id = __sync_fetch_and_add (&channel_id, 1);
+	uint64_t id = __sync_fetch_and_add (&channel_id, 1);
+
+	// TODO: define constants for ident namespaces
+	// idents are: namespace | 61 bits
+	//              3 bits   |    id
+
+	if (id >= MAX_CHANNEL_ID)
+	{
+		fprintf(stderr, "CRITICAL: max channel id exceeded\n");
+		exit(27);
+	}
+	id |= MAX_CHANNEL_ID;  // namespace 1
+	self->chan_id = id;
+
 	struct kevent kev = {
 		.ident = (uintptr_t)self->chan_id,
 		.filter = EVFILT_USER,
@@ -266,12 +281,12 @@ out:
 	levee_chan_unref (self);
 }
 
-int
+uint64_t
 levee_chan_event_id (LeveeChan **self)
 {
 	assert (self != NULL);
 
-	int id = -1;
+	uint64_t id = -1;
 	LeveeChan *ch = levee_chan_ref (self);
 	if (ch != NULL) {
 		id = ch->chan_id;

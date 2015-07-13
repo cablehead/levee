@@ -35,7 +35,7 @@ struct LeveeChan {
 	uint64_t ref;
 	int64_t recv_id;
 	int loopfd;
-	int chan_id;
+	uint64_t chan_id;
 };
 
 struct LeveeChanSender {
@@ -58,7 +58,7 @@ levee_chan_unref (LeveeChan **self);
 extern void
 levee_chan_close (LeveeChan **self);
 
-extern int
+extern uint64_t
 levee_chan_event_id (LeveeChan **self);
 
 extern int64_t
