@@ -84,10 +84,18 @@ function Poller:poll(timeout)
 			ms = 0
 		end
 	end
+
 	local n = C.epoll_wait(self.fd, self.ev, 1, ms)
-	if n < 0 then Errno:error("epoll_wait") end
+
 	C.gettimeofday(self.tv, nil)
-	return self.ev, n
+
+	if n >= 0 then
+		return self.ev, n
+	end
+
+	if ffi.errno() ~= Errno["EINTR"] then Errno:error("kevent") end
+
+	return self:poll(timeout)
 end
 
 

@@ -122,11 +122,16 @@ function Poller:poll(timeout)
 	local n = C.kevent(
 		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, ts)
 
-	if n < 0 then Errno:error("kevent") end
 	C.gettimeofday(self.tv, nil)
 
-	self.ev_in_pos = 0
-	return self.ev_out, n
+	if n >= 0 then
+		self.ev_in_pos = 0
+		return self.ev_out, n
+	end
+
+	if ffi.errno() ~= Errno["EINTR"] then Errno:error("kevent") end
+
+	return self:poll(timeout)
 end
 
 
