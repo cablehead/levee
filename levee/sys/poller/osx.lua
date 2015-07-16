@@ -21,6 +21,10 @@ struct LeveePoller {
 local C = ffi.C
 
 
+local SIG_DFL = ffi.cast("sighandler_t", 0)
+local SIG_IGN = ffi.cast("sighandler_t", 1)
+
+
 local Event = {}
 Event.__index = Event
 
@@ -72,6 +76,40 @@ local function next_event(self)
 	local ev = self.ev_in[self.ev_in_pos]
 	self.ev_in_pos = self.ev_in_pos + 1
 	return ev
+end
+
+
+function Poller:register_signal(no)
+	local ev = next_event(self)
+
+	ev.ident = no
+	ev.filter = C.EVFILT_SIGNAL
+	ev.flags = C.EV_ADD
+	ev.fflags = 0
+	ev.data = 0
+
+	local rc = C.kevent(self.fd, self.ev_in, self.ev_in_pos, nil, 0, nil)
+	if rc < 0 then Errno:error("kevent") end
+	self.ev_in_pos = 0
+
+	C.signal(no, SIG_IGN)
+end
+
+
+function Poller:unregister_signal(no)
+	local ev = next_event(self)
+
+	ev.ident = no
+	ev.filter = C.EVFILT_SIGNAL
+	ev.flags = C.EV_DELETE
+	ev.fflags = 0
+	ev.data = 0
+
+	local rc = C.kevent(self.fd, self.ev_in, self.ev_in_pos, nil, 0, nil)
+	if rc < 0 then Errno:error("kevent") end
+	self.ev_in_pos = 0
+
+	C.signal(no, SIG_DFL)
 end
 
 
