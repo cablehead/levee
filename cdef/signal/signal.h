@@ -1,4 +1,3 @@
-
 static const int SIGHUP = 1;       /* hangup */
 static const int SIGINT = 2;       /* interrupt */
 static const int SIGQUIT = 3;      /* quit */

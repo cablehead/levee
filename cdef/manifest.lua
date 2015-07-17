@@ -19,7 +19,7 @@ local arch = ffi.arch
 
 function try_include(full)
 	local fh = io.open(full, "r")
-	if not fh then return false end
+	if not fh then return "" end
 	local header = fh:read("*all")
 	fh:close()
 	local ok, msg = pcall(ffi.cdef, header)

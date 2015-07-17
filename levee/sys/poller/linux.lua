@@ -41,11 +41,10 @@ function Event:value()
 
 	else
 		-- io
-		local fd = tonumber(self.data.fd)
 		local r = bit.band(self.events, C.EPOLLIN) > 0
 		local w = bit.band(self.events, C.EPOLLOUT) > 0
 		local e = bit.band(self.events, bit.bor(C.EPOLLERR, C.EPOLLHUP)) > 0
-		return fd, false, false, r, w, e
+		return tonumber(self.data.fd), false, false, r, w, e
 	end
 end
 
