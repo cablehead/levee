@@ -8,6 +8,7 @@ typedef enum {
 	LEVEE_CHAN_DBL,
 	LEVEE_CHAN_I64,
 	LEVEE_CHAN_U64,
+	LEVEE_CHAN_BOOL,
 	LEVEE_CHAN_SND
 } LeveeChanType;
 
