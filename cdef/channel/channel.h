@@ -92,6 +92,9 @@ levee_chan_send_i64 (LeveeChanSender *self, int64_t val);
 extern int
 levee_chan_send_u64 (LeveeChanSender *self, uint64_t val);
 
+extern int
+levee_chan_send_bool (LeveeChanSender *self, bool val);
+
 extern int64_t
 levee_chan_connect (LeveeChanSender *self, LeveeChan **chan);
 
