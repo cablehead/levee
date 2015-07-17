@@ -95,7 +95,11 @@ function Poller:signal_register(no)
 	if rc < 0 then Errno:error("kevent") end
 	self.ev_in_pos = 0
 
-	C.signal(no, SIG_IGN)
+	-- TODO: ugh, need to understand what ignore does
+	-- if SIGCHLD is ignored, it won't fire in kevent
+	if no ~= C.SIGCHLD then
+		C.signal(no, SIG_IGN)
+	end
 end
 
 

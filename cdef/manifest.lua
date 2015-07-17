@@ -38,6 +38,8 @@ end
 local headers = {
 	include("std", arch),
 	include("std", "std"),
+	include("process", "process"),
+	include("process", os),
 	include("time", "time"),
 	include("time", os),
 	include("signal", "signal"),

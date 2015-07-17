@@ -287,6 +287,7 @@ local function Hub()
 	self.udp = require("levee.udp")(self)
 	self.http = require("levee.http")(self)
 	self.thread = require("levee.thread")(self)
+	self.process = require("levee.process")(self)
 
 	-- TODO: remove - this isn't right
 	self.is_linux = ffi.os:lower() == "linux"
