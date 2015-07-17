@@ -26,6 +26,7 @@ typedef struct {
 		double dbl;
 		int64_t i64;
 		uint64_t u64;
+		bool b;
 		LeveeChanSender *sender;
 	} as;
 } LeveeChanNode;
