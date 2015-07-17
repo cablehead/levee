@@ -37,6 +37,8 @@ function Recver_mt:pump(node)
 		self.queue:send(node.as.i64)
 	elseif node.type == C.LEVEE_CHAN_U64 then
 		self.queue:send(node.as.u64)
+	elseif node.type == C.LEVEE_CHAN_BOOL then
+		self.queue:send(node.as.b)
 	elseif node.type == C.LEVEE_CHAN_SND then
 		self.queue:send(C.levee_chan_sender_ref(node.as.sender))
 	end
