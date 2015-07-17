@@ -96,9 +96,9 @@ function Sender_mt:send(val)
 			val.len = 0
 		end
 		return rc
-	elseif ffi.istype(ctype_i64) then
+	elseif ffi.istype(ctype_i64, val) then
 		return C.levee_chan_send_i64(self, val)
-	elseif ffi.istype(ctype_u64) then
+	elseif ffi.istype(ctype_u64, val) then
 		return C.levee_chan_send_i64(self, val)
 	end
 end
