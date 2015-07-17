@@ -429,6 +429,14 @@ levee_chan_send_u64 (LeveeChanSender *self, uint64_t val)
 	SEND_MSG (self, LEVEE_CHAN_U64, u64, val);
 }
 
+int
+levee_chan_send_bool (LeveeChanSender *self, bool val)
+{
+	assert (self != NULL);
+
+	SEND_MSG (self, LEVEE_CHAN_BOOL, b, val);
+}
+
 int64_t
 levee_chan_connect (LeveeChanSender *self, LeveeChan **chan)
 {

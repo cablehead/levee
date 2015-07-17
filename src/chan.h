@@ -14,6 +14,7 @@ typedef enum {
 	LEVEE_CHAN_DBL,
 	LEVEE_CHAN_I64,
 	LEVEE_CHAN_U64,
+	LEVEE_CHAN_BOOL,
 	LEVEE_CHAN_SND
 } LeveeChanType;
 
@@ -31,6 +32,7 @@ typedef struct {
 		double dbl;
 		int64_t i64;
 		uint64_t u64;
+		bool b;
 		LeveeChanSender *sender;
 	} as;
 } LeveeChanNode;
@@ -95,6 +97,9 @@ levee_chan_send_i64 (LeveeChanSender *self, int64_t val);
 
 extern int
 levee_chan_send_u64 (LeveeChanSender *self, uint64_t val);
+
+extern int
+levee_chan_send_bool (LeveeChanSender *self, bool val);
 
 extern int64_t
 levee_chan_connect (LeveeChanSender *self, LeveeChan **chan);

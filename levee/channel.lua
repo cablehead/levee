@@ -89,6 +89,8 @@ function Sender_mt:send(val)
 		return C.levee_chan_send_nil(self)
 	elseif type(val) == "number" or ffi.istype(ctype_dbl, val) then
 		return C.levee_chan_send_dbl(self, val)
+	elseif type(val) == "boolean" then
+		return C.levee_chan_send_bool(self, val)
 	elseif ffi.istype(ctype_ptr, val) then
 		local rc = C.levee_chan_send_ptr(self, val.val, val.len)
 		if rc >= 0 then
@@ -99,7 +101,7 @@ function Sender_mt:send(val)
 	elseif ffi.istype(ctype_i64, val) then
 		return C.levee_chan_send_i64(self, val)
 	elseif ffi.istype(ctype_u64, val) then
-		return C.levee_chan_send_i64(self, val)
+		return C.levee_chan_send_u64(self, val)
 	end
 end
 
