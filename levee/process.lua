@@ -51,7 +51,6 @@ function M_mt:poweron()
 			while true do
 				local pid, code, sig = sys.process.waitpid(-1, C.WNOHANG)
 				if pid <= 0 then break end
-				print("WATCH", pid, code, sig)
 				local child = self.children[pid]
 				if child then
 					self.children[pid] = nil
@@ -65,22 +64,35 @@ function M_mt:poweron()
 end
 
 
-function M_mt:adopt(pid)
-	self.children[pid] = Process(self.hub, pid)
-	return self.children[pid]
-end
-
-
 function M_mt:launch(f, ...)
-	-- boot child reaper
-	self:poweron()
+	self:poweron()  -- boot child reaper
+
+	local in_r, in_w = sys.os.pipe()
+	local out_r, out_w = sys.os.pipe()
 
 	local pid = C.fork()
 
-	-- parent
-	if pid > 0 then return self:adopt(pid) end
+	if pid > 0 then
+		-- parent
+		local child = Process(self.hub, pid)
+
+		C.close(in_r)
+		C.close(out_w)
+		child.stdin = in_w
+		child.stdout = out_r
+
+		self.children[pid] = child
+		return child
+	end
 
 	-- child
+	C.close(in_w)
+	C.dup2(in_r, 0)
+	C.close(in_r)
+
+	C.close(out_r)
+	C.dup2(out_w, 1)
+	C.close(out_w)
 	f(...)
 end
 

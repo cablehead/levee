@@ -2,7 +2,7 @@ local ffi = require('ffi')
 local C = ffi.C
 
 local levee = require("levee")
-
+local sys = levee.sys
 
 
 return {
@@ -12,16 +12,18 @@ return {
 
 		local h = levee.Hub()
 
-		local c1 = h.process:execlp("ls", "-l")
-		print("parent", C.getpid(), "->", c1)
+		local c = h.process:execlp("cat")
 
-		local c2 = h.process:execlp("ls", "-l", "apps")
-		print("parent", C.getpid(), "->", c2)
+		sys.os.write(c.stdin, "foo")
+		print(sys.os.reads(c.stdout))
 
-		c1.done:recv()
-		c2.done:recv()
+		C.close(c.stdin)
 
-		print(c1)
-		print(c2)
+		c.done:recv()
+
+		print()
+		print"----"
+		print(c)
+		print()
 	end,
 }
