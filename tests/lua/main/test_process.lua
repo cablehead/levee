@@ -24,7 +24,7 @@ return {
 		local r1, w1 = sys.os.pipe()
 		local r2, w2 = sys.os.pipe()
 
-		local child = h.process:spawn("cat", {io = {STDIN=r1, STDOUT=w2}})
+		local child = h.process:spawn("cat", {io={STDIN=r1, STDOUT=w2}})
 
 		sys.os.write(w1, "foo")
 		assert.equal("foo", sys.os.reads(r2))
@@ -41,7 +41,7 @@ return {
 		local s1 = serve:recv()
 
 		sys.os.block(s1.no)
-		local child = h.process:execlp({STDIN=s1.no, STDOUT=C.CAPTURE}, "cat")
+		local child = h.process:spawn("cat", {io={STDIN=s1.no}})
 
 		c1:write("foo")
 		assert.equal(child.stdout:reads(), "foo")
