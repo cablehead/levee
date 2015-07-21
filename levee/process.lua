@@ -63,7 +63,7 @@ function M_mt:poweron()
 	end)
 end
 
-function M_mt:spawn(name, argv, options)
+function M_mt:spawn(name, options)
 	options = options or {}
 	local io = options.io or {}
 
@@ -122,7 +122,7 @@ function M_mt:spawn(name, argv, options)
 		if st then C.close(no) end
 	end
 
-	local argv = argv or {}
+	local argv = options.argv or {}
 	table.insert(argv, 1, name)
 	local rc = sys.process.execvp(name, argv)
 	assert(rc == 0)
