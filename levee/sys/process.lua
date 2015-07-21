@@ -5,9 +5,9 @@ local C = ffi.C
 local string_array_t = ffi.typeof("const char *[?]")
 
 
-local function to_string_array_t(...)
-	local args = {...}
-	local ret = string_array_t(#args+1, args)
+local function to_string_array_t(argv)
+	local ret = string_array_t(#argv+1, argv)
+	ret[#argv] = nil
 	return ret
 end
 
@@ -15,22 +15,12 @@ end
 local M = {}
 
 M.execv = function(path, argv)
-	return C.execv(path, to_string_array_t(path, unpack(argv or {})))
-end
-
-
-M.execl = function(path, ...)
-	return M.execv(path, {...})
+	return C.execv(path, to_string_array_t(argv))
 end
 
 
 M.execvp = function(name, argv)
-	return C.execvp(name, to_string_array_t(name, unpack(argv or {})))
-end
-
-
-M.execlp = function(path, ...)
-	return M.execvp(path, {...})
+	return C.execvp(name, to_string_array_t(argv))
 end
 
 

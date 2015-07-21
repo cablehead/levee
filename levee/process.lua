@@ -63,18 +63,20 @@ function M_mt:poweron()
 	end)
 end
 
+function M_mt:spawn(name, argv, options)
+	options = options or {}
+	local io = options.io or {}
 
-function M_mt:launch(options, f, ...)
 	self:poweron()  -- boot child reaper
 
 	local in_r, in_w
 	local out_r, out_w
 
-	if options.STDIN == C.CAPTURE then
+	if not io.STDIN then
 		in_r, in_w = sys.os.pipe()
 	end
 
-	if options.STDOUT == C.CAPTURE then
+	if not io.STDOUT then
 		out_r, out_w = sys.os.pipe()
 	end
 
@@ -84,12 +86,12 @@ function M_mt:launch(options, f, ...)
 		-- parent
 		local child = Process(self.hub, pid)
 
-		if options.STDIN == C.CAPTURE then
+		if not io.STDIN then
 			C.close(in_r)
 			child.stdin = self.hub.io:w(in_w)
 		end
 
-		if options.STDOUT == C.CAPTURE then
+		if not io.STDOUT then
 			C.close(out_w)
 			child.stdout = self.hub.io:r(out_r)
 		end
@@ -99,37 +101,31 @@ function M_mt:launch(options, f, ...)
 	end
 
 	-- child
-	if options.STDIN then
-		if options.STDIN == C.CAPTURE then
-			C.close(in_w)
-			C.dup2(in_r, 0)
-			C.close(in_r)
-		else
-			C.dup2(options.STDIN, 0)
-		end
+	if not io.STDIN then
+		C.close(in_w)
+		C.dup2(in_r, 0)
+		C.close(in_r)
+	else
+		C.dup2(io.STDIN, 0)
 	end
 
-	if options.STDOUT then
-		if options.STDOUT == C.CAPTURE then
-			C.close(out_r)
-			C.dup2(out_w, 1)
-			C.close(out_w)
-		else
-			C.dup2(options.STDOUT, 1)
-		end
+	if not io.STDOUT then
+		C.close(out_r)
+		C.dup2(out_w, 1)
+		C.close(out_w)
+	else
+		C.dup2(io.STDOUT, 1)
 	end
 
-	for i = 3, 65535 do
-		local st = sys.os.fstat(i)
-		if st then C.close(i) end
+	for no = 3, 65535 do
+		local st = sys.os.fstat(no)
+		if st then C.close(no) end
 	end
 
-	f(...)
-end
-
-
-function M_mt:execlp(options, name, ...)
-	return self:launch(options, sys.process.execlp, name, ...)
+	local argv = argv or {}
+	table.insert(argv, 1, name)
+	local rc = sys.process.execvp(name, argv)
+	assert(rc == 0)
 end
 
 

@@ -9,7 +9,7 @@ return {
 	test_capture = function()
 		local h = levee.Hub()
 
-		local child = h.process:execlp({STDIN=C.CAPTURE, STDOUT=C.CAPTURE}, "cat")
+		local child = h.process:spawn("cat")
 
 		child.stdin:write("foo")
 		assert.equal(child.stdout:reads(), "foo")
