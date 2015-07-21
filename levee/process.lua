@@ -100,13 +100,22 @@ function M_mt:spawn(name, options)
 		return child
 	end
 
+	local function to_no(no)
+		if type(no) == "table" then
+			-- assume this a levee io object
+			no = no.no
+			sys.os.block(no)
+		end
+		return no
+	end
+
 	-- child
 	if not io.STDIN then
 		C.close(in_w)
 		C.dup2(in_r, 0)
 		C.close(in_r)
 	else
-		C.dup2(io.STDIN, 0)
+		C.dup2(to_no(io.STDIN), 0)
 	end
 
 	if not io.STDOUT then
@@ -114,7 +123,7 @@ function M_mt:spawn(name, options)
 		C.dup2(out_w, 1)
 		C.close(out_w)
 	else
-		C.dup2(io.STDOUT, 1)
+		C.dup2(to_no(io.STDOUT), 1)
 	end
 
 	for no = 3, 65535 do

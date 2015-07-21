@@ -40,8 +40,7 @@ return {
 		local c1 = h.tcp:connect(serve:addr():port())
 		local s1 = serve:recv()
 
-		sys.os.block(s1.no)
-		local child = h.process:spawn("cat", {io={STDIN=s1.no}})
+		local child = h.process:spawn("cat", {io={STDIN=s1}})
 
 		c1:write("foo")
 		assert.equal(child.stdout:reads(), "foo")
