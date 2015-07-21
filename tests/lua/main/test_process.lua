@@ -24,7 +24,7 @@ return {
 		local r1, w1 = sys.os.pipe()
 		local r2, w2 = sys.os.pipe()
 
-		local child = h.process:execlp({STDIN=r1, STDOUT=w2}, "cat")
+		local child = h.process:spawn("cat", {io = {STDIN=r1, STDOUT=w2}})
 
 		sys.os.write(w1, "foo")
 		assert.equal("foo", sys.os.reads(r2))
