@@ -48,4 +48,13 @@ return {
 		c1:close()
 		child.done:recv()
 	end,
+
+	test_argv = function()
+		local h = levee.Hub()
+
+		local child = h.process:spawn("echo", {argv={"foo", "bar"}})
+		assert.equal(child.stdout:reads(), "foo bar\n")
+
+		child.done:recv()
+	end,
 }
