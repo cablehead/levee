@@ -16,6 +16,20 @@ local function nonblock(no)
 end
 
 
+local function block(no)
+	local flags = C.fcntl(no, C.F_GETFL, 0)
+	if flags == -1 then
+		return ffi.errno()
+	end
+	flags = bit.band(flags, bit.bnot(C.O_NONBLOCK))
+	local rc = C.fcntl(no, C.F_SETFL, ffi.new("int", flags))
+	if rc == -1 then
+		return ffi.errno()
+	end
+	return 0
+end
+
+
 local nonblock_accept
 
 if ffi.os:lower() == "linux" then
@@ -81,6 +95,7 @@ end
 return {
 	nonblock = nonblock,
 	nonblock_accept = nonblock_accept,
+	block = block,
 	read = read,
 	reads = reads,
 	write = write,

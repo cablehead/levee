@@ -6,24 +6,47 @@ local sys = levee.sys
 
 
 return {
-	test_core = function()
-		print()
-		print()
-
+	test_capture = function()
 		local h = levee.Hub()
 
-		local c = h.process:execlp("cat")
+		local child = h.process:execlp({STDIN=C.CAPTURE, STDOUT=C.CAPTURE}, "cat")
 
-		sys.os.write(c.stdin, "foo")
-		print(sys.os.reads(c.stdout))
+		child.stdin:write("foo")
+		assert.equal(child.stdout:reads(), "foo")
 
-		C.close(c.stdin)
+		child.stdin:close()
+		child.done:recv()
+	end,
 
-		c.done:recv()
+	test_to_fd = function()
+		local h = levee.Hub()
 
-		print()
-		print"----"
-		print(c)
-		print()
+		local r1, w1 = sys.os.pipe()
+		local r2, w2 = sys.os.pipe()
+
+		local child = h.process:execlp({STDIN=r1, STDOUT=w2}, "cat")
+
+		sys.os.write(w1, "foo")
+		assert.equal("foo", sys.os.reads(r2))
+
+		C.close(w1)
+		child.done:recv()
+	end,
+
+	test_to_socket = function()
+		local h = levee.Hub()
+
+		local serve = h.tcp:listen()
+		local c1 = h.tcp:connect(serve:addr():port())
+		local s1 = serve:recv()
+
+		sys.os.block(s1.no)
+		local child = h.process:execlp({STDIN=s1.no, STDOUT=C.CAPTURE}, "cat")
+
+		c1:write("foo")
+		assert.equal(child.stdout:reads(), "foo")
+
+		c1:close()
+		child.done:recv()
 	end,
 }

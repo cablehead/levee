@@ -47,6 +47,17 @@ function R_mt:readinto(buf)
 end
 
 
+function R_mt:reads(len)
+	len = len or 4096
+	local buf = ffi.new("char[?]", len)
+	local n, err = self:read(buf, len)
+	if n < 0 then
+		return n, err
+	end
+	return ffi.string(buf, n)
+end
+
+
 function R_mt:close()
 	if self.closed then
 		return
