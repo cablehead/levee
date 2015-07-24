@@ -8,7 +8,7 @@ set(SIPHON_HASH 53be2e5)
 externalproject_add(siphon_project
 	GIT_REPOSITORY git@github.com:imgix/siphon.git
 	GIT_TAG ${SIPHON_HASH}
-	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/siphon_project"
+	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/siphon_project_${SIPHON_HASH}"
 	UPDATE_COMMAND ""
 	CMAKE_ARGS
 		"-G${CMAKE_GENERATOR}"
