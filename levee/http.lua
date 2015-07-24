@@ -5,6 +5,7 @@ local parsers = require("levee.parsers")
 local meta = require("levee.meta")
 local iovec = require("levee.iovec")
 local buffer = require("levee.buffer")
+local json = require("levee.json")
 local sys = require("levee.sys")
 
 
@@ -202,6 +203,27 @@ function Stream_mt:tostring()
 	end
 	self.done:close()
 	return table.concat(ret)
+end
+
+function Stream_mt:discard()
+	while true do
+		local seg = self.buf:take_s(self.len)
+		self.len = self.len - #seg
+		if self.len == 0 then
+			break
+		end
+		self:readin()
+	end
+	self.done:close()
+end
+
+function Stream_mt:tojson()
+	local parser = json()
+	local ok, got = parser:stream_consume(self.conn, self.buf)
+	-- TODO: ensure not more than len is consumed
+	self.len = 0
+	self.done:close()
+	return ok, got
 end
 
 

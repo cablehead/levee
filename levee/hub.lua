@@ -289,6 +289,9 @@ local function Hub()
 	self.thread = require("levee.thread")(self)
 	self.process = require("levee.process")(self)
 
+	-- this should probably be in a seperate repo
+	self.consul = require("levee.consul")(self)
+
 	-- TODO: remove - this isn't right
 	self.is_linux = ffi.os:lower() == "linux"
 
