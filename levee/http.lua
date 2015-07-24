@@ -217,7 +217,7 @@ function Stream_mt:discard()
 	self.done:close()
 end
 
-function Stream_mt:tojson()
+function Stream_mt:json()
 	local parser = json()
 	local ok, got = parser:stream_consume(self.conn, self.buf)
 	-- TODO: ensure not more than len is consumed
@@ -263,6 +263,20 @@ function Response_mt:__tostring()
 	return ("levee.http.Response: %s %s"):format(self.code, self.reason)
 end
 
+function Response_mt:consume()
+	return self.body:tostring()
+end
+
+function Response_mt:discard()
+	self.body:discard()
+	return true
+end
+
+function Response_mt:json()
+	local ok, data = self.body:json()
+	assert(ok)
+	return data
+end
 
 function Client_mt:reader()
 	local _next, res

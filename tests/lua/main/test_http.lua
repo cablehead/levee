@@ -274,5 +274,39 @@ return {
 		local conn, err = h.http:connect(50000)
 		assert(not conn)
 	end,
-}
 
+	test_conveniences_content_length = function()
+		print()
+		print()
+
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen()
+		h:spawn(function()
+			local s = serve:recv()
+			for req in s do
+				req.response:send({levee.http.Status(200), {}, '{"foo": "bar"}'})
+			end
+		end)
+
+		local c = h.http:connect(serve:addr():port())
+
+		local res = c:get("/"):recv()
+		assert.equal(res:discard(), true)
+
+		local res = c:get("/"):recv()
+		assert.equal(res:consume(), '{"foo": "bar"}')
+
+		local res = c:get("/"):recv()
+		assert.equal(res:json()["foo"], "bar")
+
+
+		print()
+		print()
+		c:close()
+		serve:close()
+		assert.same(h.registered, {})
+	end,
+}
