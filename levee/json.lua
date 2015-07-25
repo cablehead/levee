@@ -39,45 +39,43 @@ function Json_mt:next(eof, buf, len)
 end
 
 
-function Json_mt:stream_next(conn, buf)
-	local n = self:next(false, buf:value())
+function Json_mt:stream_next(stream)
+	local n = self:next(false, stream:value())
 	if n < 0 then
 		return false, ffi.string(C.sp_strerror(n))
 	end
 
 	if n > 0 then
-		buf:trim(n)
+		stream:trim(n)
 		-- need to read more if SP_JSON_NONE
 		if self.type ~= C.SP_JSON_NONE then
 			return true
 		end
 	end
 
-	buf:ensure(64*1024)
-
-	local n, err = conn:readinto(buf)
+	local n, err = stream:readin()
 	if n <= 0 then
 		-- connection died
 		return false, errno:message(err)
 	end
 
-	return self:stream_next(conn, buf)
+	return self:stream_next(stream)
 end
 
 
-function Json_mt:stream_value(conn, buf)
-	local ok, err = self:stream_next(conn, buf)
+function Json_mt:stream_value(stream)
+	local ok, err = self:stream_next(stream)
 	if not ok then return ok, err end
 
 	if self.type == C.SP_JSON_OBJECT then
 		local ob = {}
 		while true do
-			local ok, key = self:stream_value(conn, buf)
+			local ok, key = self:stream_value(stream)
 			if not ok then return ok, key end
 			if key == C.SP_JSON_OBJECT_END then
 				return true, ob
 			end
-			local ok, value = self:stream_value(conn, buf)
+			local ok, value = self:stream_value(stream)
 			if not ok then return ok, value end
 			ob[key] = value
 		end
@@ -85,7 +83,7 @@ function Json_mt:stream_value(conn, buf)
 	elseif self.type == C.SP_JSON_ARRAY then
 		local arr = {}
 		while true do
-			local ok, item = self:stream_value(conn, buf)
+			local ok, item = self:stream_value(stream)
 			if not ok then return ok, item end
 			if item == C.SP_JSON_ARRAY_END then
 				return true, arr
@@ -112,8 +110,13 @@ function Json_mt:stream_value(conn, buf)
 end
 
 
-function Json_mt:stream_consume(conn, buf)
-	local ok, value = self:stream_value(conn, buf)
+function Json_mt:stream_consume(stream)
+	-- stream methods:
+	--	:readin()
+	--	:value() -> returns char*, len (could return eof?)
+	--	:trim(n)
+
+	local ok, value = self:stream_value(stream)
 	if not ok then return ok, value end
 	assert(self:is_done())
 	self:reset()
