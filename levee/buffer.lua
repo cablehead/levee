@@ -28,7 +28,8 @@ end
 
 
 function Buffer_mt:__tostring()
-	return string.format("levee.Buffer: off=%u, len=%u, cap=%u", self.off, self.len, self.cap)
+	return string.format(
+		"levee.Buffer: off=%u, len=%u, cap=%u", self.off, self.len, self.cap)
 end
 
 
