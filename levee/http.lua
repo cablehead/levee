@@ -219,7 +219,7 @@ end
 
 function Stream_mt:json()
 	local parser = json()
-	local ok, got = parser:stream_consume(self.conn, self.buf)
+	local ok, got = parser:stream_consume(self)
 	-- TODO: ensure not more than len is consumed
 	self.len = 0
 	self.done:close()
@@ -264,16 +264,63 @@ function Response_mt:__tostring()
 end
 
 function Response_mt:consume()
-	return self.body:tostring()
+	if self.body then
+		return self.body:tostring()
+	end
+
+	local bits = {}
+	for chunk in self.chunks do
+		table.insert(bits, chunk:tostring())
+	end
+	return table.concat(bits)
 end
 
 function Response_mt:discard()
-	self.body:discard()
+	if self.body then
+		self.body:discard()
+		return true
+	end
+
+	for chunk in self.chunks do
+		chunk:discard()
+	end
 	return true
 end
 
 function Response_mt:json()
-	local ok, data = self.body:json()
+	if self.body then
+		local ok, data = self.body:json()
+		assert(ok)
+		return data
+	end
+
+	local ChunkedStream_mt = {}
+	ChunkedStream_mt.__index = ChunkedStream_mt
+
+	function ChunkedStream_mt:readin()
+		if self.chunk.buf.len < self.chunk.len then
+			-- we haven't read in all of this chunk yet
+			return self.chunk:readin()
+		end
+		-- must need the next chunk
+		self.chunk.done:close()
+		self.chunk = self.chunks:recv()
+		return self.chunk.len
+	end
+
+	function ChunkedStream_mt:value()
+		return self.chunk:value()
+	end
+
+	function ChunkedStream_mt:trim(n)
+		return self.chunk:trim(n)
+	end
+
+	local stream = setmetatable(
+		{chunks = self.chunks, chunk = self.chunks:recv()}, ChunkedStream_mt)
+
+	local parser = json()
+	local ok, data = parser:stream_consume(stream)
 	assert(ok)
 	return data
 end

@@ -276,9 +276,6 @@ return {
 	end,
 
 	test_conveniences_content_length = function()
-		print()
-		print()
-
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -302,9 +299,37 @@ return {
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
 
+		c:close()
+		serve:close()
+		assert.same(h.registered, {})
+	end,
 
-		print()
-		print()
+	test_conveniences_chunk_transfer = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen()
+		h:spawn(function()
+			local s = serve:recv()
+			for req in s do
+				req.response:send({levee.http.Status(200), {}, nil})
+				req.response:send('{"foo": "')
+				req.response:send('bar"}')
+				req.response:close()
+			end
+		end)
+
+		local c = h.http:connect(serve:addr():port())
+
+		local res = c:get("/"):recv()
+		assert.equal(res:discard(), true)
+
+		local res = c:get("/"):recv()
+		assert.equal(res:consume(), '{"foo": "bar"}')
+
+		local res = c:get("/"):recv()
+		assert.equal(res:json()["foo"], "bar")
 
 		c:close()
 		serve:close()
