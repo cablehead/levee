@@ -39,4 +39,27 @@ return {
 		assert.equal(#buf, 0)
 		assert.equal(buf:peek_s(), "")
 	end,
+
+	test_save = function()
+		local buf = Buffer(8192)
+		buf:push_s("012345678901234567890123456789")
+
+		buf:trim(10)
+		local check = buf:available()
+
+		buf:freeze(10)
+		-- freezing will reclaim the trimmed offset
+		assert.equal(check + 10, buf:available())
+		assert.equal(buf:peek_s(), "0123456789")
+
+		buf:trim(9)
+		buf:push_s("oh hai")
+		assert.equal(buf:peek_s(), "9oh hai")
+		local check = buf:available()
+
+		buf:thaw()
+		-- thaw will reclaim the trimmed offset
+		assert.equal(check + 9, buf:available())
+		assert.equal(buf:peek_s(), "01234567899oh hai")
+	end,
 }

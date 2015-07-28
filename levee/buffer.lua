@@ -7,7 +7,7 @@ static const unsigned LEVEE_BUFFER_MIN_SIZE = 8192;
 static const unsigned LEVEE_BUFFER_MAX_BLOCK = 131072;
 struct LeveeBuffer {
 	uint8_t *buf;
-	uint32_t off, len, cap;
+	uint32_t off, len, cap, sav;
 };
 ]]
 
@@ -29,7 +29,8 @@ end
 
 function Buffer_mt:__tostring()
 	return string.format(
-		"levee.Buffer: off=%u, len=%u, cap=%u", self.off, self.len, self.cap)
+		"levee.Buffer: sav=%u, off=%u, len=%u, cap=%u",
+		self.sav, self.off, self.len, self.cap)
 end
 
 
@@ -38,8 +39,16 @@ function Buffer_mt:__len()
 end
 
 
+function Buffer_mt:truncate()
+	if self.off > 0 then
+		C.memmove(self.buf, self.buf+self.off, self.len)
+		self.off = 0
+	end
+end
+
+
 function Buffer_mt:ensure(hint)
-	local cap = self.len + hint
+	local cap = self.sav + self.len + hint
 
 	if cap <= self.cap then
 		-- already have enough space
@@ -48,8 +57,7 @@ function Buffer_mt:ensure(hint)
 			self.off = 0
 		elseif self:available() < hint then
 			-- reclaim trimmed space and reset offset
-			C.memmove(self.buf, self.buf+self.off, self.len)
-			self.off = 0
+			self:truncate()
 		end
 		return self
 	end
@@ -67,6 +75,9 @@ function Buffer_mt:ensure(hint)
 		-- grow to nearest power of 2
 		cap = math.pow(2, math.ceil(math.log(cap)/math.log(2)))
 	end
+
+	local sav = self.sav
+	if sav > 0 then self:thaw() end
 
 	if self.off > 0 or cap < C.LEVEE_BUFFER_MAX_BLOCK then
 		buf = C.malloc(cap)
@@ -91,12 +102,14 @@ function Buffer_mt:ensure(hint)
 	self.off = 0
 	self.cap = cap
 
+	if sav > 0 then self:freeze(sav) end
+
 	return self
 end
 
 
 function Buffer_mt:available()
-	return self.cap - (self.off + self.len)
+	return self.cap - (self.off + self.len + self.sav)
 end
 
 
@@ -131,6 +144,25 @@ end
 
 function Buffer_mt:tail()
 	return self.buf + self.off + self.len, self:available()
+end
+
+
+function Buffer_mt:freeze(len)
+	assert(len <= self.len)
+	assert(self.sav == 0)
+	self:truncate()
+	self.sav = len
+	self.len = self.len - len
+	self.buf = self.buf + len
+end
+
+
+function Buffer_mt:thaw()
+	assert(self.sav > 0)
+	self:truncate()
+	self.len = self.len + self.sav
+	self.buf = self.buf - self.sav
+	self.sav = 0
 end
 
 
