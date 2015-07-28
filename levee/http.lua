@@ -290,7 +290,10 @@ end
 function Response_mt:json()
 	if self.body then
 		local ok, data = self.body:json()
-		assert(ok)
+		if not ok then
+			-- TODO: is this reasonable?
+			return nil, data
+		end
 		return data
 	end
 
@@ -321,7 +324,10 @@ function Response_mt:json()
 
 	local parser = json()
 	local ok, data = parser:stream_consume(stream)
-	assert(ok)
+	if not ok then
+		-- TODO: is this reasonable?
+		return nil, data
+	end
 	return data
 end
 
