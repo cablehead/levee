@@ -385,8 +385,10 @@ function Client_mt:reader()
 					done = self.hub:pipe(), }, Stream_mt)
 
 				res.chunks:send(chunk)
+				-- TODO: still need to package this up better
 				chunk.done:recv()
 				if chunk.len > 0 then
+					while #chunk.buf < chunk.len do chunk:readin() end
 					self.buf:freeze(chunk.len)
 				end
 			end
