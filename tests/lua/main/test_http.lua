@@ -305,6 +305,48 @@ return {
 
 		print()
 		print()
+
+		c:close()
+		serve:close()
+		assert.same(h.registered, {})
+	end,
+
+	test_chunk_spanning = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen()
+		local c = h.http:connect(serve:addr():port())
+		local s = serve:recv()
+
+		local response = c:get("/path")
+		local req = s:recv()
+
+		req.response:send({levee.http.Status(200), {}, nil})
+
+		response = response:recv()
+		assert.equal(response.code, 200)
+		assert(not response.body)
+		assert(response.chunks)
+
+		-- send chunk 1
+		req.response:send(17)
+		req.conn:write("0123456701-34567-")
+
+		local chunk = response.chunks:recv()
+		chunk:trim(10)
+		chunk.done:close()  -- leave bytes in the buffer
+
+		-- send chunk 2
+		req.response:send("90123456701234567")
+		local chunk = response.chunks:recv()
+		assert.equal(chunk:tostring(), "-34567-90123456701234567")
+
+		-- end response
+		req.response:close()
+		assert.equal(response.chunks:recv(), nil)
+
 		c:close()
 		serve:close()
 		assert.same(h.registered, {})

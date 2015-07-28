@@ -324,14 +324,24 @@ function Client_mt:reader()
 				if not _next then return end
 				if not _next[1] then break end
 
+				local len = tonumber(_next[2])
+
+				if self.buf.sav > 0 then
+					len = len + self.buf.sav
+					self.buf:thaw()
+				end
+
 				local chunk = setmetatable({
-					len = tonumber(_next[2]),
+					len = len,
 					conn = self.conn,
 					buf = self.buf,
 					done = self.hub:pipe(), }, Stream_mt)
 
 				res.chunks:send(chunk)
 				chunk.done:recv()
+				if chunk.len > 0 then
+					self.buf:freeze(chunk.len)
+				end
 			end
 
 			res.chunks:close()

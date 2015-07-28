@@ -96,5 +96,7 @@ A `Stream` allows a portion of a streaming socket to be delegated.
 - chunks
 
     If this is a chunked response than chunks will be a pipe which will yield
-    the response's chunks. Each chunk will be a `Stream` which should be fully
-    consumed before recv-ing the next chunk.
+    the response's chunks. Each chunk will be a `Stream`. Generally you want to
+    fully consume each chunk before recv-ing the next. It's also possible to
+    close .done prematurely. In this case the remaining len of the current
+    chunk is preserved as a prefix for the next chunk.
