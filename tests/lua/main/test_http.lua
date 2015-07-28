@@ -360,6 +360,7 @@ return {
 		req.conn:write("0123456701-34567-")
 
 		local chunk = response.chunks:recv()
+		while #chunk.buf < 10 do chunk:readin() end
 		chunk:trim(10)
 		chunk.done:close()  -- leave bytes in the buffer
 
