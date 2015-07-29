@@ -54,14 +54,27 @@ return {
 		local h = levee.Hub()
 		local c = h.consul()
 
+		-- clean up old runs
+		c.agent.service:deregister("foo")
+		--
+
+		local p = h:pipe()
+		h:spawn(function()
+			local index, services
+			while true do
+				index, services = c.health:service("foo", {index=index})
+				p:send(services)
+			end
+		end)
+		assert.equal(#p:recv(), 0)
+
 		assert.equal(c.agent.service:register("foo"), true)
 		assert(c.agent:services()["foo"])
-		local index, services = c.health:service("foo")
-		assert.equal(#services, 1)
+		assert.equal(#p:recv(), 1)
 
 		assert.equal(c.agent.service:deregister("foo"), true)
 		assert.equal(c.agent:services()["foo"], nil)
 		local index, services = c.health:service("foo")
-		assert.equal(#services, 0)
+		assert.equal(#p:recv(), 0)
 	end,
 }

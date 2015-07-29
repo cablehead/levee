@@ -247,6 +247,7 @@ function Health_mt:service(name, options)
 	local res = self.agent:request(
 		"GET", "health/service/"..name, params, nil, nil)
 	assert(res.code == 200)
+
 	return res.headers["X-Consul-Index"], res:json()
 end
 

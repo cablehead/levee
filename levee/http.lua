@@ -418,6 +418,19 @@ end
 
 
 function Client_mt:request(method, path, params, headers, data)
+	-- TODO: url encode params
+	if params then
+		local s = {path, "?"}
+		for key, value in pairs(params) do
+			table.insert(s, key)
+			table.insert(s, "=")
+			table.insert(s, value)
+			table.insert(s, "&")
+		end
+		table.remove(s)
+		path = table.concat(s)
+	end
+
 	self.iov:write(("%s %s %s\r\n"):format(method, path, VERSION))
 
 	headers = self:__headers(headers)
