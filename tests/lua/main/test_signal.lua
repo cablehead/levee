@@ -6,8 +6,8 @@ return {
 	test_core = function()
 		local h = require("levee").Hub()
 
-		local r1 = h.signal(C.SIGALRM, C.SIGTERM)
-		local r2 = h.signal(C.SIGALRM)
+		local r1 = h:signal(C.SIGALRM, C.SIGTERM)
+		local r2 = h:signal(C.SIGALRM)
 
 		local pid = C.getpid()
 

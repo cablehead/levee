@@ -52,7 +52,7 @@ local Signal_mt = {}
 Signal_mt.__index = Signal_mt
 
 
-function Signal_mt:__call(...)
+function Signal_mt:__call(hub, ...)
 	local recver = self.hub:queue()
 	self.reverse[recver] = {}
 
