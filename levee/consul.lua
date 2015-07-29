@@ -67,20 +67,44 @@ local KV_mt = {}
 KV_mt.__index = KV_mt
 
 
-function KV_mt:get(key)
-	local res = self.agent:request("GET", "kv/"..key)
+function KV_mt:get(key, options)
+	-- options:
+	-- 	index
+	-- 	wait
+	-- 	recurse
+	-- 	keys
+	-- 	separator
+	-- 	TODO:
+	-- 	token
+	-- 	consistency
+
+	options = options or {}
+	local params = {}
+
+	params.index = options.index
+	params.wait = options.wait
+	params.recurse = options.recurse and "1"
+	params.keys = options.keys and "1"
+	params.separator = options.separator
+
+	local res = self.agent:request("GET", "kv/"..key, params)
 	if res.code ~= 200 then
 		res:discard()
-		return
+		return res.headers["X-Consul-Index"], nil
 	end
 
 	local data = res:json()
 
-	for _, item in ipairs(data) do
-		item["Value"] = b64dec(item["Value"])
+	if not options.keys then
+		for _, item in ipairs(data) do
+			item["Value"] = b64dec(item["Value"])
+		end
+		if not options.recurse then
+			data = data[1]
+		end
 	end
 
-	return res.headers["X-Consul-Index"], data[1]
+	return res.headers["X-Consul-Index"], data
 end
 
 
@@ -91,8 +115,18 @@ function KV_mt:put(key, value)
 end
 
 
-function KV_mt:delete(key)
-	local res = self.agent:request("DELETE", "kv/"..key)
+function KV_mt:delete(key, options)
+	-- options:
+	-- 	recurse
+	-- 	TODO:
+	-- 	cas
+	-- 	token
+
+	options = options or {}
+	local params = {}
+	params.recurse = options.recurse and "1"
+
+	local res = self.agent:request("DELETE", "kv/"..key, params)
 	res:discard()
 	return res.code == 200
 end

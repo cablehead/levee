@@ -7,17 +7,36 @@ return {
 		local c = h.consul()
 
 		-- clean up old runs
-		assert.equal(c.kv:delete("foo"), true)
+		c.kv:delete("foo/", {recurse=true})
 		--
 
-		assert.equal(c.kv:get("foo"), nil)
-		assert.equal(c.kv:put("foo", "bar"), true)
+		local p = h:pipe()
+		h:spawn(function()
+			local index, data
+			while true do
+				index, data = c.kv:get("foo/", {index=index, recurse=true, keys=true})
+				p:send(data)
+			end
+		end)
 
-		local index, data = c.kv:get("foo")
-		assert.equal(data["Value"], "bar")
+		assert.equal(p:recv(), nil)
 
-		assert.equal(c.kv:delete("foo"), true)
-		assert.equal(c.kv:get("foo"), nil)
+		assert.equal(c.kv:put("foo/1", "1"), true)
+		local index, data = c.kv:get("foo/1")
+		assert.equal(data["Value"], "1")
+		assert.same(p:recv(), {"foo/1"})
+
+		assert.equal(c.kv:put("foo/2", "2"), true)
+		assert.same(p:recv(), {"foo/1", "foo/2"})
+
+		assert.equal(c.kv:put("foo/3", "3"), true)
+		assert.same(p:recv(), {"foo/1", "foo/2", "foo/3"})
+
+		assert.equal(c.kv:delete("foo/2"), true)
+		assert.same(p:recv(), {"foo/1", "foo/3"})
+
+		assert.equal(c.kv:delete("foo/", {recurse=true}), true)
+		assert.same(p:recv(), nil)
 	end,
 
 	test_session = function()
