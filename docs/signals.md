@@ -2,8 +2,7 @@
 
 To subscribe to signals, the hub provides a `signal` method.
 
-In this example we'll subscribe to the `SIGHUP` event to initiate configuration
-changes.
+In this example we'll subscribe to `SIGHUP` to initiate configuration changes.
 
 ```lua
 
