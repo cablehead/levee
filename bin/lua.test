@@ -188,13 +188,17 @@ function main(argv)
 		local traceback
 		local M = assert(loadfile(script))()
 
+		local SKIP = (M.skipif or function() end)()
+
 		local len = 0
 		local to_run = {}
 		for name in pairs(M) do
-			if argv.match and not string.find(name, argv.match) then
-			else
-				table.insert(to_run, name)
-				len = math.max(#name, len)
+			if name:sub(0, 5) == "test_" then
+				if argv.match and not string.find(name, argv.match) then
+				else
+					table.insert(to_run, name)
+					len = math.max(#name, len)
+				end
 			end
 		end
 
@@ -209,16 +213,21 @@ function main(argv)
 		for i, name in ipairs(to_run) do
 			local pattern = "    %-40s "
 			w(pattern:format(name))
-			local success, extra = xpcall(M[name],
-				function(err)
-					w(
-						txtred..' FAIL'..txtrst..'\n'..
-						'-----\n'..
-						debug.traceback()..'\n'..
-						err..'\n')
-					status = 1
-					stats.FAIL = stats.FAIL + 1
-				end)
+			local success, extra
+			if SKIP then
+				success, extra = true, "SKIP"
+			else
+				success, extra = xpcall(M[name],
+					function(err)
+						w(
+							txtred..' FAIL'..txtrst..'\n'..
+							'-----\n'..
+							debug.traceback()..'\n'..
+							err..'\n')
+						status = 1
+						stats.FAIL = stats.FAIL + 1
+					end)
+			end
 			if success and extra ~= 'IGNORE' then
 				if not extra then extra = 'PASS' end
 				w(

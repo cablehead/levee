@@ -2,6 +2,14 @@ local levee = require("levee")
 
 
 return {
+	skipif = function()
+		local h = levee.Hub()
+		local conn = h.tcp:connect(8500)
+		if not conn then return true end
+		conn:close()
+		return false
+	end,
+
 	test_kv = function()
 		local h = levee.Hub()
 		local c = h.consul()
