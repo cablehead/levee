@@ -161,6 +161,20 @@ function Session_mt:info(session_id)
 end
 
 
+function Session_mt:renew(session_id)
+	local res = self.agent:request(
+		"PUT", "session/renew/"..session_id, nil, nil, nil)
+
+	if res.code == 404 then
+		res:discard()
+		return false
+	end
+
+	assert(res.code == 200)
+	return res:json()[1]
+end
+
+
 --
 -- Module interface
 

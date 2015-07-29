@@ -42,5 +42,11 @@ return {
 		local index, session = c.session:info(session_id)
 		assert.equal(session["ID"], session_id)
 
+		assert.equal(c.session:renew("foo"), false)
+		assert.equal(c.session:renew(session_id)["ID"], session_id)
+
+		c.session:destroy(session_id)
+		local index, sessions = c.session:list()
+		assert.equal(#sessions, 0)
 	end,
 }
