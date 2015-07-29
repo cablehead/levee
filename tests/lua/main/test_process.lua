@@ -57,4 +57,28 @@ return {
 
 		child.done:recv()
 	end,
+
+	test_close = function()
+		local h = levee.Hub()
+		local child = h.process:spawn("echo", {argv={"foo"}, io={STDIN=-1}})
+		assert.equal(child.stdout:reads(), "foo\n")
+		child.done:recv()
+	end,
+
+	test_default = function()
+		-- test leaving child processes stdin/out mapped to the parents
+		-- skipping as it's not really practical to run automatically
+		if true then return "SKIP" end
+		print()
+		print()
+		local h = levee.Hub()
+
+		local serve = h.tcp:listen()
+		local c1 = h.tcp:connect(serve:addr():port())
+		local s1 = serve:recv()
+
+		local child = h.process:spawn("cat", {io={STDIN=0, STDOUT=1}})
+		child.done:recv()
+		print()
+	end,
 }

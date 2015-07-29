@@ -118,7 +118,11 @@ function M_mt:spawn(name, options)
 		C.dup2(in_r, 0)
 		C.close(in_r)
 	else
-		C.dup2(to_no(io.STDIN), 0)
+		if io.STDIN == -1 then
+			C.close(0)
+		elseif io.STDIN ~= 0 then
+			C.dup2(to_no(io.STDIN), 0)
+		end
 	end
 
 	if not io.STDOUT then
@@ -126,7 +130,7 @@ function M_mt:spawn(name, options)
 		C.dup2(out_w, 1)
 		C.close(out_w)
 	else
-		C.dup2(to_no(io.STDOUT), 1)
+		if io.STDOUT ~= 1 then C.dup2(to_no(io.STDOUT), 1) end
 	end
 
 	for no = 3, 65535 do
