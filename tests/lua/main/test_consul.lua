@@ -49,4 +49,13 @@ return {
 		local index, sessions = c.session:list()
 		assert.equal(#sessions, 0)
 	end,
+
+	test_agent_service = function()
+		local h = levee.Hub()
+		local c = h.consul()
+		assert.equal(c.agent.service:register("foo"), true)
+		assert(c.agent:services()["foo"])
+		assert.equal(c.agent.service:deregister("foo"), true)
+		assert.equal(c.agent:services()["foo"], nil)
+	end,
 }

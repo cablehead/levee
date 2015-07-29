@@ -23,14 +23,16 @@ local function encode(data)
 	if type(data) == "table" then
 		local ret = {}
 		table.insert(ret, "{")
-		for key, value in pairs(data) do
-			assert(type(key) == "string")
-			table.insert(ret, '"'..key..'"')
-			table.insert(ret, ": ")
-			table.insert(ret, encode(value))
-			table.insert(ret, ", ")
+		if next(data) then
+			for key, value in pairs(data) do
+				assert(type(key) == "string")
+				table.insert(ret, '"'..key..'"')
+				table.insert(ret, ": ")
+				table.insert(ret, encode(value))
+				table.insert(ret, ", ")
+			end
+			table.remove(ret)  -- pop trailing ','
 		end
-		table.remove(ret)  -- pop trailing ','
 		table.insert(ret, "}")
 		return table.concat(ret)
 
@@ -175,6 +177,56 @@ function Session_mt:renew(session_id)
 end
 
 
+local Agent_mt = {}
+Agent_mt.__index = Agent_mt
+
+
+function Agent_mt:services()
+	local res = self.agent:request("GET", "agent/services", nil, nil, nil)
+	assert(res.code == 200)
+	return res:json()
+end
+
+
+local AgentService_mt = {}
+AgentService_mt.__index = AgentService_mt
+
+
+function AgentService_mt:register(name, options)
+	-- options:
+	-- 	service_id
+	-- 	address
+	-- 	port
+	-- 	tags
+	-- 	check
+	-- 		ttl or
+	-- 		script, interval or
+	-- 		http, interval, timeout
+
+	options = options or {}
+	local data = {name = name}
+
+	data.service_id = options.service_id
+	data.address = options.address
+	data.port = options.port
+	data.tags = options.tags
+	data.check = options.check
+
+	local res = self.agent:request(
+		"PUT", "agent/service/register", nil, nil, encode(data))
+	res:discard()
+	return res.code == 200
+end
+
+
+function AgentService_mt:deregister(service_id)
+	local res = self.agent:request(
+		"GET", "agent/service/deregister/"..service_id, nil, nil, nil)
+	res:discard()
+	return res.code == 200
+end
+
+
 --
 -- Module interface
 
@@ -186,6 +238,8 @@ function M_mt:__call(port)
 	local M = setmetatable({hub = self.hub, port = port or 8500}, Consul_mt)
 	M.kv = setmetatable({agent = M}, KV_mt)
 	M.session = setmetatable({agent = M}, Session_mt)
+	M.agent = setmetatable({agent = M}, Agent_mt)
+	M.agent.service = setmetatable({agent = M}, AgentService_mt)
 	return M
 end
 
