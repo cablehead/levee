@@ -39,7 +39,7 @@ function Pipe_mt:recv()
 		return
 	end
 
-	if self.value then
+	if self.sender then
 		local value = self.value
 		self.value = nil
 		local co = self.sender

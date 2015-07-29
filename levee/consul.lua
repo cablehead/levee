@@ -108,10 +108,23 @@ function KV_mt:get(key, options)
 end
 
 
-function KV_mt:put(key, value)
-	local res = self.agent:request("PUT", "kv/"..key, nil, nil, value)
-	res:discard()
-	return res.code == 200
+function KV_mt:put(key, value, options)
+	-- options:
+	-- 	acquire
+	-- 	release
+	-- 	TODO:
+	-- 	cas
+	-- 	flags
+	-- 	token
+
+	options = options or {}
+	local params = {}
+
+	params.acquire = options.acquire
+	params.release = options.release
+
+	local res = self.agent:request("PUT", "kv/"..key, params, nil, value)
+	return res:consume() == "true"
 end
 
 
