@@ -50,12 +50,18 @@ return {
 		assert.equal(#sessions, 0)
 	end,
 
-	test_agent_service = function()
+	test_service = function()
 		local h = levee.Hub()
 		local c = h.consul()
+
 		assert.equal(c.agent.service:register("foo"), true)
 		assert(c.agent:services()["foo"])
+		local index, services = c.health:service("foo")
+		assert.equal(#services, 1)
+
 		assert.equal(c.agent.service:deregister("foo"), true)
 		assert.equal(c.agent:services()["foo"], nil)
+		local index, services = c.health:service("foo")
+		assert.equal(#services, 0)
 	end,
 }

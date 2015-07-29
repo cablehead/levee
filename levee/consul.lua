@@ -227,6 +227,30 @@ function AgentService_mt:deregister(service_id)
 end
 
 
+local Health_mt = {}
+Health_mt.__index = Health_mt
+
+
+function Health_mt:service(name, options)
+	-- options
+	-- 	index
+	-- 	passing
+	-- 	tags
+
+	options = options or {}
+	local params = {}
+
+	params.index = options.index
+	params.passing = options.passing and "1"
+	params.tag = options.tag
+
+	local res = self.agent:request(
+		"GET", "health/service/"..name, params, nil, nil)
+	assert(res.code == 200)
+	return res.headers["X-Consul-Index"], res:json()
+end
+
+
 --
 -- Module interface
 
@@ -240,6 +264,7 @@ function M_mt:__call(port)
 	M.session = setmetatable({agent = M}, Session_mt)
 	M.agent = setmetatable({agent = M}, Agent_mt)
 	M.agent.service = setmetatable({agent = M}, AgentService_mt)
+	M.health = setmetatable({agent = M}, Health_mt)
 	return M
 end
 
