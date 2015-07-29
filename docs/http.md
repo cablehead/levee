@@ -117,7 +117,7 @@ A `Stream` allows a portion of a streaming socket to be delegated.
 
 - `consume()`
 
-    Convenience to consume the entire response body and returns it as a string.
+    Convenience to consume the entire response body and return it as a string.
 
 - `discard()`
 
