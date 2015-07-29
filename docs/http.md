@@ -100,3 +100,17 @@ A `Stream` allows a portion of a streaming socket to be delegated.
     fully consume each chunk before recv-ing the next. It's also possible to
     close .done prematurely. In this case the remaining len of the current
     chunk is preserved as a prefix for the next chunk.
+
+- :consume()
+
+    Convenience to consume the entire response body and returns it as a string.
+
+- :discard()
+
+    Convenience to discard the entire response body using a minimal amount of
+    resources.
+
+- :json()
+
+    Convenience to stream the entire response body through the json decoder.
+    Returns a lua table object for the decoded json.
