@@ -44,7 +44,7 @@ M_mt.__index = M_mt
 function M_mt:poweron()
 	if self.sigchild then return end
 
-	self.sigchild = self.hub.signal(C.SIGCHLD)
+	self.sigchild = self.hub:signal(C.SIGCHLD)
 
 	self.hub:spawn(function()
 		for _ in self.sigchild do
