@@ -25,17 +25,23 @@ local os = require('os')
 assert = require('luassert')
 debug = require('debug')
 
-function repr(x)
+function repr(x, indent)
+	indent = indent or ""
 	local s
 	if type(x) == "table" then
-		s = "{"
+		s = "{\n"
 		local i, v = next(x)
 		while i do
-			s = s .. repr(i) .. "=" .. repr(v)
+			s = s .. indent .. "    " .. repr(i) .. " = " .. repr(v, indent.."    ")
 			i, v = next(x, i)
-			if i then s = s .. ", " end
+			if i then s = s .. ",\n" end
+
 		end
 		return s .. "}"
+
+	elseif type(x) == "string" then
+		return '"'..x..'"'
+
 	else
 		return tostring(x)
 	end
