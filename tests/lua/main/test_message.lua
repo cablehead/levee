@@ -104,4 +104,37 @@ return {
 		end
 		assert.equal(check, 10)
 	end,
+
+	test_selector = function()
+		local h = require("levee").Hub()
+
+		local p1 = h:pipe()
+		local p2 = h:pipe()
+
+		local s = h:selector()
+
+		-- send before redirect
+		h:spawn(function() p1:send("0") end)
+
+		p1:redirect(s)
+		p2:redirect(s)
+
+		assert.same({s:recv()}, {p1, "0"})
+
+		-- send and then recv
+		h:spawn(function() p1:send("1") end)
+		assert.same({s:recv()}, {p1, "1"})
+
+		-- recv and then send
+		local check
+		h:spawn(function() check = {s:recv()} end)
+		p2:send("2")
+		assert.same(check, {p2, "2"})
+
+		-- 2x pending
+		h:spawn(function() p2:send("2") end)
+		h:spawn(function() p1:send("1") end)
+		assert.same({s:recv()}, {p2, "2"})
+		assert.same({s:recv()}, {p1, "1"})
+	end,
 }

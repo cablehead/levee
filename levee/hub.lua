@@ -111,6 +111,11 @@ function Hub_mt:pipe()
 end
 
 
+function Hub_mt:selector()
+	return message.Selector(self)
+end
+
+
 function Hub_mt:queue(size)
 	return message.Queue(self, size)
 end

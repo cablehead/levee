@@ -2,6 +2,42 @@ local FIFO = require("levee.fifo")
 
 
 --
+-- Redirect
+
+local Redirect_mt = {}
+Redirect_mt.__index = Redirect_mt
+
+
+function Redirect_mt:send(value)
+	assert(not self.sender)
+
+	if self.closed then
+		return
+	end
+
+	if self.target:give(self, value) then
+		self.hub:continue()
+		return true
+	end
+
+	self.value = value
+	self.sender = coroutine.running()
+	return self.hub:_coyield()
+end
+
+
+function Redirect_mt:take()
+	assert(self.sender)
+	local value = self.value
+	self.value = nil
+	local co = self.sender
+	self.sender = nil
+	self.hub.ready:push({co, true})
+	return value
+end
+
+
+--
 -- Pipe
 
 -- A pipe has exactly one Sender and one Recver.
@@ -54,6 +90,20 @@ end
 
 function Pipe_mt:__call()
 	return self:recv()
+end
+
+
+function Pipe_mt:redirect(target)
+	assert(not self.recver)
+
+	self.target = target
+	self = setmetatable(self, Redirect_mt)
+
+	if self.sender then
+		assert(not self.target:give(self, value))
+	end
+
+	return self
 end
 
 
@@ -181,6 +231,45 @@ end
 
 
 --
+-- Selector
+
+local Selector_mt = {}
+Selector_mt.__index = Selector_mt
+
+
+function Selector_mt:give(sender, value)
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub.ready:push({co, {sender, value}})
+		return true
+	end
+
+	self.fifo:push(sender)
+	return false
+end
+
+
+function Selector_mt:recv()
+	assert(not self.recver)
+
+	if #self.fifo > 0 then
+		local sender = self.fifo:pop()
+		return sender, sender:take()
+	end
+
+	self.recver = coroutine.running()
+	return unpack(self.hub:_coyield())
+end
+
+
+local function Selector(hub)
+	local self = setmetatable({hub=hub, fifo=FIFO(), }, Selector_mt)
+	return self
+end
+
+
+--
 -- Pair
 
 -- Convenience to namespace a sender / recver pair
@@ -209,5 +298,6 @@ end
 return {
 	Pipe = Pipe,
 	Queue = Queue,
+	Selector = Selector,
 	Pair = Pair,
 	}
