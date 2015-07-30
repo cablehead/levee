@@ -68,6 +68,15 @@ return {
 		assert.same(p:recv(), nil)
 	end,
 
+	test_kv_put_nil = function()
+		local h = levee.Hub()
+		local c = h:consul()
+		c.kv:put("foo")
+		local index, data = c.kv:get("foo")
+		assert.equal(data.Value, nil)
+		c.kv:delete("foo")
+	end,
+
 	test_session = function()
 		local h = levee.Hub()
 		local c = h:consul()

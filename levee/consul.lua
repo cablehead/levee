@@ -97,7 +97,7 @@ function KV_mt:get(key, options)
 
 	if not options.keys then
 		for _, item in ipairs(data) do
-			item["Value"] = b64dec(item["Value"])
+			if item.Value then item.Value = b64dec(item.Value) end
 		end
 		if not options.recurse then
 			data = data[1]
