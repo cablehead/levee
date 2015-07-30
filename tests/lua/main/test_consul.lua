@@ -34,7 +34,7 @@ return {
 			end
 		end)
 
-		assert.equal(p:recv(), nil)
+		assert.same(p:recv(), {})
 
 		assert.equal(c.kv:put("foo/1", "1"), true)
 		local index, data = c.kv:get("foo/1")
@@ -65,7 +65,7 @@ return {
 		assert.same(p:recv(), {"foo/2", "foo/4"})
 
 		assert.equal(c.kv:delete("foo/", {recurse=true}), true)
-		assert.same(p:recv(), nil)
+		assert.same(p:recv(), {})
 	end,
 
 	test_kv_put_nil = function()
@@ -133,5 +133,62 @@ return {
 		assert.equal(c.agent:services()["foo"], nil)
 		local index, services = c.health:service("foo")
 		assert.equal(#p:recv(), 0)
+	end,
+
+	test_election = function()
+		local h = levee.Hub()
+		local c = h:consul()
+
+		-- clean up old runs
+		c.kv:delete("foo/", {recurse=true})
+
+		local index, sessions = c.session:list()
+		for _, session in pairs(sessions) do
+			c.session:destroy(session["ID"])
+		end
+		--
+
+		local s1 = c.session:create({behavior="delete", lock_delay=0})
+		local r1 = c:election("foo/", s1, 2)
+		assert(r1:recv())
+
+		local s2 = c.session:create({behavior="delete", lock_delay=0})
+		local r2 = c:election("foo/", s2, 2)
+		assert(r2:recv())
+
+		local s3 = c.session:create({behavior="delete", lock_delay=0})
+		local r3 = c:election("foo/", s3, 2)
+
+		local s4 = c.session:create({behavior="delete", lock_delay=0})
+		local r4 = c:election("foo/", s4, 2)
+
+		-- TODO: need to add timeout for :recv
+		h:sleep(40)
+		assert(not r1.sender)
+		assert(not r2.sender)
+		assert(not r3.sender)
+		assert(not r4.sender)
+
+		c.session:destroy(s2)
+		assert(r3:recv())
+		assert.equal(r2:recv(), nil)
+		assert(r2.closed)
+		assert(not r1.sender)
+		assert(not r4.sender)
+
+		c.session:destroy(s1)
+		assert.equal(r1:recv(), nil)
+		assert(r1.closed)
+		assert(r4:recv())
+		assert(not r3.sender)
+
+		c.session:destroy(s4)
+		assert.equal(r4:recv(), nil)
+		assert(r4.closed)
+		assert(not r3.sender)
+
+		c.session:destroy(s3)
+		assert.equal(r3:recv(), nil)
+		assert(r3.closed)
 	end,
 }

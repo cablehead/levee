@@ -53,6 +53,60 @@ local Consul_mt = {}
 Consul_mt.__index = Consul_mt
 
 
+function Consul_mt:election(prefix, session_id, n)
+	n = n or 1
+	local ok = self.kv:put(prefix..session_id, session_id, {acquire=session_id})
+	assert(ok)
+
+	local is_elected = false
+
+	local p = self.hub:pipe()
+	self.hub:spawn(function()
+		local index, data
+		while true do
+			index, data = self.kv:get(prefix, {index=index, recurse=true})
+
+			local order = {}
+			local map = {}
+
+			local seen = false
+
+			for _, v in ipairs(data) do
+				if v.Value == session_id then
+					seen = true
+				end
+				table.insert(order, v.CreateIndex)
+				map[v.CreateIndex] = v.Value
+			end
+
+			if not seen then
+				-- our entry has dropped out of consul
+				p:close()
+				return
+			end
+
+			table.sort(order)
+			local elected = false
+			for i = 1, n do
+				if map[order[i]] == session_id then
+					elected = true
+					break
+				end
+			end
+
+			-- it shouldn't be possible to drop from election, once elected
+			assert(not (is_elected and not elected))
+
+			if elected and not is_elected then
+				is_elected = true
+				p:send(true)
+			end
+		end
+	end)
+	return p
+end
+
+
 function Consul_mt:request(method, path, params, headers, data)
 	local conn = self.hub.http:connect(self.port)
 	if not conn then return end
@@ -90,7 +144,7 @@ function KV_mt:get(key, options)
 	local res = self.agent:request("GET", "kv/"..key, params)
 	if res.code ~= 200 then
 		res:discard()
-		return res.headers["X-Consul-Index"], nil
+		return res.headers["X-Consul-Index"], options.recurse and {} or nil
 	end
 
 	local data = res:json()
