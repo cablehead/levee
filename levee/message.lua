@@ -5,7 +5,6 @@ local FIFO = require("levee.fifo")
 -- Pipe
 
 -- A pipe has exactly one Sender and one Recver.
---
 
 local Pipe_mt = {}
 Pipe_mt.__index = Pipe_mt
@@ -185,7 +184,6 @@ end
 -- Pair
 
 -- Convenience to namespace a sender / recver pair
---
 
 local Pair_mt = {}
 Pair_mt.__index = Pair_mt
@@ -204,7 +202,6 @@ end
 local function Pair(sender, recver)
 	return setmetatable({sender=sender, recver=recver}, Pair_mt)
 end
-
 
 
 ----
