@@ -12,7 +12,7 @@ return {
 
 	test_kv = function()
 		local h = levee.Hub()
-		local c = h.consul()
+		local c = h:consul()
 
 		-- clean up old runs
 		c.kv:delete("foo/", {recurse=true})
@@ -70,7 +70,7 @@ return {
 
 	test_session = function()
 		local h = levee.Hub()
-		local c = h.consul()
+		local c = h:consul()
 
 		-- clean up old runs
 		local index, sessions = c.session:list()
@@ -100,7 +100,7 @@ return {
 
 	test_service = function()
 		local h = levee.Hub()
-		local c = h.consul()
+		local c = h:consul()
 
 		-- clean up old runs
 		c.agent.service:deregister("foo")

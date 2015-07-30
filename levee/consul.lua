@@ -306,7 +306,7 @@ local M_mt = {}
 M_mt.__index = M_mt
 
 
-function M_mt:__call(port)
+function M_mt:__call(hub, port)
 	local M = setmetatable({hub = self.hub, port = port or 8500}, Consul_mt)
 	M.kv = setmetatable({agent = M}, KV_mt)
 	M.session = setmetatable({agent = M}, Session_mt)
