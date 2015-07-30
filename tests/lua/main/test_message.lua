@@ -136,5 +136,12 @@ return {
 		h:spawn(function() p1:send("1") end)
 		assert.same({s:recv()}, {p2, "2"})
 		assert.same({s:recv()}, {p1, "1"})
+
+		-- test sender close
+		h:spawn(function() p1:close() end)
+		local sender, value = s:recv()
+		assert.same(sender, p1)
+		assert.equal(sender.closed, true)
+		assert.equal(value, nil)
 	end,
 }

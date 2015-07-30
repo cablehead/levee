@@ -37,6 +37,26 @@ function Redirect_mt:take()
 end
 
 
+function Redirect_mt:close()
+	if self.closed then
+		return
+	end
+
+	self.closed = true
+
+	-- TODO: is this a good idea to block the sender until the recver recvs the
+	-- close? if it is, we should rework the other primitives too
+	if self.target:give(self, value) then
+		self.hub:continue()
+		return true
+	end
+
+	self.value = value
+	self.sender = coroutine.running()
+	return self.hub:_coyield()
+end
+
+
 --
 -- Pipe
 
