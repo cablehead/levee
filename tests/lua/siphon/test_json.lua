@@ -8,7 +8,7 @@ return {
 			segments = {
 				'{"int": 3, "f',
 				'oo": "bar", "neste',
-				'd": {"alist": ',
+				'd": {"null": null, "alist": ',
 				'[1, 2, 3], "yes": tr',
 				'ue, "no": false}}{',
 				'"foo": "bar"}', }}

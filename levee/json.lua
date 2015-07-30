@@ -103,6 +103,9 @@ function Json_mt:stream_value(stream)
 	elseif self.type == C.SP_JSON_FALSE then
 		return true, false
 
+	elseif self.type == C.SP_JSON_NULL then
+		return true, nil
+
 	else
 		-- should only be SP_JSON_OBJECT_END and SP_JSON_ARRAY_END
 		return true, self.type
