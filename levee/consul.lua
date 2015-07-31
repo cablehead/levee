@@ -39,6 +39,9 @@ local function encode(data)
 	elseif type(data) == "string" then
 		return '"'..data..'"'
 
+	elseif type(data) == "number" then
+		return tostring(data)
+
 	else
 		print(type(data))
 		assert(false)
@@ -307,7 +310,7 @@ function AgentService_mt:register(name, options)
 	options = options or {}
 	local data = {name = name}
 
-	data.service_id = options.service_id
+	data.id = options.service_id
 	data.address = options.address
 	data.port = options.port
 	data.tags = options.tags
@@ -315,8 +318,7 @@ function AgentService_mt:register(name, options)
 
 	local res = self.agent:request(
 		"PUT", "agent/service/register", nil, nil, encode(data))
-	res:discard()
-	return res.code == 200
+	return res.code == 200, res:consume()
 end
 
 
