@@ -24,6 +24,11 @@ function Process_mt:running()
 end
 
 
+function Process_mt:kill(signal)
+	return C.kill(self.pid, signal or C.SIGTERM)
+end
+
+
 local function Process(hub, pid)
 	return setmetatable({
 		hub = hub,
