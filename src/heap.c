@@ -83,8 +83,6 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 	assert (self != NULL);
 	assert (self->capacity >= self->next);
 
-	LeveeHeapItem * item = malloc (sizeof(LeveeHeapItem));
-	item->value = val;
 
 	uint32_t key;
 
@@ -92,6 +90,11 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 		return LEVEE_HEAP_NO_KEY;
 	}
 	key = self->next++;
+
+	LeveeHeapItem * item = malloc (sizeof(LeveeHeapItem));
+
+	item->heap = self;
+	item->value = val;
 	item->key = key;
 
 	ENTRY (self, key).priority = pri;
@@ -150,6 +153,8 @@ levee_heap_remove (LeveeHeap *self, uint32_t key, uintptr_t def)
 	}
 
 	def = ENTRY (self, key).item->value;
+	free (ENTRY (self, key).item);
+
 	if (key != --self->next) {
 		ENTRY (self, key) = ENTRY (self, self->next);
 		ENTRY (self, key).item->key = key;
@@ -172,6 +177,10 @@ void
 levee_heap_clear (LeveeHeap *self)
 {
 	assert (self != NULL);
+
+	while (levee_heap_count(self) > 0) {
+		levee_heap_remove(self, LEVEE_HEAP_ROOT_KEY, 0);
+	}
 
 	for (uint32_t i = (self->capacity / ROW_WIDTH) - 1; i > 0; i--) {
 		free (self->entries[i]);

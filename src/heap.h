@@ -18,8 +18,9 @@ struct LeveeHeapEntry {
 };
 
 struct LeveeHeapItem {
-	uintptr_t value;  /* user value */
-	uint32_t key;
+	LeveeHeap *heap;
+	uint32_t value;  /* user value */
+	uint32_t key; /* reverse map to our entry in the heap */
 };
 
 

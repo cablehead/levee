@@ -26,6 +26,7 @@ function Heap:push(pri, val)
 	end
 	local item = C.levee_heap_add(self.heap, pri, id)
 	self.refs[id] = {item, val}
+
 end
 
 
