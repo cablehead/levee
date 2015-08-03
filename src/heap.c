@@ -77,11 +77,14 @@ levee_heap_count (const LeveeHeap *self)
 	return self->next - 1;
 }
 
-uint32_t
+LeveeHeapItem *
 levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 {
 	assert (self != NULL);
 	assert (self->capacity >= self->next);
+
+	LeveeHeapItem * item = malloc (sizeof(LeveeHeapItem));
+	item->value = val;
 
 	uint32_t key;
 
@@ -89,9 +92,13 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 		return LEVEE_HEAP_NO_KEY;
 	}
 	key = self->next++;
+	item->key = key;
+
 	ENTRY (self, key).priority = pri;
-	ENTRY (self, key).value = val;
-	return move_up (self, key);
+	ENTRY (self, key).item = item;
+
+	key = move_up (self, key);
+	return ENTRY (self, key).item;
 }
 
 uint32_t
@@ -142,15 +149,18 @@ levee_heap_remove (LeveeHeap *self, uint32_t key, uintptr_t def)
 		return def;
 	}
 
-	def = ENTRY (self, key).value;
+	def = ENTRY (self, key).item->value;
 	if (key != --self->next) {
 		ENTRY (self, key) = ENTRY (self, self->next);
+		ENTRY (self, key).item->key = key;
 		key = move_up (self, key);
 		move_down (self, key);
 	}
 
 	// always keep one extra row when removing
-	if ((((self->next + ROW_WIDTH - 2) / ROW_WIDTH) + 1) * ROW_WIDTH < self->capacity) {
+	if (
+			(((self->next + ROW_WIDTH - 2) / ROW_WIDTH) + 1) * ROW_WIDTH
+			< self->capacity) {
 		free (ROW (self, self->capacity - 1));
 		ROW (self, self->capacity - 1) = NULL;
 		self->capacity -= ROW_WIDTH;
@@ -248,7 +258,9 @@ swap (const LeveeHeap *self, uint32_t aidx, uint32_t bidx)
 
 	tmp = ENTRY (self, aidx);
 	ENTRY (self, aidx) = ENTRY (self, bidx);
+	ENTRY (self, aidx).item->key = aidx;
 	ENTRY (self, bidx) = tmp;
+	ENTRY (self, bidx).item->key = bidx;
 }
 
 uint32_t

@@ -5,6 +5,7 @@
 
 typedef struct LeveeHeap LeveeHeap;
 typedef struct LeveeHeapEntry LeveeHeapEntry;
+typedef struct LeveeHeapItem LeveeHeapItem;
 
 struct LeveeHeap {
 	LeveeHeapEntry **entries;
@@ -13,8 +14,14 @@ struct LeveeHeap {
 
 struct LeveeHeapEntry {
 	int64_t priority; /* sort priority (lowest to highest) */
-	uintptr_t value;  /* user value */
+	LeveeHeapItem* item;
 };
+
+struct LeveeHeapItem {
+	uintptr_t value;  /* user value */
+	uint32_t key;
+};
+
 
 #define LEVEE_HEAP_NO_KEY 0
 #define LEVEE_HEAP_ROOT_KEY 1
@@ -28,7 +35,7 @@ levee_heap_destroy (LeveeHeap *self);
 extern uint32_t
 levee_heap_count (const LeveeHeap *self);
 
-extern uint32_t
+extern LeveeHeapItem *
 levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val);
 
 extern uint32_t

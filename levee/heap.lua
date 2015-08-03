@@ -24,8 +24,8 @@ function Heap:push(pri, val)
 	else
 		id = #self.refs + 1
 	end
-	self.refs[id] = val
-	C.levee_heap_add(self.heap, pri, id)
+	local item = C.levee_heap_add(self.heap, pri, id)
+	self.refs[id] = {item, val}
 end
 
 
@@ -33,7 +33,7 @@ function Heap:pop()
 	local entry = C.levee_heap_get(self.heap, C.LEVEE_HEAP_ROOT_KEY)
 	if entry ~= nil then
 		local prio = entry.priority
-		local id = tonumber(entry.value)
+		local id = tonumber(entry.item.value)
 		C.levee_heap_remove(self.heap, C.LEVEE_HEAP_ROOT_KEY, 0)
 		local val
 		if id == #self.refs then
@@ -43,7 +43,7 @@ function Heap:pop()
 			self.refs[id] = false
 			table.insert(self.avail, id)
 		end
-		return prio, val
+		return prio, val[2]
 	end
 end
 
@@ -51,7 +51,7 @@ end
 function Heap:peek()
 	local entry = C.levee_heap_get(self.heap, C.LEVEE_HEAP_ROOT_KEY)
 	if entry ~= nil then
-		return entry.priority, self.refs[tonumber(entry.value)]
+		return entry.priority, self.refs[tonumber(entry.item.value)][2]
 	end
 end
 
