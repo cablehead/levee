@@ -178,8 +178,9 @@ levee_heap_clear (LeveeHeap *self)
 {
 	assert (self != NULL);
 
-	while (levee_heap_count(self) > 0) {
-		levee_heap_remove(self, LEVEE_HEAP_ROOT_KEY, 0);
+	for (uint32_t i = LEVEE_HEAP_ROOT_KEY; i < self->next; i++) {
+		free (ENTRY (self, i).item);
+		ENTRY (self, i).item = NULL;
 	}
 
 	for (uint32_t i = (self->capacity / ROW_WIDTH) - 1; i > 0; i--) {
