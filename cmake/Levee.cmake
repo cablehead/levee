@@ -43,7 +43,7 @@ set_target_properties(libleveebase PROPERTIES OUTPUT_NAME leveebase)
 add_custom_target(
 	liblevee ALL
 	COMMAND
-		libtool -static -o 
+		libtool -static -o ${LEVEE_LIB}
 		$<TARGET_FILE:libleveebase> $<TARGET_FILE:libluajit> $<TARGET_FILE:libsiphon>
 	DEPENDS libleveebase libluajit libsiphon
 	BYPRODUCTS ${LEVEE_LIB}
