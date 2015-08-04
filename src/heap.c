@@ -92,6 +92,9 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 	key = self->next++;
 
 	LeveeHeapItem * item = malloc (sizeof(LeveeHeapItem));
+	if (item == NULL) {
+	    return NULL;
+	}
 
 	item->heap = self;
 	item->value = val;
