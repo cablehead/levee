@@ -3,6 +3,29 @@ local C = ffi.C
 
 local Errno = require('levee.errno')
 
+
+local HeapItem_mt = {}
+HeapItem_mt.__index = HeapItem_mt
+
+
+function HeapItem_mt:__tostring()
+	return string.format("levee.HeapItem: value=%d key=%d", self.value, self.key)
+end
+
+
+function HeapItem_mt:update(pri)
+	C.levee_heap_update(self.heap, self.key, pri)
+end
+
+
+function HeapItem_mt:remove()
+	C.levee_heap_remove(self.heap, self.key, 0)
+end
+
+
+ffi.metatype("LeveeHeapItem", HeapItem_mt)
+
+
 local Heap = {}
 Heap.__index = Heap
 
@@ -26,7 +49,7 @@ function Heap:push(pri, val)
 	end
 	local item = C.levee_heap_add(self.heap, pri, id)
 	self.refs[id] = {item, val}
-
+	return item
 end
 
 
