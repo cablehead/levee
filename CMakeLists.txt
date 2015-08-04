@@ -46,12 +46,10 @@ install(FILES
 	DESTINATION include/levee
 )
 
-if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
-	set(LEVEE_LIB -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
-elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
-	set(LEVEE_LIB -Wl,-force_load,${LEVEE_LIB})
-endif()
-
 add_dependencies(levee liblevee)
-target_link_libraries(levee ${LEVEE_LIB})
+if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
+	target_link_libraries(levee -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
+elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+	target_link_libraries(levee -Wl,-force_load,${LEVEE_LIB})
+endif()
 
