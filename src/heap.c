@@ -83,18 +83,19 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 	assert (self != NULL);
 	assert (self->capacity >= self->next);
 
-
 	uint32_t key;
-
-	if (self->capacity == self->next && add_row (self) < 0) {
-		return LEVEE_HEAP_NO_KEY;
-	}
-	key = self->next++;
 
 	LeveeHeapItem * item = malloc (sizeof(LeveeHeapItem));
 	if (item == NULL) {
 	    return NULL;
 	}
+
+	if (self->capacity == self->next && add_row (self) < 0) {
+		free (item);
+		return NULL;
+	}
+
+	key = self->next++;
 
 	item->heap = self;
 	item->value = val;
