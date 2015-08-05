@@ -30,6 +30,9 @@ add_executable(
 	src/main.c
 )
 
+add_dependencies(levee libleveebase)
+set_target_properties(levee PROPERTIES LINK_DEPENDS ${LEVEEBASE_LIB})
+
 install(TARGETS levee RUNTIME DESTINATION bin)
 install(FILES ${LEVEE_LIB} DESTINATION lib)
 install(FILES
@@ -46,10 +49,16 @@ install(FILES
 	DESTINATION include/levee
 )
 
-add_dependencies(levee liblevee)
+add_custom_command(
+	TARGET levee
+	PRE_LINK
+	COMMAND
+		libtool -static -o ${LEVEE_LIB}
+		$<TARGET_FILE:libleveebase> $<TARGET_FILE:libluajit> $<TARGET_FILE:libsiphon>
+)
+
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 	target_link_libraries(levee -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
 elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
 	target_link_libraries(levee -Wl,-force_load,${LEVEE_LIB})
 endif()
-
