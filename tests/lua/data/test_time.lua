@@ -34,6 +34,10 @@ return {
 		assert.equals("Tue, 05 May 2015 18:51:17 GMT", utc:http())
 		assert.equals(utc, time.parse_http("Tue, 05 May 2015 18:51:17 GMT"))
 		assert.equals(utc, time.parse("Tue, 05 May 2015 18:51:17 GMT"))
+
+		utc = utc:replace(nil, nil, nil, 20, 0, 0)
+		assert.equals("Tue, 05 May 2015 20:00:00 GMT", utc:http())
+
 	end,
 	test_timer = function()
 		local time = require("levee.time")

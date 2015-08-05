@@ -41,6 +41,21 @@ function Date:copy()
 	return new
 end
 
+function Date:replace(yr, mo, day, hr, min, sec, usec)
+	local ret = self:copy()
+
+	if yr then ret.base.tm_year = yr - 1900 end
+	if mo then ret.base.tm_mon = mo - 1 end
+	if day then ret.base.tm_mday = day end
+	if hr then ret.base.tm_hour = hr end
+	if min then ret.base.tm_min = min end
+	if sec then ret.base.tm_sec = sec end
+	if usec then ret.tv.tv_usec = usec end
+
+	ret.tv.tv_sec = C.timegm(ret.base)
+	return ret
+end
+
 function Date:microsecond() return self.tv.tv_usec end
 function Date:second() return self.base.tm_sec end
 function Date:minute() return self.base.tm_min end
