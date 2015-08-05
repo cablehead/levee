@@ -1,4 +1,4 @@
-return {
+local ret = {
 	Hub = require("levee.hub"),
 	State = require("levee.state"),
 	message = require("levee.message"),
@@ -10,3 +10,9 @@ return {
 	buffer = require("levee.buffer"),
 	json = require("levee.json"),
 }
+
+for key, value in pairs(require("levee.constants")) do
+	ret[key] = value
+end
+
+return ret

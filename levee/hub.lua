@@ -6,6 +6,7 @@ local sys = require("levee.sys")
 local Heap = require("levee.heap")
 local FIFO = require("levee.fifo")
 local message = require("levee.message")
+local constants = require("levee.constants")
 local Channel = require("levee.channel")
 
 
@@ -173,6 +174,19 @@ function Hub_mt:sleep(ms)
 end
 
 
+function Hub_mt:pause(ms)
+	if not ms then return self:_coyield() end
+
+	ms = self.poller:abstime(ms)
+	local timeout = self.scheduled:push(ms, coroutine.running())
+	local ret = self:_coyield()
+	if ret ~= constants.TIMEOUT then
+		timeout:remove()
+	end
+	return ret
+end
+
+
 function Hub_mt:continue()
 	self.ready:push({coroutine.running()})
 	self:_coyield()
@@ -242,7 +256,7 @@ function Hub_mt:pump()
 			break
 		end
 		local ms, co = self.scheduled:pop()
-		self:_coresume(co)
+		self:_coresume(co, constants.TIMEOUT)
 	end
 
 	for i = 0, n - 1 do

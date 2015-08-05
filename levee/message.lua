@@ -82,7 +82,7 @@ function Pipe_mt:send(value)
 end
 
 
-function Pipe_mt:recv()
+function Pipe_mt:recv(timeout)
 	assert(not self.recver)
 
 	if self.closed then
@@ -99,12 +99,15 @@ function Pipe_mt:recv()
 	end
 
 	self.recver = coroutine.running()
-	return self.hub:_coyield()
+	local ret = self.hub:pause(timeout)
+	-- TODO: handle comprehensively
+	self.recver = nil
+	return ret
 end
 
 
-function Pipe_mt:__call()
-	return self:recv()
+function Pipe_mt:__call(timeout)
+	return self:recv(timeout)
 end
 
 

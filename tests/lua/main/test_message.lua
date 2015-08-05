@@ -16,6 +16,27 @@ return {
 		assert.equal(p:recv(), "2")
 	end,
 
+	test_pipe_timeout = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+		local p = h:pipe()
+
+		assert.equal(p:recv(10), levee.TIMEOUT)
+		assert.equal(#h.scheduled, 0)
+
+		h:spawn_later(10, function() p:send("foo") end)
+		assert.equal(p:recv(20), "foo")
+		assert.equal(#h.scheduled, 0)
+
+		h:spawn(function() p:send("foo") end)
+		assert.equal(p:recv(0), "foo")
+		assert.equal(#h.scheduled, 0)
+
+		assert.equal(p:recv(0), levee.TIMEOUT)
+		assert.equal(#h.scheduled, 0)
+	end,
+
 	test_pipe_iter = function()
 		local h = require("levee").Hub()
 		local p = h:pipe()
