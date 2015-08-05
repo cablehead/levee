@@ -44,6 +44,11 @@ end
 function Date:replace(yr, mo, day, hr, min, sec, usec)
 	local ret = self:copy()
 
+	if usec then
+		sec = (sec or 0) + (usec / 1000000LL)
+		usec = usec % 1000000LL
+	end
+
 	if yr then ret.base.tm_year = yr - 1900 end
 	if mo then ret.base.tm_mon = mo - 1 end
 	if day then ret.base.tm_mday = day end
@@ -418,6 +423,12 @@ local http_tm = ffi.new("struct tm")
 return {
 	Date = function(yr, mo, day, hr, min, sec, usec)
 		local self = Date.allocate()
+
+		if usec then
+			sec = (sec or 0) + (usec / 1000000LL)
+			usec = usec % 1000000LL
+		end
+
 		self.base.tm_year = (yr or 1900) - 1900
 		self.base.tm_mon = (mo or 1) - 1
 		self.base.tm_mday = day or 1
