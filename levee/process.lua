@@ -146,9 +146,16 @@ function M_mt:spawn(name, options)
 	end
 
 	-- clear blocked signals
-	-- local sigset = ffi.new("sigset_t[1]")
-	-- local rc = C.sigprocmask(C.SIG_SETMASK, sigset, nil)
-	-- assert(rc == 0)
+	if ffi.os:lower() == "linux" then
+		local sigset = ffi.new("sigset_t[1]")
+		local rc = C.sigprocmask(C.SIG_SETMASK, sigset, nil)
+		assert(rc == 0)
+	else
+		local SIG_DFL = ffi.cast("sighandler_t", 0)
+		for no, _ in pairs(self.hub.signal.registered) do
+			C.signal(no, SIG_DFL)
+		end
+	end
 
 	local argv = options.argv or {}
 	table.insert(argv, 1, name)
