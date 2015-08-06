@@ -127,6 +127,40 @@ function Json_mt:stream_consume(stream)
 end
 
 
+--
+-- Poor man's encode - just awful, please replace
+
+local function encode(data)
+	if type(data) == "table" then
+		local ret = {}
+		table.insert(ret, "{")
+		if next(data) then
+			for key, value in pairs(data) do
+				assert(type(key) == "string")
+				table.insert(ret, '"'..key..'"')
+				table.insert(ret, ": ")
+				table.insert(ret, encode(value))
+				table.insert(ret, ", ")
+			end
+			table.remove(ret)  -- pop trailing ','
+		end
+		table.insert(ret, "}")
+		return table.concat(ret)
+
+	elseif type(data) == "string" then
+		return '"'..data..'"'
+
+	elseif type(data) == "number" then
+		return tostring(data)
+
+	else
+		print(type(data))
+		assert(false)
+	end
+end
+
+
 return {
 	decoder = ffi.metatype("SpJson", Json_mt),
+	encode = encode,
 }

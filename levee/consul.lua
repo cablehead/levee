@@ -1,3 +1,6 @@
+local json = require("levee.json")
+
+
 --
 -- utilities
 
@@ -16,36 +19,6 @@ local function b64dec(data)
 			for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
 			return string.char(c)
 		end))
-end
-
-
-local function encode(data)
-	if type(data) == "table" then
-		local ret = {}
-		table.insert(ret, "{")
-		if next(data) then
-			for key, value in pairs(data) do
-				assert(type(key) == "string")
-				table.insert(ret, '"'..key..'"')
-				table.insert(ret, ": ")
-				table.insert(ret, encode(value))
-				table.insert(ret, ", ")
-			end
-			table.remove(ret)  -- pop trailing ','
-		end
-		table.insert(ret, "}")
-		return table.concat(ret)
-
-	elseif type(data) == "string" then
-		return '"'..data..'"'
-
-	elseif type(data) == "number" then
-		return tostring(data)
-
-	else
-		print(type(data))
-		assert(false)
-	end
 end
 
 
@@ -235,7 +208,7 @@ function Session_mt:create(options)
 	end
 
 	local res = self.agent:request(
-		"PUT", "session/create", nil, nil, encode(data))
+		"PUT", "session/create", nil, nil, json.encode(data))
 
 	assert(res.code == 200)
 	return res:json()["ID"]
@@ -318,7 +291,7 @@ function AgentService_mt:register(name, options)
 	data.check = options.check
 
 	local res = self.agent:request(
-		"PUT", "agent/service/register", nil, nil, encode(data))
+		"PUT", "agent/service/register", nil, nil, json.encode(data))
 	return res.code == 200, res:consume()
 end
 
