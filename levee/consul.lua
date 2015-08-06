@@ -169,8 +169,8 @@ function KV_mt:put(key, value, options)
 	-- options:
 	-- 	acquire
 	-- 	release
-	-- 	TODO:
 	-- 	cas
+	-- 	TODO:
 	-- 	flags
 	-- 	token
 
@@ -179,6 +179,7 @@ function KV_mt:put(key, value, options)
 
 	params.acquire = options.acquire
 	params.release = options.release
+	params.cas = options.cas
 
 	local res = self.agent:request("PUT", "kv/"..key, params, nil, value)
 	return res:consume() == "true"

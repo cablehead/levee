@@ -77,6 +77,27 @@ return {
 		c.kv:delete("foo")
 	end,
 
+	test_kv_put_cas = function()
+		local h = levee.Hub()
+		local c = h:consul()
+
+		-- clean up old runs
+		c.kv:delete("foo")
+		--
+
+		c.kv:put("foo", "1", {cas=0})
+		local index, data = c.kv:get("foo")
+		assert.equal(data.Value, "1")
+
+		assert.equal(
+			c.kv:put("foo", "2", {cas=0}),
+			false)
+		local index, data = c.kv:get("foo")
+		assert.equal(data.Value, "1")
+
+		c.kv:delete("foo")
+	end,
+
 	test_session = function()
 		local h = levee.Hub()
 		local c = h:consul()
