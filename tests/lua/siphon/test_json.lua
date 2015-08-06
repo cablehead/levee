@@ -32,7 +32,7 @@ return {
 		end
 		--
 
-		local parser = levee.json()
+		local parser = levee.json.decoder()
 
 		local ok, got = parser:stream_consume(stream)
 		assert(ok)

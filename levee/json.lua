@@ -127,4 +127,6 @@ function Json_mt:stream_consume(stream)
 end
 
 
-return ffi.metatype("SpJson", Json_mt)
+return {
+	decoder = ffi.metatype("SpJson", Json_mt),
+}

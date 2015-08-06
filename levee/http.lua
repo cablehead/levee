@@ -218,7 +218,7 @@ function Stream_mt:discard()
 end
 
 function Stream_mt:json()
-	local parser = json()
+	local parser = json.decoder()
 	local ok, got = parser:stream_consume(self)
 	-- TODO: ensure not more than len is consumed
 	self.len = 0
@@ -322,7 +322,7 @@ function Response_mt:json()
 	local stream = setmetatable(
 		{chunks = self.chunks, chunk = self.chunks:recv()}, ChunkedStream_mt)
 
-	local parser = json()
+	local parser = json.decoder()
 	local ok, data = parser:stream_consume(stream)
 	if not ok then
 		-- TODO: is this reasonable?
