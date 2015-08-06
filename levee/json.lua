@@ -126,6 +126,8 @@ function Json_mt:stream_consume(stream)
 	return true, value
 end
 
+local decoder = ffi.metatype("SpJson", Json_mt)
+
 
 --
 -- Poor man's encode - just awful, please replace
@@ -160,7 +162,37 @@ local function encode(data)
 end
 
 
+-- convenience to decode from a string
+
+local StringStream_mt = {}
+StringStream_mt.__index = StringStream_mt
+
+function StringStream_mt:readin()
+end
+
+function StringStream_mt:value()
+	return self.buf, self.n
+end
+
+function StringStream_mt:trim(n)
+	assert(self.n >= n)
+	self.buf = self.buf + n
+	self.n = self.n - n
+end
+
+local function decode(s)
+	local buf = ffi.cast("const char*", s)
+	local n = #s
+	local stream = setmetatable({buf=buf, n=n}, StringStream_mt)
+	local parser = decoder()
+	local ok, got = parser:stream_consume(stream)
+	assert(ok)
+	return got
+end
+
+
 return {
-	decoder = ffi.metatype("SpJson", Json_mt),
+	decoder = decoder,
 	encode = encode,
+	decode = decode,
 }

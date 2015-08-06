@@ -1,6 +1,8 @@
+local levee = require("levee")
+
+
 return {
 	test_core = function()
-		local levee = require("levee")
 
 		-- stream stub
 		local buf = levee.buffer(4096)
@@ -50,5 +52,11 @@ return {
 
 		local ok, got = parser:stream_consume(stream)
 		assert(not ok)
+	end,
+
+	test_decode = function()
+		local s = '{"foo": "bar"}'
+		local got = levee.json.decode(s)
+		assert.same(got, {foo="bar"})
 	end,
 }
