@@ -281,6 +281,11 @@ function Selector_mt:recv()
 end
 
 
+function Selector_mt:__call()
+	return self:recv()
+end
+
+
 local function Selector(hub)
 	local self = setmetatable({hub=hub, fifo=FIFO(), }, Selector_mt)
 	return self
