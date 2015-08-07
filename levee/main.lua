@@ -1,7 +1,7 @@
 local os = require('os')
 local command = arg[1]
-local handler = nil
 local ok = false
+local handler, result
 
 if command then
 	ok, handler = pcall(require, "levee.cmd." .. command)
@@ -12,4 +12,8 @@ if not ok then
 	os.exit(1)
 end
 
-handler({unpack(arg,2)})
+ok, result = pcall(handler, {unpack(arg,2)})
+if not ok then
+	print(result)
+	os.exit(1)
+end
