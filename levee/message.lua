@@ -42,6 +42,12 @@ function Redirect_mt:take()
 end
 
 
+function Redirect_mt:redirect(target)
+	assert(not self.recver)
+	self.target = target
+end
+
+
 function Redirect_mt:close()
 	if self.closed then
 		return
