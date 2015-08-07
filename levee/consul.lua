@@ -86,7 +86,9 @@ end
 function Consul_mt:request(method, path, params, headers, data)
 	local conn = self.hub.http:connect(self.port)
 	if not conn then return end
-	return conn:request(method, "/v1/"..path, params, headers, data):recv()
+	local res = conn:request(method, "/v1/"..path, params, headers, data):recv()
+	conn:close()
+	return res
 end
 
 
