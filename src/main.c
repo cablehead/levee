@@ -4,23 +4,33 @@
 
 #include "levee.h"
 
+static Levee *state;
+
+static int
+pmain (lua_State *L)
+{
+	(void)L;
+	int n = levee_require (state, "levee.main");
+	if (n > 0) {
+		lua_pop (L, n);
+	}
+	return 0;
+}
+
 int
 main (int argc, const char *argv[])
 {
-	if (argc < 2) {
-		errx (EX_NOINPUT, "script required");
-	}
-
 	signal (SIGPIPE, SIG_IGN);
 
-	Levee *state = levee_create ();
+	state = levee_create ();
 	levee_set_arg (state, argc-1, argv+1);
 
 	int rc = 0;
-	if (!levee_load_file (state, argv[1]) || !levee_run (state, 0, false)) {
+	if (!levee_runf (state, pmain, 0, false)) {
 		levee_report_error (state);
 		rc = EX_DATAERR;
 	}
 	levee_destroy (state);
 	return rc;
 }
+
