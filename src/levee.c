@@ -27,6 +27,15 @@ static const LeveeConfig *config = NULL;
 extern int
 luaopen_levee_bundle (lua_State *L);
 
+static int
+require (lua_State *L, const char *name)
+{
+	lua_getglobal (L, "require");
+	lua_pushstring (L, name);
+	lua_call (L, 1, 1);
+	return 1;
+}
+
 void
 levee_init (const LeveeConfig *cfg)
 {
@@ -48,19 +57,15 @@ levee_create (void)
 	luaopen_levee_bundle (L);
 
 	// put ffi module on the stack
-	lua_getglobal (L, "require");
-	lua_pushstring (L, "ffi");
-	lua_call (L, 1, 1);
+	require (L, "ffi");
 
 	lua_getfield (L, -1, "cdef");
 	lua_pushstring (L, levee_cdef);
 	lua_call (L, 1, 0);
 	lua_pop (L, 1);  // pop ffi module
 
-	lua_getglobal (L, "require");
-	lua_pushstring (L, "levee.channel");
-	lua_call (L, 1, 1);
-	lua_pop (L, 1);
+	require (L, "levee.channel");
+	lua_pop (L, 1); // pop levee.channel module
 
 	__sync_synchronize ();
 	const LeveeConfig *cfg = config;
@@ -104,6 +109,12 @@ levee_destroy (Levee *self)
 	destroy (self);
 }
 
+int
+levee_require (Levee *self, const char *name)
+{
+	return require (self->L, name);
+}
+
 void
 levee_set_arg (Levee *self, int argc, const char **argv)
 {
@@ -115,10 +126,10 @@ levee_set_arg (Levee *self, int argc, const char **argv)
 
 	lua_createtable (self->L, argc+1, 0);
 	lua_pushstring (self->L, "levee");
-	lua_rawseti (self->L, -2, -1);
+	lua_rawseti (self->L, -2, 0);
 	for (int i = 0; i < argc; i++) {
 		lua_pushstring (self->L, argv[i]);
-		lua_rawseti (self->L, -2, i);
+		lua_rawseti (self->L, -2, i+1);
 	}
 	lua_setglobal (self->L, "arg");
 }
@@ -256,6 +267,13 @@ levee_run (Levee *self, int narg, bool bg)
 	return true;
 }
 
+bool
+levee_runf (Levee *self, lua_CFunction f, int nargs, bool bg)
+{
+	lua_pushcfunction (self->L, f);
+	return levee_run (self, nargs, bg);
+}
+
 void
 levee_push_number (Levee *self, double num)
 {
@@ -290,9 +308,7 @@ levee_push_sender (Levee *self, LeveeChanSender *sender)
 	if (self->state != LEVEE_LOCAL) return;
 
 	// put ffi module on the stack
-	lua_getglobal (self->L, "require");
-	lua_pushstring (self->L, "ffi");
-	lua_call (self->L, 1, 1); // stack: ffi
+	levee_require (self, "ffi"); // stack: ffi
 
 	// get ffi.C.levee_chan_sender_ref
 	lua_getfield (self->L, -1, "C"); // stack: ffi C

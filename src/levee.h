@@ -66,6 +66,9 @@ levee_load_string (Levee *self, const char *script, size_t len, const char *name
 extern bool
 levee_run (Levee *self, int nargs, bool bg);
 
+extern bool
+levee_runf (Levee *self, lua_CFunction f, int nargs, bool bg);
+
 extern void
 levee_push_number (Levee *self, double num);
 
@@ -89,6 +92,9 @@ levee_print_stack (Levee *self, const char *msg);
 
 extern const char *
 levee_get_error (Levee *self);
+
+extern int
+levee_require (Levee *self, const char *name);
 
 extern void
 levee_set_arg (Levee *self, int argc, const char **argv);
