@@ -1,7 +1,7 @@
-return function(args)
+return function(argv)
 	local os = require('os')
 
-	local path = args[1]
+	local path = argv:string()
 	if path:sub(-1) == '/' then
 		path = path:sub(1, -2)
 	end
@@ -10,9 +10,7 @@ return function(args)
 	local main = path .. "/main.lua"
 	package.path = dir .. "/?.lua;" .. dir .. "/?/init.lua;" .. package.path
 
-	local newarg = {unpack(args, 2)}
-	newarg[0] = arg[0]
-	arg = newarg
+	arg = argv:remain()
 
 	local f, err = loadfile(main)
 	if f then
