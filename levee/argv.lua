@@ -51,6 +51,9 @@ function Argv_mt:option()
 		if opt then
 			self.curr = self.curr + 1
 		end
+
+		-- no option format matched
+		if not opt then return end
 	end
 
 	-- split off the next character
