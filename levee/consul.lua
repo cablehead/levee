@@ -182,6 +182,22 @@ local Session_mt = {}
 Session_mt.__index = Session_mt
 
 
+-- convenience to establish an ephemeral session and keep alive
+function Session_mt:init()
+	local session_id = self:create({behavior="delete", ttl=10})
+
+	-- keep session alive
+	self.agent.hub:spawn(function()
+		while true do
+			self.agent.hub:sleep(5000)
+			self:renew(session_id)
+		end
+	end)
+
+	return session_id
+end
+
+
 function Session_mt:create(options)
 	-- options:
 	-- 	name
