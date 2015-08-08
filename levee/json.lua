@@ -132,22 +132,51 @@ local decoder = ffi.metatype("SpJson", Json_mt)
 --
 -- Poor man's encode - just awful, please replace
 
+-- http://ericjmritz.name/2014/02/26/lua-is_array/
+function is_array(t)
+    local i = 0
+    for _ in pairs(t) do
+        i = i + 1
+        if t[i] == nil then return false end
+    end
+    return true
+end
+
 local function encode(data)
 	if type(data) == "table" then
-		local ret = {}
-		table.insert(ret, "{")
-		if next(data) then
-			for key, value in pairs(data) do
-				assert(type(key) == "string")
-				table.insert(ret, '"'..key..'"')
-				table.insert(ret, ": ")
-				table.insert(ret, encode(value))
-				table.insert(ret, ", ")
+		if is_array(data) then
+			-- encode empty tables as dicts
+			if #data == 0 then
+				return "{}"
+			end
+
+			local ret = {}
+			table.insert(ret, "[")
+			for i, item in ipairs(data) do
+					table.insert(ret, encode(item))
+					table.insert(ret, ", ")
 			end
 			table.remove(ret)  -- pop trailing ','
-		end
-		table.insert(ret, "}")
-		return table.concat(ret)
+			table.insert(ret, "]")
+			return table.concat(ret)
+
+		else
+			-- dict
+			local ret = {}
+			table.insert(ret, "{")
+			if next(data) then
+				for key, value in pairs(data) do
+					assert(type(key) == "string")
+					table.insert(ret, '"'..key..'"')
+					table.insert(ret, ": ")
+					table.insert(ret, encode(value))
+					table.insert(ret, ", ")
+				end
+				table.remove(ret)  -- pop trailing ','
+			end
+			table.insert(ret, "}")
+			return table.concat(ret)
+	end
 
 	elseif type(data) == "string" then
 		return '"'..data..'"'
