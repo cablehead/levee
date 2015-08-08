@@ -75,6 +75,7 @@ function Argv_mt:list()
 		if value:sub(1,1) == '-' then
 			break
 		end
+		table.insert(list, value)
 		self.curr = self.curr + 1
 	end
 	return list
