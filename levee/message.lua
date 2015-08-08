@@ -274,21 +274,24 @@ function Selector_mt:give(sender, value)
 end
 
 
-function Selector_mt:recv()
+function Selector_mt:recv(timeout)
 	assert(not self.recver)
 
 	if #self.fifo > 0 then
 		local sender = self.fifo:pop()
-		return sender, sender:take()
+		return {sender, sender:take()}
 	end
 
 	self.recver = coroutine.running()
-	return unpack(self.hub:_coyield())
+	local ret = self.hub:pause(timeout)
+	-- TODO: handle comprehensively
+	self.recver = nil
+	return ret
 end
 
 
-function Selector_mt:__call()
-	return self:recv()
+function Selector_mt:__call(timeout)
+	return self:recv(timeout)
 end
 
 
