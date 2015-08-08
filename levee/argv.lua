@@ -17,6 +17,7 @@ end
 
 
 function Argv_mt:next(fn)
+	if self.opt then return end
 	local value
 	if self:more() then
 		value = self.args[self.curr]
@@ -31,13 +32,43 @@ end
 
 
 function Argv_mt:option()
-	return self:next(function(val)
-		return val:match("%-%-?(.+)")
-	end)
+	local opt = self.opt
+
+	if not opt then
+		if not self:more() then return end
+
+		local arg = self.args[self.curr]
+
+		-- match long option: --long-value
+		opt = arg:match("^%-%-(.*)")
+		if opt then
+			self.curr = self.curr + 1
+			return opt
+		end
+
+		-- match short options: -xyz
+		opt = arg:match("^%-(.+)")
+		if opt then
+			self.curr = self.curr + 1
+		end
+	end
+
+	-- split off the next character
+	local ch = opt:sub(1, 1)
+	opt = opt:sub(2)
+
+	-- save the remaining 
+	if #opt > 0 then
+		self.opt = opt
+	else
+		self.opt = nil
+	end
+	return ch
 end
 
 
 function Argv_mt:list()
+	if self.opt then return end
 	local list = {}
 	while self:more() do
 		value = self.args[self.curr]
@@ -54,13 +85,6 @@ function Argv_mt:remain()
 	local remain = {unpack(self.args, self.curr)}
 	remain[0] = self.args[0]
 	return remain
-end
-
-
-function Argv_mt:string()
-	return self:next(function(val)
-		return val
-	end)
 end
 
 
