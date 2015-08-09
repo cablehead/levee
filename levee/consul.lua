@@ -83,12 +83,14 @@ function Consul_mt:election(prefix, session_id, n)
 end
 
 
-function Consul_mt:request(method, path, params, headers, data)
+function Consul_mt:request(method, path, options, callback)
 	local conn = self.hub.http:connect(self.port)
 	if not conn then return end
-	local res = conn:request(method, "/v1/"..path, params, headers, data):recv()
+	local res = conn:request(
+		method, "/v1/"..path, options.params, options.headers, options.data):recv()
+	res = {callback(res)}
 	conn:close()
-	return res
+	return unpack(res)
 end
 
 
@@ -119,24 +121,25 @@ function KV_mt:get(key, options)
 	params.keys = options.keys and "1"
 	params.separator = options.separator
 
-	local res = self.agent:request("GET", "kv/"..key, params)
-	if res.code ~= 200 then
-		res:discard()
-		return res.headers["X-Consul-Index"], options.recurse and {} or nil
-	end
+	return self.agent:request("GET", "kv/"..key, {params=params},
+		function(res)
+			if res.code ~= 200 then
+				res:discard()
+				return res.headers["X-Consul-Index"], options.recurse and {} or nil
+			end
 
-	local data = res:json()
+			local data = res:json()
 
-	if not options.keys then
-		for _, item in ipairs(data) do
-			if item.Value then item.Value = b64dec(item.Value) end
-		end
-		if not options.recurse then
-			data = data[1]
-		end
-	end
-
-	return res.headers["X-Consul-Index"], data
+			if not options.keys then
+				for _, item in ipairs(data) do
+					if item.Value then item.Value = b64dec(item.Value) end
+				end
+				if not options.recurse then
+					data = data[1]
+				end
+			end
+			return res.headers["X-Consul-Index"], data
+	end)
 end
 
 
@@ -156,8 +159,10 @@ function KV_mt:put(key, value, options)
 	params.release = options.release
 	params.cas = options.cas
 
-	local res = self.agent:request("PUT", "kv/"..key, params, nil, value)
-	return res:consume() == "true"
+	return self.agent:request("PUT", "kv/"..key, {params=params, data=value},
+		function(res)
+			return res:consume() == "true"
+		end)
 end
 
 
@@ -172,9 +177,11 @@ function KV_mt:delete(key, options)
 	local params = {}
 	params.recurse = options.recurse and "1"
 
-	local res = self.agent:request("DELETE", "kv/"..key, params)
-	res:discard()
-	return res.code == 200
+	return self.agent:request("DELETE", "kv/"..key, {params=params},
+		function(res)
+			res:discard()
+			return res.code == 200
+		end)
 end
 
 
@@ -225,51 +232,53 @@ function Session_mt:create(options)
 		data.ttl = tostring(options.ttl).."s"
 	end
 
-	local res = self.agent:request(
-		"PUT", "session/create", nil, nil, json.encode(data))
-
-	assert(res.code == 200)
-	return res:json()["ID"]
+	return self.agent:request("PUT", "session/create", {data=json.encode(data)},
+		function(res)
+			assert(res.code == 200)
+			return res:json()["ID"]
+		end)
 end
 
 
 function Session_mt:list()
-	local res = self.agent:request("GET", "session/list", nil, nil, nil)
-	assert(res.code == 200)
-	return res.headers["X-Consul-Index"], res:json()
+	return self.agent:request("GET", "session/list", {},
+		function(res)
+			assert(res.code == 200)
+			return res.headers["X-Consul-Index"], res:json()
+		end)
 end
 
 
 function Session_mt:destroy(session_id)
-	local res = self.agent:request(
-		"PUT", "session/destroy/"..session_id, nil, nil, nil)
-	res:discard()
-	return res.code == 200
+	return self.agent:request("PUT", "session/destroy/"..session_id, {},
+		function(res)
+			res:discard()
+			return res.code == 200
+		end)
 end
 
 
 function Session_mt:info(session_id)
-	local res = self.agent:request(
-		"GET", "session/info/"..session_id, nil, nil, nil)
-	assert(res.code == 200)
-
-	local session = res:json()
-	if session then session = session[1] end
-	return res.headers["X-Consul-Index"], session
+	return self.agent:request("GET", "session/info/"..session_id, {},
+		function(res)
+			assert(res.code == 200)
+			local session = res:json()
+			if session then session = session[1] end
+			return res.headers["X-Consul-Index"], session
+		end)
 end
 
 
 function Session_mt:renew(session_id)
-	local res = self.agent:request(
-		"PUT", "session/renew/"..session_id, nil, nil, nil)
-
-	if res.code == 404 then
-		res:discard()
-		return false
-	end
-
-	assert(res.code == 200)
-	return res:json()[1]
+	return self.agent:request("PUT", "session/renew/"..session_id, {},
+		function(res)
+			if res.code == 404 then
+				res:discard()
+				return false
+			end
+			assert(res.code == 200)
+			return res:json()[1]
+		end)
 end
 
 
@@ -278,9 +287,11 @@ Agent_mt.__index = Agent_mt
 
 
 function Agent_mt:services()
-	local res = self.agent:request("GET", "agent/services", nil, nil, nil)
-	assert(res.code == 200)
-	return res:json()
+	return self.agent:request("GET", "agent/services", {},
+		function(res)
+			assert(res.code == 200)
+			return res:json()
+		end)
 end
 
 
@@ -308,17 +319,20 @@ function AgentService_mt:register(name, options)
 	data.tags = options.tags
 	data.check = options.check
 
-	local res = self.agent:request(
-		"PUT", "agent/service/register", nil, nil, json.encode(data))
-	return res.code == 200, res:consume()
+	return self.agent:request(
+		"PUT", "agent/service/register", {data=json.encode(data)},
+		function(res)
+			return res.code == 200, res:consume()
+		end)
 end
 
 
 function AgentService_mt:deregister(service_id)
-	local res = self.agent:request(
-		"GET", "agent/service/deregister/"..service_id, nil, nil, nil)
-	res:discard()
-	return res.code == 200
+	return self.agent:request("GET", "agent/service/deregister/"..service_id, {},
+		function(res)
+			res:discard()
+			return res.code == 200
+		end)
 end
 
 
@@ -339,11 +353,11 @@ function Health_mt:service(name, options)
 	params.passing = options.passing and "1"
 	params.tag = options.tag
 
-	local res = self.agent:request(
-		"GET", "health/service/"..name, params, nil, nil)
-	assert(res.code == 200)
-
-	return res.headers["X-Consul-Index"], res:json()
+	return self.agent:request("GET", "health/service/"..name, {params=params},
+		function(res)
+			assert(res.code == 200)
+			return res.headers["X-Consul-Index"], res:json()
+		end)
 end
 
 
