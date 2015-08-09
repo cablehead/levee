@@ -128,14 +128,11 @@ function KV_mt:get(key, options)
 	local data = res:json()
 
 	if not options.keys then
-		-- TODO: add test
-		if data then
-			for _, item in ipairs(data) do
-				if item.Value then item.Value = b64dec(item.Value) end
-			end
-			if not options.recurse then
-				data = data[1]
-			end
+		for _, item in ipairs(data) do
+			if item.Value then item.Value = b64dec(item.Value) end
+		end
+		if not options.recurse then
+			data = data[1]
 		end
 	end
 
