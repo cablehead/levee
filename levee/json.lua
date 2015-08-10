@@ -179,7 +179,7 @@ local function encode(data)
 	end
 
 	elseif type(data) == "string" then
-		return '"'..data..'"'
+		return '"'.. data:gsub("\n", "\\n") ..'"'
 
 	elseif type(data) == "number" then
 		return tostring(data)
