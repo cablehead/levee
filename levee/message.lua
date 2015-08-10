@@ -16,7 +16,6 @@ function Redirect_mt:send(value)
 	end
 
 	if self.target:give(self, value) then
-		self.hub:continue()
 		return true
 	end
 
@@ -265,7 +264,10 @@ function Selector_mt:give(sender, value)
 	if self.recver then
 		local co = self.recver
 		self.recver = nil
-		self.hub.ready:push({co, {sender, value}})
+		-- TODO: there's a race condition here with timeout
+		-- need to check Pipe and Queue to see if they have the same issue
+		self.hub:switch_to(co, {sender, value})
+		-- self.hub.ready:push({co, {sender, value}})
 		return true
 	end
 

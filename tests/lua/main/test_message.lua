@@ -182,7 +182,7 @@ return {
 		assert.equal(s:recv(10), levee.TIMEOUT)
 		assert.equal(#h.scheduled, 0)
 
-		h:spawn_later(10, function() sent = true; p1:send("1") end)
+		h:spawn_later(10, function() p1:send("1") end)
 		assert.same(s:recv(20), {p1, "1"})
 	end,
 }

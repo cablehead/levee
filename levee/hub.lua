@@ -123,22 +123,33 @@ end
 
 
 function Hub_mt:_coresume(co, value)
+	-- TODO: test new switch_to behavior
+
 	if co ~= self._pcoro then
-		local status, message = coroutine.resume(co, value)
+		local status, a1, a2 = coroutine.resume(co, value)
+
 		if not status then
-			error(message)
+			error(a1)
 		end
-		return message
+
+		if type(a1) == "thread" then
+			return self:_coresume(a1, a2)
+		end
+
+		return a1
 	end
 
-	return coroutine.yield(value)
+	local co, value = coroutine.yield(value)
+	if type(co) == "thread" then
+		return self:_coresume(co, value)
+	end
 end
 
 
-function Hub_mt:_coyield()
-	if coroutine.running() ~= self._pcoro then return coroutine.yield() end
+function Hub_mt:_coyield(...)
+	if coroutine.running() ~= self._pcoro then return coroutine.yield(...) end
 
-	local status, message = coroutine.resume(self.loop)
+	local status, message = coroutine.resume(self.loop, ...)
 	if not status then
 		error(message)
 	end
@@ -190,6 +201,12 @@ end
 function Hub_mt:continue()
 	self.ready:push({coroutine.running()})
 	self:_coyield()
+end
+
+
+function Hub_mt:switch_to(co, value)
+	self.ready:push({coroutine.running()})
+	self:_coyield(co, value)
 end
 
 
