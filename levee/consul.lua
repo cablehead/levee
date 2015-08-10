@@ -286,6 +286,15 @@ local Agent_mt = {}
 Agent_mt.__index = Agent_mt
 
 
+function Agent_mt:self()
+	return self.agent:request("GET", "agent/self", {},
+		function(res)
+			assert(res.code == 200)
+			return res:json()
+		end)
+end
+
+
 function Agent_mt:services()
 	return self.agent:request("GET", "agent/services", {},
 		function(res)
