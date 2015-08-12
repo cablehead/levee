@@ -55,8 +55,11 @@ local function loadall(root, sub, debug)
 	root = root:gsub("/$", "")
 	sub = sub:gsub("^/", ""):gsub("/$", "")
 
+	-- TODO: we should escape all special characters eventually
+	local root_escaped = root:gsub("-", "%%-")
+	
 	local dir = root .. "/" .. sub
-	local match = "^" .. root .. "/(.+)/([^/]+).lua$"
+	local match = "^" .. root_escaped .. "/(.+)/([^/]+).lua$"
 	local t = {}
 	for path in io.popen("find -L " .. dir .. " -name '*.lua'"):lines() do
 		local dir, name = path:match(match)
