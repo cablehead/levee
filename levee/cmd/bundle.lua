@@ -200,9 +200,9 @@ return function(argv)
 	end
 
 	if mode == 'c' then
-		out:write('#include <lua.h>\n')
-		out:write('#include <lauxlib.h>\n')
-		out:write('#include <lualib.h>\n')
+		out:write('#include <levee/lua.h>\n')
+		out:write('#include <levee/lauxlib.h>\n')
+		out:write('#include <levee/lualib.h>\n')
 
 		local files = {}
 		for _,mod in ipairs(modules) do
