@@ -299,6 +299,12 @@ return {
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
 
+		local tmp = os.tmpname()
+		local res = c:get("/"):recv()
+		res:save(tmp)
+		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
+		os.remove(tmp)
+
 		c:close()
 		serve:close()
 		assert.same(h.registered, {})
@@ -330,6 +336,12 @@ return {
 
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
+
+		local tmp = os.tmpname()
+		local res = c:get("/"):recv()
+		res:save(tmp)
+		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
+		os.remove(tmp)
 
 		c:close()
 		serve:close()

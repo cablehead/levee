@@ -80,6 +80,10 @@
 
     Convenience to consume the entire response body and return it as a string.
 
+- `save(name)`
+
+    Convenience to stream the entire response body to the given filename.
+
 - `discard()`
 
     Convenience to discard the entire response body using a minimal amount of
@@ -109,6 +113,10 @@ A `Stream` allows a portion of a streaming socket to be delegated.
 - `readin()`:
 
     read from the stream's conn to its buf.
+
+- `value()`
+
+    returns buf, len of the stream currently buffered
 
 - `trim(len)`
 

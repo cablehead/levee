@@ -275,6 +275,34 @@ function Response_mt:consume()
 	return table.concat(bits)
 end
 
+function Response_mt:save(name)
+	local function _save(chunk, no)
+		while #chunk > 0 do
+			local buf, len = chunk:value()
+			if len == 0 then
+				chunk:readin()
+			else
+				local n = C.write(no, buf, len)
+				chunk:trim(n)
+			end
+		end
+	end
+
+	local no = C.open(name, C.O_WRONLY)
+	if no < 0 then return no, ffi.errno() end
+
+	if self.body then
+		_save(self.body, no)
+	else
+		for chunk in self.chunks do
+			_save(chunks, no)
+		end
+	end
+
+	C.close(no)
+	return 0
+end
+
 function Response_mt:discard()
 	if self.body then
 		self.body:discard()
