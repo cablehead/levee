@@ -34,14 +34,20 @@ sp_uri_parse (SpUri *u, const char *restrict buf, size_t len);
 
 ssize_t
 sp_uri_copy (
-		const SpUri *u, const char *buf,
-		SpUri *out, char *outbuf, size_t len);
+		SpUri *dst, char *dstbuf, size_t dstlen,
+		const SpUri *u, const char *ubuf);
 
 ssize_t
 sp_uri_join (
+		SpUri *dst, char *dstbuf, size_t dstlen,
 		const SpUri *a, const char *abuf,
-		const SpUri *b, const char *bbuf,
-		SpUri *out, char *outbuf, size_t len);
+		const SpUri *b, const char *bbuf);
+
+ssize_t
+sp_uri_join_paths (
+		char *dstbuf, size_t dstlen,
+		const char *abuf, size_t alen,
+		const char *bbuf, size_t blen);
 
 bool
 sp_uri_eq (const SpUri *a, const char *abuf, const SpUri *b, const char *bbuf);
