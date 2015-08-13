@@ -67,9 +67,9 @@ function URI_mt:join_parser(self_str, other_par, other_str)
 	local buf = ffi.new("char [?]", len)
 
 	len = C.sp_uri_join(
+		out.base, buf, len,
 		self.base, self_str,
-		other_par.base, other_str,
-		out.base, buf, len)
+		other_par.base, other_str)
 
 	if len >= 0 then
 		return out, ffi.string(ffi.cast("void *", buf), len)
