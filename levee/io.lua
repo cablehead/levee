@@ -40,7 +40,6 @@ end
 function R_mt:readinto(buf)
 	-- ensure we have *some* space to read into
 	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
-
 	local n, err = self:read(buf:tail())
 	if n > 0 then
 		buf:bump(n)
