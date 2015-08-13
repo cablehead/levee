@@ -38,10 +38,8 @@ end
 
 
 function R_mt:readinto(buf)
-	-- TODO: is this reasonable?
-	-- TODO: should we give the end user more control over this
 	-- ensure we have *some* space to read into
-	buf:ensure(buf.cap / 2)
+	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
 
 	local n, err = self:read(buf:tail())
 	if n > 0 then
