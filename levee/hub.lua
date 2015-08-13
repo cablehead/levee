@@ -328,9 +328,6 @@ local function Hub()
 	-- this should probably be in a seperate repo
 	self.consul = require("levee.consul")(self)
 
-	-- TODO: remove - this isn't right
-	self.is_linux = ffi.os:lower() == "linux"
-
 	return self
 end
 

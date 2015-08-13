@@ -295,7 +295,7 @@ function Response_mt:save(name)
 		_save(self.body, no)
 	else
 		for chunk in self.chunks do
-			_save(chunks, no)
+			_save(chunk, no)
 		end
 	end
 
