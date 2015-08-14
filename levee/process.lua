@@ -94,11 +94,13 @@ function M_mt:spawn(name, options)
 
 		if not io.STDIN then
 			C.close(in_r)
+			sys.os.nonblock(in_w)
 			child.stdin = self.hub.io:w(in_w)
 		end
 
 		if not io.STDOUT then
 			C.close(out_w)
+			sys.os.nonblock(out_r)
 			child.stdout = self.hub.io:r(out_r)
 		end
 
