@@ -301,8 +301,13 @@ function Hub_mt:pump()
 		else
 			local r = self.registered[no]
 			if r then
-				if r_ev then r[1]:set(e_ev and -1 or 1) end
-				if w_ev then r[2]:set(e_ev and -1 or 1) end
+				if not e_ev then
+					if r_ev then r[1]:set(1) end
+					if w_ev then r[2]:set(1) end
+				else
+					if r[1] then r[1]:set(-1) end
+					if r[2] then r[2]:set(-1) end
+				end
 			end
 		end
 	end
