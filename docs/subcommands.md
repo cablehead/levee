@@ -14,7 +14,7 @@ brew install ragel
 On Debian / Ubuntu:
 
 ```bash
-# TODO
+apt-get install ragel
 ```
 
 Next, install Levee:
