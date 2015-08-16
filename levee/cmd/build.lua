@@ -1,3 +1,4 @@
+local ffi = require('ffi')
 local os = require('os')
 
 local levee = require("levee")
@@ -130,23 +131,37 @@ Options:
 			"cc",
 			"-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic",
 
-			-- darwin
-			"-pagezero_size", "10000", "-image_base", "100000000",
-			"-Wl,-export_dynamic",
-
+			-- TODO: make switchable with release
 			-- debug
 			-- "-g",
+
 			--release
-			-- "-O2", "-fomit-frame-pointer", "-march=native",
+			"-O2", "-fomit-frame-pointer", "-march=native",
 
 			"-I", root .. "/include",
-			"-Wl,-force_load," .. root .. "/lib/liblevee.a",
 			main, bundle,
 			"-o", options.exe,
 		}
 
-		build = table.concat(build, " ")
+		local platform = {
+			linux = {
+				"-D_BSD_SOURCE", "-D_GNU_SOURCE",
+				"-pthread", "-Wl,--export-dynamic", "-static-libgcc",
+				"-lm", "-ldl",
+				"-Wl,--whole-archive," .. root .. "/lib/liblevee.a,--no-whole-archive",
+			},
+			darwin = {
+				"-pagezero_size", "10000", "-image_base", "100000000",
+				"-Wl,-export_dynamic",
+				"-Wl,-force_load," .. root .. "/lib/liblevee.a",
+			},
+		}
 
+		for _, extra in ipairs(platform[ffi.os:lower()]) do
+			table.insert(build, extra)
+		end
+
+		build = table.concat(build, " ")
 		local ok = os.execute(build)
 
 		if ok then
