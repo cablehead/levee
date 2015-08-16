@@ -21,7 +21,7 @@ function R_mt:read(buf, len)
 		return n
 	end
 
-	if err ~= errno["EAGAIN"] or self.r_error then
+	if n == 0 or err ~= errno["EAGAIN"] or self.r_error then
 		self:close()
 		return -1, errno["EBADF"]
 	end
