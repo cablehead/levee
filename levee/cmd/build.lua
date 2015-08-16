@@ -150,7 +150,7 @@ Options:
 				"-lm", "-ldl",
 				"-Wl,--whole-archive," .. root .. "/lib/liblevee.a,--no-whole-archive",
 			},
-			darwin = {
+			osx = {
 				"-pagezero_size", "10000", "-image_base", "100000000",
 				"-Wl,-export_dynamic",
 				"-Wl,-force_load," .. root .. "/lib/liblevee.a",
