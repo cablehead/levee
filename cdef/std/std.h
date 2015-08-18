@@ -1,4 +1,6 @@
 void *malloc(size_t);
+void *realloc(void *ptr, size_t size);
+
 void free(void *);
 void memcpy(void *restrict, const void *restrict, size_t);
 void memmove(void *restrict, const void *restrict, size_t);

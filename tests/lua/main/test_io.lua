@@ -87,4 +87,26 @@ return {
 
 		assert.same(h.registered, {})
 	end,
+
+	test_iov = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+
+		local iov = w:iov()
+
+		local want = {}
+		for i = 1, 10000 do
+			table.insert(want, tostring(i))
+			iov:send(tostring(i))
+		end
+		want = table.concat(want)
+
+		local buf = levee.buffer(4096)
+		while #buf < #want do
+			r:readinto(buf)
+		end
+		assert.equal(buf:take_s(), want)
+	end,
 }

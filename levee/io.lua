@@ -1,9 +1,9 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local sys = require("levee.sys")
+local iovec = require("levee.iovec")
 local errno = require("levee.errno")
-
+local sys = require("levee.sys")
 
 --
 -- Read
@@ -122,6 +122,33 @@ function W_mt:writev(iov, n)
 end
 
 
+function W_mt:iov(size)
+	if self.closed then return -1, errno["EBADF"] end
+	if not self.iovec then
+		size = size or 32
+		self.iovec = self.hub:queue(size)
+		self.hub:spawn(function()
+			local q = self.iovec
+			local iov = iovec.Iovec(size)
+			while true do
+				while true do
+					local s = self.iovec:recv()
+					iov:write(s)
+					if iov.n == size or #q.fifo == 0 then
+						break
+					end
+				end
+				-- TODO: handle when not all bytes are written
+				assert(self:writev(iov.iov, iov.n) == iov.len)
+				iov:reset()
+				self.hub:continue()
+			end
+		end)
+	end
+	return self.iovec
+end
+
+
 function W_mt:close()
 	if self.closed then
 		return
@@ -144,6 +171,7 @@ RW_mt.read = R_mt.read
 RW_mt.readinto = R_mt.readinto
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
+RW_mt.iov = W_mt.iov
 
 
 function RW_mt:close()
