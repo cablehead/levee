@@ -21,7 +21,7 @@ end
 
 
 function Value_mt:recv(timeout)
-	if self.value then return self.value end
+	if self.value ~= nil then return self.value end
 
 	self.recver = coroutine.running()
 	local ret = self.hub:pause(timeout)
@@ -218,6 +218,8 @@ function Queue_mt:send(value)
 		return true
 	end
 
+	self.empty:send()
+
 	if not self.size or #self.fifo < self.size then
 		self.fifo:push(value)
 		return true
@@ -239,6 +241,9 @@ function Queue_mt:recv()
 	end
 
 	if #self.fifo > 0 then
+		if #self.fifo == 1 then
+			self.empty:send(true)
+		end
 		return self.fifo:pop()
 	end
 
@@ -284,7 +289,11 @@ end
 
 
 local function Queue(hub, size)
-	local self = setmetatable({hub=hub, size=size, fifo=FIFO(), }, Queue_mt)
+	local self = setmetatable({
+		hub=hub,
+		size=size,
+		fifo=FIFO(),
+		empty=hub:value(true), }, Queue_mt)
 	return self
 end
 

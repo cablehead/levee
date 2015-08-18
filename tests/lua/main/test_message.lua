@@ -99,16 +99,21 @@ return {
 	end,
 
 	test_queue = function()
-		local h = require("levee").Hub()
+		local levee = require("levee")
+		local h = levee.Hub()
 		local q = h:queue()
 
 		-- test send and then recv
+		assert.equal(q.empty:recv(), true)
 		q:send("1")
+		assert.equal(q.empty:recv(10), levee.TIMEOUT)
 		q:send("2")
 		q:send("3")
 		assert.equal(q:recv(), "1")
 		assert.equal(q:recv(), "2")
+		assert.equal(q.empty:recv(10), levee.TIMEOUT)
 		assert.equal(q:recv(), "3")
+		assert.equal(q.empty:recv(), true)
 
 		-- test recv and then send
 		local state
