@@ -31,6 +31,8 @@ function Recver_mt:pump(node)
 		local data = Data(node.as.ptr.val, node.as.ptr.len)
 		node.as.ptr.val = nil
 		self.queue:send(data)
+	elseif node.type == C.LEVEE_CHAN_OBJ then
+		self.queue:send(ffi.gc(node.as.obj.obj, node.as.obj.free))
 	elseif node.type == C.LEVEE_CHAN_DBL then
 		self.queue:send(tonumber(node.as.dbl))
 	elseif node.type == C.LEVEE_CHAN_I64 then

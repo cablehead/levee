@@ -393,6 +393,14 @@ levee_chan_send_ptr (LeveeChanSender *self, const void *val, size_t len)
 }
 
 int
+levee_chan_send_obj (LeveeChanSender *self, void *obj, void (*free)(void *obj))
+{
+	assert (self != NULL);
+
+	SEND_MSG (self, LEVEE_CHAN_OBJ, obj, ((LeveeChanObj){ obj, free }));
+}
+
+int
 levee_chan_send_dbl (LeveeChanSender *self, double val)
 {
 	assert (self != NULL);
