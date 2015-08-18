@@ -11,6 +11,7 @@ typedef enum {
 	LEVEE_CHAN_EOF,
 	LEVEE_CHAN_NIL,
 	LEVEE_CHAN_PTR,
+	LEVEE_CHAN_OBJ,
 	LEVEE_CHAN_DBL,
 	LEVEE_CHAN_I64,
 	LEVEE_CHAN_U64,
@@ -24,11 +25,17 @@ typedef struct {
 } LeveeChanPtr;
 
 typedef struct {
+	void *obj;
+	void (*free)(void *obj);
+} LeveeChanObj;
+
+typedef struct {
 	LeveeNode base;
 	int64_t recv_id;
 	LeveeChanType type;
 	union {
 		LeveeChanPtr ptr;
+		LeveeChanObj obj;
 		double dbl;
 		int64_t i64;
 		uint64_t u64;
@@ -88,6 +95,9 @@ levee_chan_send_nil (LeveeChanSender *self);
 
 extern int
 levee_chan_send_ptr (LeveeChanSender *self, const void *val, size_t len);
+
+extern int
+levee_chan_send_obj (LeveeChanSender *self, void *obj, void (*free)(void *obj));
 
 extern int
 levee_chan_send_dbl (LeveeChanSender *self, double val);
