@@ -112,6 +112,11 @@ function Hub_mt:pipe()
 end
 
 
+function Hub_mt:value(value)
+	return message.Value(self, value)
+end
+
+
 function Hub_mt:selector()
 	return message.Selector(self)
 end

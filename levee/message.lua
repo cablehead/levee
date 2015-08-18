@@ -1,5 +1,41 @@
 local FIFO = require("levee.fifo")
 
+--
+-- Value
+
+local Value_mt = {}
+Value_mt.__index = Value_mt
+
+
+function Value_mt:send(value)
+	self.value = value
+
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub:switch_to(co, value)
+	end
+
+	return true
+end
+
+
+function Value_mt:recv(timeout)
+	if self.value then return self.value end
+
+	self.recver = coroutine.running()
+	local ret = self.hub:pause(timeout)
+	-- TODO: handle comprehensively
+	self.recver = nil
+	return ret
+end
+
+
+local function Value(hub, value)
+	local self = setmetatable({hub=hub, value=value}, Value_mt)
+	return self
+end
+
 
 --
 -- Redirect
@@ -330,6 +366,7 @@ end
 ----
 
 return {
+	Value = Value,
 	Pipe = Pipe,
 	Queue = Queue,
 	Selector = Selector,
