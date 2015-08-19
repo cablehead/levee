@@ -21,18 +21,15 @@ function R_mt:read(buf, len)
 		return n
 	end
 
-	if err ~= errno["EAGAIN"] then
-		self:close()
-		return n, err
-	end
-
-	-- EAGAIN
-	local ev = self.r_ev:recv()
-	if ev < 0 then
+	if err ~= errno["EAGAIN"] or self.r_error then
 		self:close()
 		return -1, errno["EBADF"]
 	end
 
+	local ev = self.r_ev:recv()
+	if ev < 0 then
+		self.r_error = true
+	end
 	return self:read(buf, len)
 end
 
@@ -53,7 +50,7 @@ function R_mt:reads(len)
 	local buf = ffi.new("char[?]", len)
 	local n, err = self:read(buf, len)
 	if n < 0 then
-		return n, err
+		return nil, err
 	end
 	return ffi.string(buf, n)
 end
@@ -117,8 +114,40 @@ end
 function W_mt:writev(iov, n)
 	if self.closed then return -1, errno["EBADF"] end
 
-	-- TODO: close on error, return errno
-	return C.writev(self.no, iov, n)
+	local len
+	local i, total = 0, 0
+
+	while true do
+		while true do
+			len = C.writev(self.no, iov[i], n - i)
+			if len > 0 then break end
+
+			local err = ffi.errno()
+			if err ~= errno["EAGAIN"] then
+				self:close()
+				return len, err
+			end
+			self.w_ev:recv()
+		end
+
+		total = total + len
+
+		while true do
+			if iov[i].iov_len > len then break end
+			len = len - iov[i].iov_len
+			i = i + 1
+			if i == n then
+				assert(len == 0)
+				self.hub:continue()
+				return total
+			end
+		end
+
+		if len > 0 then
+			iov[i].iov_base = iov[i].iov_base + len
+			iov[i].iov_len = iov[i].iov_len - len
+		end
+	end
 end
 
 
