@@ -153,27 +153,34 @@ end
 
 function W_mt:iov(size)
 	if self.closed then return -1, errno["EBADF"] end
+
 	if not self.iovec then
 		size = size or 32
-		self.iovec = self.hub:queue(size)
+		self.iovec = self.hub:stalk(size)
+
 		self.hub:spawn(function()
 			local q = self.iovec
 			local iov = iovec.Iovec(size)
+
 			while true do
-				while true do
-					local s = self.iovec:recv()
+				if not q:recv() then return end
+
+				for s in q:iter() do
 					iov:write(s)
-					if iov.n == size or #q.fifo == 0 then
-						break
-					end
 				end
-				-- TODO: handle when not all bytes are written
-				assert(self:writev(iov.iov, iov.n) == iov.len)
+
+				local rc = self:writev(iov.iov, iov.n)
+				if rc <= 0 then
+					self:close()
+					return
+				end
+
 				iov:reset()
-				self.hub:continue()
+				q:remove(#q)
 			end
 		end)
 	end
+
 	return self.iovec
 end
 
@@ -184,6 +191,7 @@ function W_mt:close()
 	end
 
 	self.closed = true
+	if self.iovec then self.iovec:close() end
 	self.hub:unregister(self.no, false, true)
 	self.hub:continue()
 	return true

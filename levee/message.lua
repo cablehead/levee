@@ -400,9 +400,6 @@ function Stalk_mt:close()
 		local co = self.sender
 		self.sender = nil
 		self.hub.ready:push({co})
-
-	elseif #self.fifo > 0 then
-		self.fifo:push(nil)
 	end
 
 	if self.on_close then

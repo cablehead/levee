@@ -1,3 +1,12 @@
+local function x(s, n)
+	ret = ""
+	for _ = 1, n do
+		ret = ret .. s
+	end
+	return ret
+end
+
+
 return {
 	test_close_writer = function()
 		local levee = require("levee")
@@ -89,14 +98,6 @@ return {
 	end,
 
 	test_writev = function()
-		local function x(s, n)
-			ret = ""
-			for _ = 1, n do
-				ret = ret .. s
-			end
-			return ret
-		end
-
 		local levee = require("levee")
 		local iov = levee.iovec.Iovec(32)
 
@@ -137,16 +138,25 @@ return {
 		local iov = w:iov()
 
 		local want = {}
-		for i = 1, 10000 do
-			table.insert(want, tostring(i))
-			iov:send(tostring(i))
-		end
-		want = table.concat(want)
+
+		h:spawn(function()
+			for i = 1, 1000 do
+				local s = x(tostring(i), i)
+				table.insert(want, s)
+				iov:send(s)
+			end
+			iov.empty:recv()
+			w:close()
+			want = table.concat(want)
+		end)
 
 		local buf = levee.buffer(4096)
-		while #buf < #want do
-			r:readinto(buf)
+		while true do
+			local rc = r:readinto(buf)
+			if rc < 0 then break end
 		end
-		assert.equal(buf:take_s(), want)
+
+		assert.equal(#want, #buf)
+		assert.equal(want, buf:take_s())
 	end,
 }
