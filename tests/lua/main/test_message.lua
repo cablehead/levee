@@ -151,6 +151,96 @@ return {
 		assert.equal(check, 10)
 	end,
 
+	test_stalk_send_then_recv = function()
+		local levee = require("levee")
+		local h = levee.Hub()
+		local q = h:stalk(3)
+
+		local sent
+		h:spawn(function()
+			for i = 1, 10 do
+				sent = i
+				q:send(i)
+			end
+			sent = 20
+		end)
+
+		assert.equal(sent, 4)
+		assert.equal(q:recv(), true)
+		h:continue()
+		-- recv-ing doesn't remove items from the queue
+		assert.equal(sent, 4)
+
+		local check = {}
+		for i in q:iter() do table.insert(check, i) end
+		assert.same(check, {1, 2, 3})
+
+		q:remove(2)
+		h:continue()
+		local check = {}
+		assert.equal(q:recv(), true)
+		for i in q:iter() do table.insert(check, i) end
+		assert.same(check, {3, 4, 5})
+
+		q:remove(#q)
+		h:continue()
+		local check = {}
+		for i in q:iter() do table.insert(check, i) end
+		assert.same(check, {6, 7, 8})
+
+		q:remove(#q)
+		h:continue()
+		local check = {}
+		for i in q:iter() do table.insert(check, i) end
+		assert.same(check, {9, 10})
+
+		assert.equal(q.empty:recv(10), levee.TIMEOUT)
+		q:remove(#q)
+		assert.equal(q.empty:recv(), true)
+
+		assert.equal(sent, 20)
+	end,
+
+	test_stalk_recv_then_send = function()
+		local levee = require("levee")
+		local h = levee.Hub()
+		local q = h:stalk(3)
+
+		local check = {}
+		h:spawn(function()
+			while true do
+				if not q:recv() then break end
+				for i in q:iter() do
+					table.insert(check, i)
+				end
+				q:remove(#q)
+			end
+			table.insert(check, 20)
+		end)
+
+		q:send(1)
+		h:continue()
+		assert.same(check, {1})
+
+		q:send(2)
+		q:send(3)
+		q:send(4)
+		assert.same(check, {1})
+
+		q:send(5)
+		assert.same(check, {1, 2, 3, 4})
+		q:send(6)
+		q:send(7)
+		h:continue()
+		assert.same(check, {1, 2, 3, 4, 5, 6, 7})
+
+		q:send(8)
+		q:send(9)
+		q:close()
+		h:continue()
+		assert.same(check, {1, 2, 3, 4, 5, 6, 7, 8, 9, 20})
+	end,
+
 	test_mimo = function()
 		local levee = require("levee")
 		local h = levee.Hub()

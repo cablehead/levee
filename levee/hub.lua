@@ -127,6 +127,11 @@ function Hub_mt:queue(size)
 end
 
 
+function Hub_mt:stalk(size)
+	return message.Stalk(self, size)
+end
+
+
 function Hub_mt:mimo(size)
 	return message.MiMo(self, size)
 end

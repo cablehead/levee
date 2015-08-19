@@ -299,6 +299,129 @@ end
 
 
 --
+-- Stalk
+
+-- A Stalk is a delayed queue. recv-ing on the Stalk returns true once there
+-- are items in the queue, but it doesn't actually return a sent item. The
+-- queue can then be processed and optionally cleared. Once cleared if there is
+-- a pending upstream sender it will be signaled to continue.
+
+local Stalk_mt = {}
+Stalk_mt.__index = Stalk_mt
+
+
+function Stalk_mt:send(value)
+	assert(not self.sender)
+
+	if self.closed then
+		return
+	end
+
+	if self.size and #self.fifo >= self.size then
+		self.sender = coroutine.running()
+		local rc = self.hub:_coyield()
+		if not rc then return end
+	end
+
+	self.fifo:push(value)
+	self.empty:send()
+
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub.ready:push({co, true})
+	end
+
+	return true
+end
+
+
+function Stalk_mt:recv()
+	assert(not self.recver)
+
+	if #self.fifo > 0 then
+		return true
+	end
+
+	if self.closed then
+		return
+	end
+
+	self.recver = coroutine.running()
+	return self.hub:_coyield()
+end
+
+
+function Stalk_mt:__call()
+	return self:recv()
+end
+
+
+function Stalk_mt:__len()
+	return #self.fifo
+end
+
+
+function Stalk_mt:iter()
+	return self.fifo:iter()
+end
+
+
+function Stalk_mt:remove(n)
+	assert(n > 0 and n <= #self)
+
+	self.fifo:remove(n)
+
+	if #self == 0 then
+		self.empty:send(true)
+	end
+
+	if self.sender then
+		local co = self.sender
+		self.sender = nil
+		self.hub.ready:push({co, true})
+	end
+end
+
+
+function Stalk_mt:close()
+	if self.closed then
+		return
+	end
+
+	self.closed = true
+
+	-- TODO: these 1st two conditions need tests
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub.ready:push({co})
+	elseif self.sender then
+		local co = self.sender
+		self.sender = nil
+		self.hub.ready:push({co})
+
+	elseif #self.fifo > 0 then
+		self.fifo:push(nil)
+	end
+
+	if self.on_close then
+		self.on_close(self)
+	end
+end
+
+
+local function Stalk(hub, size)
+	local self = setmetatable({
+		hub=hub,
+		size=size,
+		fifo=FIFO(),
+		empty=hub:value(true), }, Stalk_mt)
+	return self
+end
+
+
+--
 -- MiMo
 
 -- A many in, many out Queue
@@ -483,6 +606,7 @@ return {
 	Value = Value,
 	Pipe = Pipe,
 	Queue = Queue,
+	Stalk = Stalk,
 	MiMo = MiMo,
 	Selector = Selector,
 	Pair = Pair,
