@@ -176,13 +176,6 @@ function Hub_mt:spawn_later(ms, f, a)
 end
 
 
-function Hub_mt:spawn_thread(f)
-	local chan = self:channel()
-	local recv = chan:listen()
-	local fstr = string.dump(f, false)
-end
-
-
 function Hub_mt:sleep(ms)
 	ms = self.poller:abstime(ms)
 	self.scheduled:push(ms, coroutine.running())
