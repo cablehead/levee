@@ -3,7 +3,7 @@ include(ExternalProject)
 set(SIPHON_DIR "${CMAKE_CURRENT_BINARY_DIR}/siphon")
 set(SIPHON_LIB "${SIPHON_DIR}/lib/libsiphon.a")
 set(SIPHON_INC "${SIPHON_DIR}/include")
-set(SIPHON_HASH 7ac4f63)
+set(SIPHON_HASH 17d35a7)
 
 externalproject_add(siphon_project
 	GIT_REPOSITORY git@github.com:imgix/siphon.git
