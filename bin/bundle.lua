@@ -161,9 +161,9 @@ local function bundle(root, sub, all)
 	end
 end
 
-out:write('#include <levee/lua.h>\n')
-out:write('#include <levee/lauxlib.h>\n')
-out:write('#include <levee/lualib.h>\n')
+out:write('#include <luajit-2.1/lua.h>\n')
+out:write('#include <luajit-2.1/lauxlib.h>\n')
+out:write('#include <luajit-2.1/lualib.h>\n')
 
 local files = {}
 
