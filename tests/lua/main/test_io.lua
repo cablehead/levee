@@ -104,10 +104,13 @@ return {
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 
+		-- to prevent gc
+		local keep = {}
 		local want = {}
 		for i = 1, 12 do
 			local s = x(tostring(i), 10000+i)
 			iov:write(s)
+			table.insert(keep, s)
 			table.insert(want, s)
 		end
 		want = table.concat(want)
