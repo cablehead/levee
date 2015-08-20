@@ -195,6 +195,107 @@ end
 
 
 --
+-- Gate
+
+local Gate_mt = {}
+Gate_mt.__index = Gate_mt
+
+
+function Gate_mt:send(value)
+	assert(not self.sender)
+
+	if self.closed then
+		return
+	end
+
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub.ready:push({co, value})
+	else
+		self.value = value
+	end
+
+	self.sender = coroutine.running()
+	return self.hub:_coyield()
+end
+
+
+function Gate_mt:recv(timeout)
+	assert(not self.recver)
+
+	if self.closed then
+		return
+	end
+
+	if self.value then
+		local value = self.value
+		self.value = nil
+		return value
+	end
+
+	if self.sender then
+		local co = self.sender
+		self.sender = nil
+		self.hub.ready:push({co, true})
+	end
+
+	self.recver = coroutine.running()
+	local ret = self.hub:pause(timeout)
+	-- TODO: handle comprehensively
+	self.recver = nil
+	return ret
+end
+
+
+function Gate_mt:__call(timeout)
+	return self:recv(timeout)
+end
+
+
+function Gate_mt:redirect(target)
+	assert(not self.recver)
+
+	self.target = target
+	self = setmetatable(self, Redirect_mt)
+
+	if self.sender then
+		assert(not self.target:give(self, value))
+	end
+
+	return self
+end
+
+
+function Gate_mt:close()
+	if self.closed then
+		return
+	end
+
+	self.closed = true
+
+	if self.recver then
+		local co = self.recver
+		self.recver = nil
+		self.hub.ready:push({co})
+	elseif self.sender then
+		local co = self.sender
+		self.sender = nil
+		self.hub.ready:push({co})
+	end
+
+	self.hub:continue()
+	return true
+end
+
+
+local function Gate(hub)
+	local self = setmetatable({hub=hub}, Gate_mt)
+	return self
+end
+
+
+--
 -- Queue
 
 -- A queue is exactly one Sender and one Recver with a fifo in between. Sends
@@ -602,6 +703,7 @@ end
 return {
 	Value = Value,
 	Pipe = Pipe,
+	Gate = Gate,
 	Queue = Queue,
 	Stalk = Stalk,
 	MiMo = MiMo,

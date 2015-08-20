@@ -98,6 +98,55 @@ return {
 		assert.equal(state, "done")
 	end,
 
+	test_gate = function()
+		local h = require("levee").Hub()
+		local g = h:gate()
+
+		-- test send and then recv
+		local got
+		h:spawn_later(10, function() got = g:recv() end)
+
+		local sent
+		h:spawn(function()
+			for i = 1, 5 do
+				sent = i
+				if not g:send(i) then break end
+			end
+			sent = 20
+		end)
+
+		h:sleep(20)
+		assert.equal(sent, 1)
+		assert.equal(got, 1)
+		h:continue()
+		assert.equal(sent, 1)
+		assert.equal(got, 1)
+
+		-- test recv and then send
+		h:spawn(function() got = g:recv() end)
+		h:continue()
+		assert.equal(sent, 2)
+		assert.equal(got, 1)
+		h:continue()
+		assert.equal(sent, 2)
+		assert.equal(got, 2)
+		h:continue()
+		assert.equal(sent, 2)
+		assert.equal(got, 2)
+
+		got = g:recv()
+		assert.equal(sent, 3)
+		assert.equal(got, 3)
+		h:continue()
+		assert.equal(sent, 3)
+		assert.equal(got, 3)
+
+		-- close
+		g:close()
+		assert.equal(g:recv(), nil)
+		assert.equal(sent, 20)
+	end,
+
 	test_queue = function()
 		local levee = require("levee")
 		local h = levee.Hub()
