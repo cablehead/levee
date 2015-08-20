@@ -459,7 +459,9 @@ function Client_mt:request(method, path, params, headers, data)
 		path = table.concat(s)
 	end
 
-	self.iov:write(("%s %s %s\r\n"):format(method, path, VERSION))
+	local iov = self.conn:iov()
+
+	iov:send(("%s %s %s\r\n"):format(method, path, VERSION))
 
 	headers = self:__headers(headers)
 	if data then
@@ -467,17 +469,14 @@ function Client_mt:request(method, path, params, headers, data)
 	end
 
 	for k, v in pairs(headers) do
-		self.iov:write(k)
-		self.iov:write(FIELD_SEP)
-		self.iov:write(v)
-		self.iov:write(EOL)
+		iov:send(k)
+		iov:send(FIELD_SEP)
+		iov:send(v)
+		iov:send(EOL)
 	end
-	self.iov:write(EOL)
+	iov:send(EOL)
 
-	if data then self.iov:write(data) end
-
-	self.conn:writev(self.iov.iov, self.iov.n)
-	self.iov:reset()
+	if data then iov:send(data) end
 
 	local recver = self.hub:pipe()
 	self.responses:send(recver)
@@ -567,111 +566,92 @@ end
 Server_mt.__call = Server_mt.recv
 
 
+function Server_mt:_response(response)
+	local status, headers, body = unpack(response:recv())
+
+	local iov = self.conn:iov()
+
+	iov:send(status)
+
+	iov:send("Date")
+	iov:send(FIELD_SEP)
+	iov:send(httpdate())
+	iov:send(EOL)
+
+	for k, v in pairs(headers) do
+		iov:send(k)
+		iov:send(FIELD_SEP)
+		iov:send(v)
+		iov:send(EOL)
+	end
+
+	if type(body) == "string" then
+		iov:send("Content-Length")
+		iov:send(FIELD_SEP)
+		iov:send(tostring(#body))
+		iov:send(EOL)
+		iov:send(EOL)
+		iov:send(body)
+
+	elseif body ~= nil then
+		iov:send("Content-Length")
+		iov:send(FIELD_SEP)
+		iov:send(tostring(tonumber(body)))
+		iov:send(EOL)
+		iov:send(EOL)
+		-- wait until headers have been sent
+		iov.empty:recv()
+		-- wait until app signals body sent
+		assert(not response:recv())
+
+	else
+			iov:send("Transfer-Encoding")
+			iov:send(FIELD_SEP)
+			iov:send("chunked")
+			iov:send(EOL)
+			iov:send(EOL)
+
+			local function write_chunk(response, chunk)
+				if type(chunk) == "string" then
+					iov:send(num2hex(#chunk))
+					iov:send(EOL)
+					iov:send(chunk)
+					iov:send(EOL)
+
+					chunk = response:recv()
+
+				else
+					iov:send(num2hex(chunk))
+					iov:send(EOL)
+					-- wait until headers have been sent
+					iov.empty:recv()
+					--
+					-- next chunk signals continue
+					chunk = response:recv()
+					iov:send(EOL)
+				end
+
+				if not chunk then return true end
+				return write_chunk(response, chunk)
+			end
+
+			local ok = write_chunk(response, response:recv())
+			if not ok then
+				self:close()
+				return
+			end
+
+			iov:send("0")
+			iov:send(EOL)
+			iov:send(EOL)
+	end
+end
+
+
 function Server_mt:writer()
 	for response in self.responses do
-		local status, headers, body = unpack(response:recv())
-		self.iov:write(status)
-
-		self.iov:write("Date")
-		self.iov:write(FIELD_SEP)
-		self.iov:write(httpdate())
-		self.iov:write(EOL)
-
-		for k, v in pairs(headers) do
-			self.iov:write(k)
-			self.iov:write(FIELD_SEP)
-			self.iov:write(v)
-			self.iov:write(EOL)
-		end
-
-		if type(body) == "string" then
-			self.iov:write("Content-Length")
-			self.iov:write(FIELD_SEP)
-			self.iov:write(tostring(#body))
-			self.iov:write(EOL)
-			self.iov:write(EOL)
-			self.iov:write(body)
-			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-				self:close()
-				return
-			end
-			self.iov:reset()
-
-		elseif body ~= nil then
-			self.iov:write("Content-Length")
-			self.iov:write(FIELD_SEP)
-			self.iov:write(tostring(tonumber(body)))
-			self.iov:write(EOL)
-			self.iov:write(EOL)
-			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-				self:close()
-				return
-			end
-			self.iov:reset()
-
-			assert(not response:recv())
-
-		else
-				self.iov:write("Transfer-Encoding")
-				self.iov:write(FIELD_SEP)
-				self.iov:write("chunked")
-				self.iov:write(EOL)
-				self.iov:write(EOL)
-				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-					self:close()
-					return
-				end
-				self.iov:reset()
-
-				local function write_chunk(response, chunk)
-					if type(chunk) == "string" then
-						self.iov:write(num2hex(#chunk))
-						self.iov:write(EOL)
-						self.iov:write(chunk)
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							return
-						end
-						self.iov:reset()
-
-						chunk = response:recv()
-
-					else
-						self.iov:write(num2hex(chunk))
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							return
-						end
-						self.iov:reset()
-
-						chunk = response:recv()
-
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							return
-						end
-						self.iov:reset()
-					end
-
-					if not chunk then return true end
-					return write_chunk(response, chunk)
-				end
-
-				local ok = write_chunk(response, response:recv())
-				if not ok then
-					self:close()
-					return
-				end
-
-				self.iov:write("0")
-				self.iov:write(EOL)
-				self.iov:write(EOL)
-				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-					self:close()
-					return
-				end
-				self.iov:reset()
-		end
+		self:_response(response)
+		response:close()
 	end
 end
 
@@ -693,7 +673,7 @@ function Server_mt:reader()
 			version=_next[3],
 			headers={},
 			conn = self.conn,
-			response = self.hub:pipe(), }, Request_mt)
+			response = self.hub:gate(), }, Request_mt)
 
 		while true do
 			_next = parser_next(self)
@@ -736,11 +716,12 @@ local function Server(hub, conn)
 	local self = setmetatable({}, Server_mt)
 	self.hub = hub
 	self.conn = conn
+
 	self.requests = hub:pipe()
 	self.responses = hub:pipe()
 	self.parser = parsers.http.Request()
 	self.buf = buffer(64*1024)
-	self.iov = iovec.Iovec(32)
+
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
 	return self
@@ -799,7 +780,6 @@ function HTTP_mt:connect(port, host)
 	m.conn = conn
 	m.parser = parsers.http.Response()
 	m.buf = buffer(64*1024)
-	m.iov = iovec.Iovec(32)
 
 	m.responses = self.hub:pipe()
 	self.hub:spawn(m.reader, m)
