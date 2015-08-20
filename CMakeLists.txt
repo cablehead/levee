@@ -28,6 +28,7 @@ include_directories(BEFORE
 	${LEVEE_INC}
 	${SIPHON_INC}
 	${LUAJIT_INC}
+	/usr/local/include
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
