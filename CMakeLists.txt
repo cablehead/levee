@@ -25,10 +25,10 @@ add_custom_target(
 add_dependencies(liblevee_target libleveebase libluajit libsiphon)
 
 include_directories(BEFORE
+	/usr/local/include
 	${LEVEE_INC}
 	${SIPHON_INC}
 	${LUAJIT_INC}
-	/usr/local/include
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
