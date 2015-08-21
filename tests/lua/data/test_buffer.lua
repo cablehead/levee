@@ -40,6 +40,15 @@ return {
 		assert.equal(buf:peek_s(), "")
 	end,
 
+	test_copy = function()
+		local buf = Buffer(4096)
+		local s = "012345678901234567890123456789"
+		buf:push_s(s)
+		local tgt = Buffer(4096)
+		tgt:bump(buf:copy(tgt:tail()))
+		assert.equal(tgt:peek_s(), s)
+	end,
+
 	test_save = function()
 		local buf = Buffer(8192)
 		buf:push_s("012345678901234567890123456789")

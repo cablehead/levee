@@ -142,6 +142,14 @@ function Buffer_mt:value()
 end
 
 
+function Buffer_mt:copy(tgt, n)
+	local buf, len = self:value()
+	if n > len then n = len end
+	C.memcpy(tgt, buf, n)
+	return n
+end
+
+
 function Buffer_mt:tail()
 	return self.buf + self.off + self.len, self:available()
 end
