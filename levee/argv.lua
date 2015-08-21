@@ -1,5 +1,7 @@
 local io = require('io')
 local os = require('os')
+local ffi = require('ffi')
+C = ffi.C
 
 local Argv_mt = {}
 Argv_mt.__index = Argv_mt
@@ -60,6 +62,7 @@ function Argv_mt:option()
 		-- match long option: --long-value
 		optrem = arg:match("^%-%-(.*)")
 		if optrem then
+			self.optshort = false
 			self.idx = self.idx + 1
 			self.opt = optrem -- save active option
 			return optrem
@@ -68,6 +71,7 @@ function Argv_mt:option()
 		-- match short options: -xyz
 		optrem = arg:match("^%-(.+)")
 		if optrem then
+			self.optshort = true
 			self.idx = self.idx + 1
 		end
 
@@ -84,31 +88,29 @@ function Argv_mt:option()
 		self.optrem = optrem
 	else
 		self.optrem = nil
+		self.optshort = false
 	end
 	self.opt = ch -- save active option
 	return ch
 end
 
 
-function Argv_mt:list(min, max)
-	if self.optrem then return end
-	local list = {}
-	while self.idx + #list <= self.idxstop do
-		local value = self.args[self.idx + #list]
-		if value:sub(1,1) == '-' then
-			break
-		end
-		table.insert(list, value)
-		if max and #list == max then
-			break
+function Argv_mt:argn(n)
+	local args = {}
+	if not self.optrem then
+		while self.idx + #args <= self.idxstop and #args < n do
+			local value = self.args[self.idx + #args]
+			if value:sub(1,1) == '-' then
+				break
+			end
+			table.insert(args, value)
 		end
 	end
-	if min and #list < min then
-		self:exit("list expected at least %d item(s)", min)
-		return
+	if #args < n then
+		return self:exit("expected %d argument(s)", n)
 	end
-	self.idx = self.idx + #list
-	return list
+	self.idx = self.idx + #args
+	return args
 end
 
 
@@ -140,7 +142,20 @@ function Argv_mt:input(defult)
 		else
 			return io.open(val, "r")
 		end
-	end, "readablefile expected")
+	end, "readable file expected")
+end
+
+
+function Argv_mt:inputfd(defult)
+	return self:next(function(val)
+		if val == '-' then
+			return default or 0
+		else
+			local fd = C.open(val, C.O_RDONLY)
+			if fd < 0 then fd = nil end
+			return fd
+		end
+	end, "readable file expected")
 end
 
 
@@ -150,6 +165,19 @@ function Argv_mt:output(defult)
 			return default or io.stdout
 		else
 			return io.open(val, "w")
+		end
+	end, "writable file expected")
+end
+
+
+function Argv_mt:outputfd(defult)
+	return self:next(function(val)
+		if val == '-' then
+			return default or 1
+		else
+			local fd = C.open(val, C.O_WRONLY)
+			if fd < 0 then fd = nil end
+			return fd
 		end
 	end, "writable file expected")
 end
