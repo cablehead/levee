@@ -83,7 +83,9 @@
 - `tobuffer([buf])`
 
     Convenience to stream the entire response body into a buffer. If the
-    optional *buf* is not provided, a new buffer will be created and returned.
+    optional *buf* is not provided, a new buffer will be created. On success
+    the buffer is returned, otherwise an integer less than 0 and an err code
+    will be returned.
 
 - `save(name)`
 
