@@ -164,6 +164,22 @@ function Stream_mt:readin()
 	return self.conn:readinto(self.buf)
 end
 
+function Stream_mt:read(buf, len)
+	assert(len <= self.len)
+	local togo = len
+
+	if #self.buf > 0 then
+		local n = self.buf:copy(buf, len)
+		self:trim(n)
+		togo = togo - n
+		if togo == 0 then return len end
+	end
+
+	local rc, err = self.conn:read(buf, togo)
+	if rc < 0 then return rc, err end
+	return len
+end
+
 function Stream_mt:value()
 	return self.buf:slice(self.len)
 end
@@ -273,6 +289,30 @@ function Response_mt:tostring()
 		table.insert(bits, chunk:tostring())
 	end
 	return table.concat(bits)
+end
+
+function Response_mt:tobuffer(buf)
+	local function _copy(chunk, buf)
+		buf:ensure(#chunk)
+		local rc, err = chunk:read(buf:tail(), #chunk)
+		if rc < 0 then return rc, err end
+		buf:bump(rc)
+		return rc
+	end
+
+	buf = buf or buffer()
+
+	if self.body then
+		local rc, err = _copy(self.body, buf)
+		if rc < 0 then return rc, err end
+		return buf
+	end
+
+	for chunk in self.chunks do
+		local rc, err = _copy(chunk, buf)
+		if rc < 0 then return rc, err end
+	end
+	return buf
 end
 
 function Response_mt:save(name)

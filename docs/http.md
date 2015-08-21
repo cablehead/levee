@@ -80,6 +80,11 @@
 
     Convenience to consume the entire response body and return it as a string.
 
+- `tobuffer([buf])`
+
+    Convenience to stream the entire response body into a buffer. If the
+    optional *buf* is not provided, a new buffer will be created and returned.
+
 - `save(name)`
 
     Convenience to stream the entire response body to the given filename.

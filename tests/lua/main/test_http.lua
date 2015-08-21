@@ -297,6 +297,9 @@ return {
 		assert.equal(res:tostring(), '{"foo": "bar"}')
 
 		local res = c:get("/"):recv()
+		assert.equal(res:tobuffer():peek_s(), '{"foo": "bar"}')
+
+		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
 
 		local tmp = os.tmpname()
@@ -333,6 +336,9 @@ return {
 
 		local res = c:get("/"):recv()
 		assert.equal(res:tostring(), '{"foo": "bar"}')
+
+		local res = c:get("/"):recv()
+		assert.equal(res:tobuffer():peek_s(), '{"foo": "bar"}')
 
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
