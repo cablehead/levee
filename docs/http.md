@@ -84,7 +84,7 @@
 - `tobuffer([buf])`
 
     Convenience to stream the entire response body into a buffer. If the
-    optional *buf* is not provided, a new buffer will be created. `buf is
+    optional `buf` is not provided, a new buffer will be created. `buf` is
     return on success otherwise `nil`, `err` is returned.
 
 - `save(name)`
