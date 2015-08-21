@@ -113,6 +113,9 @@ struct levee_stat {
 extern int
 levee_fstat(int fd, struct levee_stat *buf);
 
+extern int
+levee_stat(const char *path, struct levee_stat *buf);
+
 extern ssize_t
 levee_sendfile (int s, int fd, size_t off, size_t len);
 
