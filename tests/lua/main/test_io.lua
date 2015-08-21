@@ -1,9 +1,9 @@
 local function x(s, n)
-	ret = ""
+	ret = {}
 	for _ = 1, n do
-		ret = ret .. s
+		table.insert(ret, s)
 	end
-	return ret
+	return table.concat(ret)
 end
 
 
@@ -148,6 +148,17 @@ return {
 				table.insert(want, s)
 				iov:send(s)
 			end
+
+			-- test if items are added to the queue while we are mid-write
+			local s = x(".", 791532)
+			table.insert(want, s)
+			iov:send(s)
+			h:continue()
+			table.insert(want, "...")
+			iov:send(".")
+			iov:send(".")
+			iov:send(".")
+
 			iov.empty:recv()
 			w:close()
 			want = table.concat(want)

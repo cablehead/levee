@@ -165,6 +165,7 @@ function W_mt:iov(size)
 			while true do
 				if not q:recv() then return end
 
+				local n = #q
 				for s in q:iter() do
 					iov:write(s)
 				end
@@ -176,7 +177,7 @@ function W_mt:iov(size)
 				end
 
 				iov:reset()
-				q:remove(#q)
+				q:remove(n)
 			end
 		end)
 	end
