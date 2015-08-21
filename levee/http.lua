@@ -215,7 +215,8 @@ function Stream_mt:tostring()
 		if self.len == 0 then
 			break
 		end
-		self:readin()
+		local n, err = self:readin()
+		if n < 0 then return nil, err end
 	end
 	self.done:close()
 	return table.concat(ret)
@@ -228,9 +229,11 @@ function Stream_mt:discard()
 		if self.len == 0 then
 			break
 		end
-		self:readin()
+		local n, err = self:readin()
+		if n < 0 then return nil, err end
 	end
 	self.done:close()
+	return true
 end
 
 function Stream_mt:json()
@@ -286,7 +289,9 @@ function Response_mt:tostring()
 
 	local bits = {}
 	for chunk in self.chunks do
-		table.insert(bits, chunk:tostring())
+		local s, err = chunk:tostring()
+		if not s then return s, err end
+		table.insert(bits, s)
 	end
 	return table.concat(bits)
 end
@@ -294,23 +299,23 @@ end
 function Response_mt:tobuffer(buf)
 	local function _copy(chunk, buf)
 		buf:ensure(#chunk)
-		local rc, err = chunk:read(buf:tail(), #chunk)
-		if rc < 0 then return rc, err end
-		buf:bump(rc)
-		return rc
+		local n, err = chunk:read(buf:tail(), #chunk)
+		if n < 0 then return nil, err end
+		buf:bump(n)
+		return true
 	end
 
 	buf = buf or buffer()
 
 	if self.body then
 		local rc, err = _copy(self.body, buf)
-		if rc < 0 then return rc, err end
+		if not rc then return nil, err end
 		return buf
 	end
 
 	for chunk in self.chunks do
 		local rc, err = _copy(chunk, buf)
-		if rc < 0 then return rc, err end
+		if not rc then return nil, err end
 	end
 	return buf
 end
@@ -320,37 +325,44 @@ function Response_mt:save(name)
 		while #chunk > 0 do
 			local buf, len = chunk:value()
 			if len == 0 then
-				chunk:readin()
+				local n, err = chunk:readin()
+				if n < 0 then return nil, err end
 			else
 				local n = C.write(no, buf, len)
+				if n < 0 then return nil, ffi.errno() end
 				chunk:trim(n)
 			end
 		end
+		return true
 	end
 
 	local no = C.open(name, C.O_WRONLY)
 	if no < 0 then return no, ffi.errno() end
 
+	local rc, err
+
 	if self.body then
-		_save(self.body, no)
+		rc, err = _save(self.body, no)
+
 	else
 		for chunk in self.chunks do
-			_save(chunk, no)
+			rc, err = _save(chunk, no)
+			if not rc then break end
 		end
 	end
 
 	C.close(no)
-	return 0
+	return rc, err
 end
 
 function Response_mt:discard()
 	if self.body then
-		self.body:discard()
-		return true
+		return self.body:discard()
 	end
 
 	for chunk in self.chunks do
-		chunk:discard()
+		local rc, err = chunk:discard()
+		if not rc then return rc, err end
 	end
 	return true
 end
@@ -392,10 +404,7 @@ function Response_mt:json()
 
 	local parser = json.decoder()
 	local ok, data = parser:stream_consume(stream)
-	if not ok then
-		-- TODO: is this reasonable?
-		return nil, data
-	end
+	if not ok then return nil, data end
 	return data
 end
 
