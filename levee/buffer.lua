@@ -88,6 +88,7 @@ function Buffer_mt:ensure(hint)
 			-- only copy the subregion containing untrimmed data
 			C.memcpy(buf, self.buf+self.off, self.len)
 		end
+		C.free(self.buf)
 	else
 		-- use realloc to take advantage of mremap
 		buf = C.realloc(self.buf, cap)
@@ -95,7 +96,6 @@ function Buffer_mt:ensure(hint)
 			Errno:error("realloc")
 		end
 	end
-	C.free(self.buf)
 
 	-- always reset the offset back to 0
 	self.buf = buf
@@ -139,6 +139,14 @@ end
 
 function Buffer_mt:value()
 	return self.buf + self.off, self.len
+end
+
+
+function Buffer_mt:copy(tgt, n)
+	local buf, len = self:value()
+	if n > len then n = len end
+	C.memcpy(tgt, buf, n)
+	return n
 end
 
 

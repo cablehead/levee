@@ -164,6 +164,22 @@ function Stream_mt:readin()
 	return self.conn:readinto(self.buf)
 end
 
+function Stream_mt:read(buf, len)
+	assert(len <= self.len)
+	local togo = len
+
+	if #self.buf > 0 then
+		local n = self.buf:copy(buf, len)
+		self:trim(n)
+		togo = togo - n
+		if togo == 0 then return len end
+	end
+
+	local rc, err = self.conn:read(buf, togo)
+	if rc < 0 then return rc, err end
+	return len
+end
+
 function Stream_mt:value()
 	return self.buf:slice(self.len)
 end
@@ -199,7 +215,8 @@ function Stream_mt:tostring()
 		if self.len == 0 then
 			break
 		end
-		self:readin()
+		local n, err = self:readin()
+		if n < 0 then return nil, err end
 	end
 	self.done:close()
 	return table.concat(ret)
@@ -212,9 +229,11 @@ function Stream_mt:discard()
 		if self.len == 0 then
 			break
 		end
-		self:readin()
+		local n, err = self:readin()
+		if n < 0 then return nil, err end
 	end
 	self.done:close()
+	return true
 end
 
 function Stream_mt:json()
@@ -263,26 +282,87 @@ function Response_mt:__tostring()
 	return ("levee.http.Response: %s %s"):format(self.code, self.reason)
 end
 
-function Response_mt:consume()
+function Response_mt:tostring()
 	if self.body then
 		return self.body:tostring()
 	end
 
 	local bits = {}
 	for chunk in self.chunks do
-		table.insert(bits, chunk:tostring())
+		local s, err = chunk:tostring()
+		if not s then return s, err end
+		table.insert(bits, s)
 	end
 	return table.concat(bits)
 end
 
-function Response_mt:discard()
-	if self.body then
-		self.body:discard()
+function Response_mt:tobuffer(buf)
+	local function _copy(chunk, buf)
+		buf:ensure(#chunk)
+		local n, err = chunk:read(buf:tail(), #chunk)
+		if n < 0 then return nil, err end
+		buf:bump(n)
 		return true
 	end
 
+	buf = buf or buffer()
+
+	if self.body then
+		local rc, err = _copy(self.body, buf)
+		if not rc then return nil, err end
+		return buf
+	end
+
 	for chunk in self.chunks do
-		chunk:discard()
+		local rc, err = _copy(chunk, buf)
+		if not rc then return nil, err end
+	end
+	return buf
+end
+
+function Response_mt:save(name)
+	local function _save(chunk, no)
+		while #chunk > 0 do
+			local buf, len = chunk:value()
+			if len == 0 then
+				local n, err = chunk:readin()
+				if n < 0 then return nil, err end
+			else
+				local n = C.write(no, buf, len)
+				if n < 0 then return nil, ffi.errno() end
+				chunk:trim(n)
+			end
+		end
+		return true
+	end
+
+	local no = C.open(name, C.O_WRONLY)
+	if no < 0 then return no, ffi.errno() end
+
+	local rc, err
+
+	if self.body then
+		rc, err = _save(self.body, no)
+
+	else
+		for chunk in self.chunks do
+			rc, err = _save(chunk, no)
+			if not rc then break end
+		end
+	end
+
+	C.close(no)
+	return rc, err
+end
+
+function Response_mt:discard()
+	if self.body then
+		return self.body:discard()
+	end
+
+	for chunk in self.chunks do
+		local rc, err = chunk:discard()
+		if not rc then return rc, err end
 	end
 	return true
 end
@@ -324,10 +404,7 @@ function Response_mt:json()
 
 	local parser = json.decoder()
 	local ok, data = parser:stream_consume(stream)
-	if not ok then
-		-- TODO: is this reasonable?
-		return nil, data
-	end
+	if not ok then return nil, data end
 	return data
 end
 
@@ -431,7 +508,9 @@ function Client_mt:request(method, path, params, headers, data)
 		path = table.concat(s)
 	end
 
-	self.iov:write(("%s %s %s\r\n"):format(method, path, VERSION))
+	local iov = self.conn:iov()
+
+	iov:send(("%s %s %s\r\n"):format(method, path, VERSION))
 
 	headers = self:__headers(headers)
 	if data then
@@ -439,17 +518,14 @@ function Client_mt:request(method, path, params, headers, data)
 	end
 
 	for k, v in pairs(headers) do
-		self.iov:write(k)
-		self.iov:write(FIELD_SEP)
-		self.iov:write(v)
-		self.iov:write(EOL)
+		iov:send(k)
+		iov:send(FIELD_SEP)
+		iov:send(v)
+		iov:send(EOL)
 	end
-	self.iov:write(EOL)
+	iov:send(EOL)
 
-	if data then self.iov:write(data) end
-
-	self.conn:writev(self.iov.iov, self.iov.n)
-	self.iov:reset()
+	if data then iov:send(data) end
 
 	local recver = self.hub:pipe()
 	self.responses:send(recver)
@@ -539,111 +615,92 @@ end
 Server_mt.__call = Server_mt.recv
 
 
+function Server_mt:_response(response)
+	local status, headers, body = unpack(response:recv())
+
+	local iov = self.conn:iov()
+
+	iov:send(status)
+
+	iov:send("Date")
+	iov:send(FIELD_SEP)
+	iov:send(httpdate())
+	iov:send(EOL)
+
+	for k, v in pairs(headers) do
+		iov:send(k)
+		iov:send(FIELD_SEP)
+		iov:send(v)
+		iov:send(EOL)
+	end
+
+	if type(body) == "string" then
+		iov:send("Content-Length")
+		iov:send(FIELD_SEP)
+		iov:send(tostring(#body))
+		iov:send(EOL)
+		iov:send(EOL)
+		iov:send(body)
+
+	elseif body ~= nil then
+		iov:send("Content-Length")
+		iov:send(FIELD_SEP)
+		iov:send(tostring(tonumber(body)))
+		iov:send(EOL)
+		iov:send(EOL)
+		-- wait until headers have been sent
+		iov.empty:recv()
+		-- wait until app signals body sent
+		assert(not response:recv())
+
+	else
+			iov:send("Transfer-Encoding")
+			iov:send(FIELD_SEP)
+			iov:send("chunked")
+			iov:send(EOL)
+			iov:send(EOL)
+
+			local function write_chunk(response, chunk)
+				if type(chunk) == "string" then
+					iov:send(num2hex(#chunk))
+					iov:send(EOL)
+					iov:send(chunk)
+					iov:send(EOL)
+
+					chunk = response:recv()
+
+				else
+					iov:send(num2hex(chunk))
+					iov:send(EOL)
+					-- wait until headers have been sent
+					iov.empty:recv()
+					--
+					-- next chunk signals continue
+					chunk = response:recv()
+					iov:send(EOL)
+				end
+
+				if not chunk then return true end
+				return write_chunk(response, chunk)
+			end
+
+			local ok = write_chunk(response, response:recv())
+			if not ok then
+				self:close()
+				return
+			end
+
+			iov:send("0")
+			iov:send(EOL)
+			iov:send(EOL)
+	end
+end
+
+
 function Server_mt:writer()
 	for response in self.responses do
-		local status, headers, body = unpack(response:recv())
-		self.iov:write(status)
-
-		self.iov:write("Date")
-		self.iov:write(FIELD_SEP)
-		self.iov:write(httpdate())
-		self.iov:write(EOL)
-
-		for k, v in pairs(headers) do
-			self.iov:write(k)
-			self.iov:write(FIELD_SEP)
-			self.iov:write(v)
-			self.iov:write(EOL)
-		end
-
-		if type(body) == "string" then
-			self.iov:write("Content-Length")
-			self.iov:write(FIELD_SEP)
-			self.iov:write(tostring(#body))
-			self.iov:write(EOL)
-			self.iov:write(EOL)
-			self.iov:write(body)
-			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-				self:close()
-				return
-			end
-			self.iov:reset()
-
-		elseif body ~= nil then
-			self.iov:write("Content-Length")
-			self.iov:write(FIELD_SEP)
-			self.iov:write(tostring(tonumber(body)))
-			self.iov:write(EOL)
-			self.iov:write(EOL)
-			if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-				self:close()
-				return
-			end
-			self.iov:reset()
-
-			assert(not response:recv())
-
-		else
-				self.iov:write("Transfer-Encoding")
-				self.iov:write(FIELD_SEP)
-				self.iov:write("chunked")
-				self.iov:write(EOL)
-				self.iov:write(EOL)
-				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-					self:close()
-					return
-				end
-				self.iov:reset()
-
-				local function write_chunk(response, chunk)
-					if type(chunk) == "string" then
-						self.iov:write(num2hex(#chunk))
-						self.iov:write(EOL)
-						self.iov:write(chunk)
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							return
-						end
-						self.iov:reset()
-
-						chunk = response:recv()
-
-					else
-						self.iov:write(num2hex(chunk))
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							return
-						end
-						self.iov:reset()
-
-						chunk = response:recv()
-
-						self.iov:write(EOL)
-						if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-							return
-						end
-						self.iov:reset()
-					end
-
-					if not chunk then return true end
-					return write_chunk(response, chunk)
-				end
-
-				local ok = write_chunk(response, response:recv())
-				if not ok then
-					self:close()
-					return
-				end
-
-				self.iov:write("0")
-				self.iov:write(EOL)
-				self.iov:write(EOL)
-				if self.conn:writev(self.iov.iov, self.iov.n) < 0 then
-					self:close()
-					return
-				end
-				self.iov:reset()
-		end
+		self:_response(response)
+		response:close()
 	end
 end
 
@@ -665,7 +722,7 @@ function Server_mt:reader()
 			version=_next[3],
 			headers={},
 			conn = self.conn,
-			response = self.hub:pipe(), }, Request_mt)
+			response = self.hub:gate(), }, Request_mt)
 
 		while true do
 			_next = parser_next(self)
@@ -708,11 +765,12 @@ local function Server(hub, conn)
 	local self = setmetatable({}, Server_mt)
 	self.hub = hub
 	self.conn = conn
+
 	self.requests = hub:pipe()
 	self.responses = hub:pipe()
 	self.parser = parsers.http.Request()
 	self.buf = buffer(64*1024)
-	self.iov = iovec.Iovec(32)
+
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
 	return self
@@ -771,7 +829,6 @@ function HTTP_mt:connect(port, host)
 	m.conn = conn
 	m.parser = parsers.http.Response()
 	m.buf = buffer(64*1024)
-	m.iov = iovec.Iovec(32)
 
 	m.responses = self.hub:pipe()
 	self.hub:spawn(m.reader, m)

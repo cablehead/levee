@@ -1,4 +1,5 @@
 local ffi = require('ffi')
+local C = ffi.C
 
 return {
 	test_socket = function()
@@ -15,5 +16,11 @@ return {
 		else
 			assert(false) -- unsupported os
 		end
+	end,
+
+	test_access = function()
+		local filename = debug.getinfo(1, 'S').source:sub(2)
+		assert.equal(C.access(filename, C.F_OK), 0)
+		assert.equal(C.access(filename..".bad", C.F_OK), -1)
 	end,
 }

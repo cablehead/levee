@@ -76,19 +76,32 @@
 
 ### methods
 
-- `consume()`
+- `tostring()`
 
     Convenience to consume the entire response body and return it as a string.
+    Returns `nil`, `err` on error.
+
+- `tobuffer([buf])`
+
+    Convenience to stream the entire response body into a buffer. If the
+    optional `buf` is not provided, a new buffer will be created. `buf` is
+    return on success otherwise `nil`, `err` is returned.
+
+- `save(name)`
+
+    Convenience to stream the entire response body to the given filename.
+    Returns `true` on success, otherwise returns `nil`, `err`.
 
 - `discard()`
 
     Convenience to discard the entire response body using a minimal amount of
-    resources.
+    resources.  Returns `true` on success, otherwise returns `nil`, `err`.
 
 - `json()`
 
     Convenience to stream the entire response body through the json decoder.
-    Returns a lua table object for the decoded json.
+    Returns a lua table object for the decoded json on success, otherwise
+    returns `nil`, `err`.
 
 
 ## Stream
@@ -109,6 +122,10 @@ A `Stream` allows a portion of a streaming socket to be delegated.
 - `readin()`:
 
     read from the stream's conn to its buf.
+
+- `value()`
+
+    returns buf, len of the stream currently buffered
 
 - `trim(len)`
 

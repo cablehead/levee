@@ -42,6 +42,15 @@ return {
 		local f = FIFO()
 		f:push(1)
 		f:push(2)
+
+		local i = 1
+		for v in f:iter() do
+			assert.equals(i, v)
+			i = i + 1
+		end
+		assert.equals(3, i)
+
+		-- test iter leaves the fifo intact
 		local i = 1
 		for v in f:iter() do
 			assert.equals(i, v)

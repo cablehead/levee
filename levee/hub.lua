@@ -112,6 +112,16 @@ function Hub_mt:pipe()
 end
 
 
+function Hub_mt:gate()
+	return message.Gate(self)
+end
+
+
+function Hub_mt:value(value)
+	return message.Value(self, value)
+end
+
+
 function Hub_mt:selector()
 	return message.Selector(self)
 end
@@ -122,23 +132,44 @@ function Hub_mt:queue(size)
 end
 
 
-function Hub_mt:_coresume(co, value)
-	if co ~= self._pcoro then
-		local status, message = coroutine.resume(co, value)
-		if not status then
-			error(message)
-		end
-		return message
-	end
-
-	return coroutine.yield(value)
+function Hub_mt:stalk(size)
+	return message.Stalk(self, size)
 end
 
 
-function Hub_mt:_coyield()
-	if coroutine.running() ~= self._pcoro then return coroutine.yield() end
+function Hub_mt:mimo(size)
+	return message.MiMo(self, size)
+end
 
-	local status, message = coroutine.resume(self.loop)
+
+function Hub_mt:_coresume(co, value)
+	-- TODO: test new switch_to behavior
+
+	if co ~= self._pcoro then
+		local status, a1, a2 = coroutine.resume(co, value)
+
+		if not status then
+			error(a1)
+		end
+
+		if type(a1) == "thread" then
+			return self:_coresume(a1, a2)
+		end
+
+		return a1
+	end
+
+	local co, value = coroutine.yield(value)
+	if type(co) == "thread" then
+		return self:_coresume(co, value)
+	end
+end
+
+
+function Hub_mt:_coyield(...)
+	if coroutine.running() ~= self._pcoro then return coroutine.yield(...) end
+
+	local status, message = coroutine.resume(self.loop, ...)
 	if not status then
 		error(message)
 	end
@@ -157,13 +188,6 @@ function Hub_mt:spawn_later(ms, f, a)
 	ms = self.poller:abstime(ms)
 	local co = coroutine.create(f)
 	self.scheduled:push(ms, co)
-end
-
-
-function Hub_mt:spawn_thread(f)
-	local chan = self:channel()
-	local recv = chan:listen()
-	local fstr = string.dump(f, false)
 end
 
 
@@ -190,6 +214,12 @@ end
 function Hub_mt:continue()
 	self.ready:push({coroutine.running()})
 	self:_coyield()
+end
+
+
+function Hub_mt:switch_to(co, value)
+	self.ready:push({coroutine.running()})
+	self:_coyield(co, value)
 end
 
 
@@ -310,9 +340,6 @@ local function Hub()
 
 	-- this should probably be in a seperate repo
 	self.consul = require("levee.consul")(self)
-
-	-- TODO: remove - this isn't right
-	self.is_linux = ffi.os:lower() == "linux"
 
 	return self
 end

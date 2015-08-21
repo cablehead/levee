@@ -92,6 +92,13 @@ local function fstat(no)
 	return st
 end
 
+local function stat(path)
+	local st = ffi.new("struct levee_stat")
+	local rc = C.levee_stat(path, st)
+	if rc < 0 then return end
+	return st
+end
+
 return {
 	nonblock = nonblock,
 	nonblock_accept = nonblock_accept,
@@ -102,4 +109,5 @@ return {
 	close = close,
 	pipe = pipe,
 	fstat = fstat,
+	stat = stat,
 }

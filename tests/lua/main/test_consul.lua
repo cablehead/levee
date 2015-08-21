@@ -10,6 +10,13 @@ return {
 		return false
 	end,
 
+	test_agent_self = function()
+		local h = levee.Hub()
+		local c = h:consul()
+		assert(c.agent:self().Member)
+	end,
+
+
 	test_kv = function()
 		local h = levee.Hub()
 		local c = h:consul()

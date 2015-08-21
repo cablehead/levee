@@ -37,3 +37,4 @@ struct levee_stat {
 };
 
 int levee_fstat(int fd, struct levee_stat *buf);
+int levee_stat(const char *path, struct levee_stat *buf);

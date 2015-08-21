@@ -1,9 +1,9 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local sys = require("levee.sys")
+local iovec = require("levee.iovec")
 local errno = require("levee.errno")
-
+local sys = require("levee.sys")
 
 --
 -- Read
@@ -21,24 +21,22 @@ function R_mt:read(buf, len)
 		return n
 	end
 
-	-- TODO: on linux does n == 0 *always* mean the fd has closed?
-	if err ~= errno["EAGAIN"] or (n == 0 and self.hub.is_linux) then
-		self:close()
-		return n, err
-	end
-
-	-- EAGAIN
-	local ev = self.r_ev:recv()
-	if ev < 0 then
+	if err ~= errno["EAGAIN"] or self.r_error then
 		self:close()
 		return -1, errno["EBADF"]
 	end
 
+	local ev = self.r_ev:recv()
+	if ev < 0 then
+		self.r_error = true
+	end
 	return self:read(buf, len)
 end
 
 
 function R_mt:readinto(buf)
+	-- ensure we have *some* space to read into
+	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
 	local n, err = self:read(buf:tail())
 	if n > 0 then
 		buf:bump(n)
@@ -52,7 +50,7 @@ function R_mt:reads(len)
 	local buf = ffi.new("char[?]", len)
 	local n, err = self:read(buf, len)
 	if n < 0 then
-		return n, err
+		return nil, err
 	end
 	return ffi.string(buf, n)
 end
@@ -116,8 +114,75 @@ end
 function W_mt:writev(iov, n)
 	if self.closed then return -1, errno["EBADF"] end
 
-	-- TODO: close on error, return errno
-	return C.writev(self.no, iov, n)
+	local len
+	local i, total = 0, 0
+
+	while true do
+		while true do
+			len = C.writev(self.no, iov[i], n - i)
+			if len > 0 then break end
+
+			local err = ffi.errno()
+			if err ~= errno["EAGAIN"] then
+				self:close()
+				return len, err
+			end
+			self.w_ev:recv()
+		end
+
+		total = total + len
+
+		while true do
+			if iov[i].iov_len > len then break end
+			len = len - iov[i].iov_len
+			i = i + 1
+			if i == n then
+				assert(len == 0)
+				self.hub:continue()
+				return total
+			end
+		end
+
+		if len > 0 then
+			iov[i].iov_base = iov[i].iov_base + len
+			iov[i].iov_len = iov[i].iov_len - len
+		end
+	end
+end
+
+
+function W_mt:iov(size)
+	if self.closed then return -1, errno["EBADF"] end
+
+	if not self.iovec then
+		size = size or 32
+		self.iovec = self.hub:stalk(size)
+
+		self.hub:spawn(function()
+			local q = self.iovec
+			local iov = iovec.Iovec(size)
+
+			while true do
+				if not q:recv() then return end
+
+				local n = #q
+				for s in q:iter() do
+					iov:write(s)
+				end
+
+				local rc = self:writev(iov.iov, iov.n)
+				if rc <= 0 then
+					self:close()
+					return
+				end
+
+				iov:reset()
+				q:remove(n)
+			end
+		end)
+	end
+
+	return self.iovec
 end
 
 
@@ -127,6 +192,7 @@ function W_mt:close()
 	end
 
 	self.closed = true
+	if self.iovec then self.iovec:close() end
 	self.hub:unregister(self.no, false, true)
 	self.hub:continue()
 	return true
@@ -143,6 +209,7 @@ RW_mt.read = R_mt.read
 RW_mt.readinto = R_mt.readinto
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
+RW_mt.iov = W_mt.iov
 
 
 function RW_mt:close()

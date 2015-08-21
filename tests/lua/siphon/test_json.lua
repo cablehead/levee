@@ -59,4 +59,14 @@ return {
 		local got = levee.json.decode(s)
 		assert.same(got, {foo="bar"})
 	end,
+
+	test_encode = function()
+		local want = {"a", 1, "b", {foo="bar\nfoo"}}
+		local got = levee.json.decode(levee.json.encode(want))
+		assert.same(want, got)
+	end,
+
+	test_encode_empty_table = function()
+		assert.equal(levee.json.encode({}), "{}")
+	end
 }

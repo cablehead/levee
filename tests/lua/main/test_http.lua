@@ -294,10 +294,19 @@ return {
 		assert.equal(res:discard(), true)
 
 		local res = c:get("/"):recv()
-		assert.equal(res:consume(), '{"foo": "bar"}')
+		assert.equal(res:tostring(), '{"foo": "bar"}')
+
+		local res = c:get("/"):recv()
+		assert.equal(res:tobuffer():peek_s(), '{"foo": "bar"}')
 
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
+
+		local tmp = os.tmpname()
+		local res = c:get("/"):recv()
+		res:save(tmp)
+		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
+		os.remove(tmp)
 
 		c:close()
 		serve:close()
@@ -326,10 +335,19 @@ return {
 		assert.equal(res:discard(), true)
 
 		local res = c:get("/"):recv()
-		assert.equal(res:consume(), '{"foo": "bar"}')
+		assert.equal(res:tostring(), '{"foo": "bar"}')
+
+		local res = c:get("/"):recv()
+		assert.equal(res:tobuffer():peek_s(), '{"foo": "bar"}')
 
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
+
+		local tmp = os.tmpname()
+		local res = c:get("/"):recv()
+		res:save(tmp)
+		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
+		os.remove(tmp)
 
 		c:close()
 		serve:close()

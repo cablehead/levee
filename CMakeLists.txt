@@ -18,7 +18,14 @@ include(cmake/Siphon.cmake)
 include(cmake/LuaJIT.cmake)
 include(cmake/Levee.cmake)
 
+add_custom_target(
+	liblevee_target
+	COMMAND libtool -static -o ${LEVEE_LIB} $<TARGET_FILE:libleveebase> ${LUAJIT_LIB} ${SIPHON_LIB}
+)
+add_dependencies(liblevee_target libleveebase libluajit libsiphon)
+
 include_directories(BEFORE
+	/usr/local/include
 	${LEVEE_INC}
 	${SIPHON_INC}
 	${LUAJIT_INC}
@@ -30,7 +37,7 @@ add_executable(
 	src/main.c
 )
 
-add_dependencies(levee libleveebase)
+add_dependencies(levee libleveebase liblevee_target)
 set_target_properties(levee PROPERTIES LINK_DEPENDS ${LEVEEBASE_LIB})
 
 install(TARGETS levee RUNTIME DESTINATION bin)
@@ -49,13 +56,13 @@ install(FILES
 	DESTINATION include/levee
 )
 
-add_custom_command(
-	TARGET levee
-	PRE_LINK
-	COMMAND
-		libtool -static -o ${LEVEE_LIB}
-		$<TARGET_FILE:libleveebase> $<TARGET_FILE:libluajit> $<TARGET_FILE:libsiphon>
-)
+#add_custom_command(
+#	TARGET levee
+#	PRE_LINK
+#	COMMAND
+#		libtool -static -o ${LEVEE_LIB}
+#		$<TARGET_FILE:libleveebase> $<TARGET_FILE:libluajit> $<TARGET_FILE:libsiphon>
+#)
 
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 	target_link_libraries(levee -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
