@@ -263,7 +263,7 @@ function Response_mt:__tostring()
 	return ("levee.http.Response: %s %s"):format(self.code, self.reason)
 end
 
-function Response_mt:consume()
+function Response_mt:tostring()
 	if self.body then
 		return self.body:tostring()
 	end

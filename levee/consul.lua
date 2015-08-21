@@ -161,7 +161,7 @@ function KV_mt:put(key, value, options)
 
 	return self.agent:request("PUT", "kv/"..key, {params=params, data=value},
 		function(res)
-			return res:consume() == "true"
+			return res:tostring() == "true"
 		end)
 end
 
@@ -331,7 +331,7 @@ function AgentService_mt:register(name, options)
 	return self.agent:request(
 		"PUT", "agent/service/register", {data=json.encode(data)},
 		function(res)
-			return res.code == 200, res:consume()
+			return res.code == 200, res:tostring()
 		end)
 end
 

@@ -294,7 +294,7 @@ return {
 		assert.equal(res:discard(), true)
 
 		local res = c:get("/"):recv()
-		assert.equal(res:consume(), '{"foo": "bar"}')
+		assert.equal(res:tostring(), '{"foo": "bar"}')
 
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")
@@ -332,7 +332,7 @@ return {
 		assert.equal(res:discard(), true)
 
 		local res = c:get("/"):recv()
-		assert.equal(res:consume(), '{"foo": "bar"}')
+		assert.equal(res:tostring(), '{"foo": "bar"}')
 
 		local res = c:get("/"):recv()
 		assert.equal(res:json()["foo"], "bar")

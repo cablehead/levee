@@ -76,7 +76,7 @@
 
 ### methods
 
-- `consume()`
+- `tostring()`
 
     Convenience to consume the entire response body and return it as a string.
 
