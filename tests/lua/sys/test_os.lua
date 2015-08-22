@@ -13,18 +13,19 @@ return {
 
 		local st = sys.os.fstat(no)
 		assert(st.st_size > 0)
-		assert(bit.band(st.st_mode, C.S_IFREG) ~= 0)
+		assert(st:is_reg())
+		assert(not st:is_dir())
 
 		local st = sys.os.stat("foo121")
 		assert.equal(st, nil)
 
 		local st = sys.os.stat(str)
 		assert(st.st_size > 0)
-		assert(bit.band(st.st_mode, C.S_IFREG) ~= 0)
-		assert(bit.band(st.st_mode, C.S_IFDIR) == 0)
+		assert(st:is_reg())
+		assert(not st:is_dir())
 
 		local st = sys.os.stat(dirname(str))
-		assert(bit.band(st.st_mode, C.S_IFREG) == 0)
-		assert(bit.band(st.st_mode, C.S_IFDIR) ~= 0)
+		assert(not st:is_reg())
+		assert(st:is_dir())
 	end,
 }

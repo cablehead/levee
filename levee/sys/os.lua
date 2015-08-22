@@ -2,6 +2,20 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
+local Stat_mt = {}
+Stat_mt.__index = Stat_mt
+
+function Stat_mt:is_reg()
+	return bit.band(self.st_mode, C.S_IFREG) ~= 0
+end
+
+function Stat_mt:is_dir()
+	return bit.band(self.st_mode, C.S_IFDIR) ~= 0
+end
+
+ffi.metatype("struct levee_stat", Stat_mt)
+
+
 local function nonblock(no)
 	local flags = C.fcntl(no, C.F_GETFL, 0)
 	if flags == -1 then
