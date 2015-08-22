@@ -21,19 +21,32 @@ end
 
 -- main
 
-local command = arg[1]
+local function main()
+	local name = arg[1]
 
-if not cmd[command] then
-	if not command then
-		print(usage())
-	else
-		print("unknown command: " .. command)
+	if not cmd[name] then
+		if not name then
+			print(usage())
+		else
+			print("unknown command: " .. name)
+		end
+		return 1
 	end
-	os.exit(1)
+
+	local command = cmd[name]
+
+	local options = command.parse(Argv(arg, 2))
+
+	if not options then
+		print(command.usage())
+		return 1
+	end
+
+	local ok, err = pcall(command.run, options)
+	if not ok then
+		print(err)
+		os.exit(1)
+	end
 end
 
-local ok, result = pcall(cmd[command], Argv(arg,2))
-if not ok then
-	print(result)
-	os.exit(1)
-end
+os.exit(main())

@@ -113,6 +113,15 @@ local function stat(path)
 	return st
 end
 
+function dirname(str)
+	if str:match(".-/.-") then
+		local name = string.gsub(str, "(.*/)(.*)", "%1")
+		return name
+	else
+		return ''
+	end
+end
+
 return {
 	nonblock = nonblock,
 	nonblock_accept = nonblock_accept,
@@ -124,4 +133,5 @@ return {
 	pipe = pipe,
 	fstat = fstat,
 	stat = stat,
+	dirname = dirname,
 }

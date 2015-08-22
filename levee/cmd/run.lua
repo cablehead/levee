@@ -1,34 +1,47 @@
-return function(argv)
-	local os = require('os')
+local os = require('os')
 
-	local path = argv:next()
-	local dir = path:match("^(.*)/[^/]+$")
-	local main
+local levee = require("levee")
 
-	if path:match("%.lua$") or path:match("lua%.test$") then
-		main = path
-	else
-		if not dir then
-			io.stderr:write("invalid module path\n")
+
+return {
+	usage = function()
+		return "usage: levee run <path> [arg...]"
+	end,
+
+	parse = function(argv)
+		local options = {}
+
+		if not argv:more() then return end
+		local path = argv:next()
+
+		local st = levee.sys.os.stat(path)
+		if not st or not (st:is_reg() or st:is_dir()) then
+			io.stderr:write(("invalid path: %s\n"):format(path))
 			os.exit(1)
 		end
 
-		if path:sub(-1) == '/' then
-			path = path:sub(1, -2)
+		if st:is_dir() then
+			package.path = (levee.sys.os.dirname(path) .. "/?.lua;" ..
+				levee.sys.os.dirname(path) .. "/?/init.lua;" .. package.path)
+			options.main = path .. "/main.lua"
+		else
+			options.main = path
 		end
-		main = path .. "/main.lua"
-	end
 
-	package.path = dir .. "/?.lua;" .. dir .. "/?/init.lua;" .. package.path
+		options.arg = argv:remain()
 
-	arg = argv:remain()
+		return options
+	end,
 
-	local f, err = loadfile(main)
-	if f then
-		f()
-	else
-		io.stderr:write(err)
-		io.stderr:write("\n")
-	end
-end
+	run = function(options)
+		arg = options.arg
+		local f, err = loadfile(options.main)
+		if f then
+			f()
+		else
+			io.stderr:write(err)
+			io.stderr:write("\n")
+		end
+	end,
+}
 
