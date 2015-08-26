@@ -116,7 +116,6 @@ end
 
 function Argv_mt:remain()
 	local remain = {unpack(self.args, self.idx)}
-	remain[0] = self.args[0]
 	return remain
 end
 
@@ -183,7 +182,7 @@ function Argv_mt:outputfd(defult)
 end
 
 
-function Argv_mt:commands(usage, commands)
+function Argv_mt:commands(usage, commands, ...)
 	--[[
   commands is table of
     command name = {
@@ -197,8 +196,7 @@ function Argv_mt:commands(usage, commands)
               displayed and the program will exit with that exit code
 
       run   = function that takes the options from parse and performs the
-              command. if run returns an integer the program will exit with
-              that exit code
+              command
 	--]]
 
 	local function exit()
@@ -236,16 +234,12 @@ function Argv_mt:commands(usage, commands)
 		os.exit(1)
 	end
 
-	print()
-
 	if not self:more() then exit() end
 
 	local name = self:next()
-
 	if name == "-h" or name == "--help" then exit() end
 
 	local command = commands[name]
-
 	if not command then
 		io.stderr:write("unknown command: " .. name .. "\n")
 		os.exit(1)
@@ -257,12 +251,13 @@ function Argv_mt:commands(usage, commands)
 		os.exit(1)
 	end
 
-	print(name)
 	local options = command.parse(self)
+	if not options then
+		io.stderr:write(command.usage() .. "\n")
+		os.exit(1)
+	end
 
-	print(options)
-
-
+	return command.run(options, ...)
 end
 
 
