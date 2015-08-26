@@ -130,9 +130,9 @@ end
 
 return {
 	usage = function()
-    return [[usage: levee bundle [-o <file] [-n <name>] <module> [module...]
+    return [[Usage: levee bundle [-o <file] [-n <name>] <module> [module...]
 
-options:
+Options:
   -o <file>, --out <file>     # file to out to [default: stdout]
   -n <name>, --name <name>    # bundle name [default: name of first module
                               # listed]

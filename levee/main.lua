@@ -22,6 +22,11 @@ end
 -- main
 
 local function main()
+	if arg[1] == "-h" or arg[1] == "--help" then
+			print(usage())
+		return
+	end
+
 	local name = arg[1]
 
 	if not cmd[name] then
@@ -52,6 +57,8 @@ local function main()
 		print(err)
 		return 1
 	end
+
+	return err
 end
 
 os.exit(main())
