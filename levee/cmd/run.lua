@@ -24,6 +24,8 @@ return {
 			package.path = (levee.sys.os.dirname(path) .. "/?.lua;" ..
 				levee.sys.os.dirname(path) .. "/?/init.lua;" .. package.path)
 			options.main = path .. "/main.lua"
+		else
+			options.main = path
 		end
 
 		options.arg = argv:remain()
