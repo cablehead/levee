@@ -12,7 +12,7 @@ return {
 		local options = {}
 
 		if not argv:more() then return end
-		local path = argv:next()
+		local path = argv:next():gsub("/$", "")
 
 		local st = levee.sys.os.stat(path)
 		if not st or not (st:is_reg() or st:is_dir()) then
@@ -21,9 +21,6 @@ return {
 		end
 
 		if st:is_dir() then
-			if path:sub(#path, #path) == "/" then
-				path = path:sub(1, #path - 1)
-			end
 			package.path = (levee.sys.os.dirname(path) .. "/?.lua;" ..
 				levee.sys.os.dirname(path) .. "/?/init.lua;" .. package.path)
 			options.main = path .. "/main.lua"

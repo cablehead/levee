@@ -35,6 +35,11 @@ local function main()
 
 	local command = cmd[name]
 
+	if arg[2] == "-h" or arg[2] == "--help" then
+		print(command.usage())
+		return
+	end
+
 	local options = command.parse(Argv(arg, 2))
 
 	if not options then
@@ -45,7 +50,7 @@ local function main()
 	local ok, err = pcall(command.run, options)
 	if not ok then
 		print(err)
-		os.exit(1)
+		return 1
 	end
 end
 

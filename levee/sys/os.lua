@@ -113,13 +113,18 @@ local function stat(path)
 	return st
 end
 
-function dirname(str)
-	if str:match(".-/.-") then
-		local name = string.gsub(str, "(.*/)(.*)", "%1")
+function dirname(s)
+	if s:match(".-/.-") then
+		local name = string.gsub(s, "(.*/)(.*)", "%1")
 		return name
 	else
 		return ''
 	end
+end
+
+function basename(s)
+	local name = string.gsub(s, "(.*/)(.*)", "%2")
+	return name
 end
 
 return {
@@ -134,4 +139,5 @@ return {
 	fstat = fstat,
 	stat = stat,
 	dirname = dirname,
+	basename = basename,
 }
