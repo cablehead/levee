@@ -54,7 +54,7 @@ end
 function Assert_mt.same(want, got)
 	if type(want) == "table" and type(got) == "table" then
 		if not deepcompare(want, got, true) then
-			error(("values differ:\n\n%s\n\n%s\n"):format(repr(want), report(got)))
+			error(("values differ:\n\n%s\n\n%s\n"):format(repr(want), repr(got)))
 		end
 		return true
 	end

@@ -183,6 +183,89 @@ function Argv_mt:outputfd(defult)
 end
 
 
+function Argv_mt:commands(usage, commands)
+	--[[
+  commands is table of
+    command name = {
+      short = a short string description of the command (optional)
+
+      usage = function that should return a string description of the
+              command's usage
+
+      parse = function that takes an argv table an returns a table of options
+              or an integer, in which case the command's usage will be
+              displayed and the program will exit with that exit code
+
+      run   = function that takes the options from parse and performs the
+              command. if run returns an integer the program will exit with
+              that exit code
+	--]]
+
+	local function exit()
+		usage = {usage, "\n\nAvailable commands are:\n", }
+
+		local order = commands.__order
+		local len = 0
+		if order then
+			for i, k in ipairs(order) do len = math.max(len, #k) end
+		else
+			order = {}
+			for k, v in pairs(commands) do
+				len = math.max(len, #k)
+				table.insert(order, k)
+			end
+		end
+
+		for i, k in ipairs(order) do
+			table.insert(usage, "    "..k)
+			local short = commands[k].short
+			if short then
+				local spacer = " "
+				for i = 1, len - #k do
+					spacer = spacer .. " "
+				end
+				table.insert(usage, spacer .. "- ")
+				table.insert(usage, short)
+			end
+			table.insert(usage, "\n")
+		end
+
+		-- dang, i wonder if we can rework exit to not prepend a message...
+		-- self:exit(table.concat(usage))
+		io.stderr:write(table.concat(usage))
+		os.exit(1)
+	end
+
+	print()
+
+	if not self:more() then exit() end
+
+	local name = self:next()
+
+	if name == "-h" or name == "--help" then exit() end
+
+	local command = commands[name]
+
+	if not command then
+		io.stderr:write("unknown command: " .. name .. "\n")
+		os.exit(1)
+	end
+
+	local nxt = self:peek()
+	if nxt == "-h" or nxt == "--help" then
+		io.stderr:write(command.usage() .. "\n")
+		os.exit(1)
+	end
+
+	print(name)
+	local options = command.parse(self)
+
+	print(options)
+
+
+end
+
+
 return function(args, start, stop, exit)
 	if type(exit) ~= "function" then
 		if type(stop) == "function" then
@@ -203,4 +286,3 @@ return function(args, start, stop, exit)
 		exit_cb = exit
 	}, Argv_mt)
 end
-
