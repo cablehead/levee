@@ -25,7 +25,7 @@
 static const LeveeConfig *config = NULL;
 
 extern int
-luaopen_levee_bundle (lua_State *L);
+luaopen_levee (lua_State *L);
 
 static int
 require (lua_State *L, const char *name)
@@ -54,7 +54,7 @@ levee_create (void)
 	}
 
 	luaL_openlibs (L);
-	luaopen_levee_bundle (L);
+	luaopen_levee (L);
 
 	// put ffi module on the stack
 	require (L, "ffi");

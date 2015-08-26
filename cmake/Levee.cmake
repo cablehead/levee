@@ -7,7 +7,7 @@ set(LEVEE_CDEF_MANIFEST ${PROJECT_SOURCE_DIR}/cdef/manifest.lua)
 set(LEVEE_CDEF_HEADER ${CMAKE_CURRENT_BINARY_DIR}/levee_cdef.h)
 file(GLOB_RECURSE LEVEE_CDEF ${PROJECT_SOURCE_DIR}/cdef/*.h)
 
-set(LEVEE_BUNDLE_SCRIPT ${PROJECT_SOURCE_DIR}/bin/bundle.lua)
+set(LEVEE_BUNDLE_SCRIPT ${PROJECT_SOURCE_DIR}/levee/cmd/bundle.lua)
 set(LEVEE_BUNDLE_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bundle.c)
 file(GLOB_RECURSE LEVEE_BUNDLE ${PROJECT_SOURCE_DIR}/levee/*.lua)
 
@@ -20,8 +20,14 @@ add_custom_command(
 
 add_custom_command(
 	OUTPUT ${LEVEE_BUNDLE_OUTPUT}
-	COMMAND luajit ${LEVEE_BUNDLE_SCRIPT} ${LEVEE_BUNDLE_OUTPUT} levee
-		${PROJECT_SOURCE_DIR} levee
+	COMMAND luajit -e " \
+		local M = loadfile('${LEVEE_BUNDLE_SCRIPT}')() \
+		M.run({ \
+			modules = {'${PROJECT_SOURCE_DIR}/levee'}, \
+			name = 'levee', \
+			out = io.stdout} \
+		) \
+	" > ${LEVEE_BUNDLE_OUTPUT}
 	DEPENDS ${LEVEE_BUNDLE_SCRIPT} ${LEVEE_CDEF_HEADER} ${LEVEE_BUNDLE}
 	VERBATIM
 )

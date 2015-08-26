@@ -1,7 +1,21 @@
 local io = require('io')
 local os = require('os')
 
-local levee = require("levee")
+
+local function dirname(str)
+	if str:match(".-/.-") then
+		local name = string.gsub(str, "(.*/)(.*)", "%1")
+		return name
+	else
+		return ''
+	end
+end
+
+
+local function basename(s)
+	local name = string.gsub(s, "(.*/)(.*)", "%2")
+	return name
+end
 
 
 local function check(ok, ...)
@@ -39,7 +53,7 @@ end
 -- collect
 
 local function collect_file(root, file, debug)
-	local id = file:sub(#root + 1, -5):gsub("/", ".")
+	local id = file:sub(#root + 1, -5):gsub("/", "."):gsub(".init$", "")
 	local f = check(loadfile(file))
 	return {
 		id = id,
@@ -52,7 +66,7 @@ end
 
 local function collect(path, files, debug)
 	for file in io.popen("find -L '" .. path .. "' -name '*.lua'"):lines() do
-		local f = collect_file(levee.sys.os.dirname(path), file, debug)
+		local f = collect_file(dirname(path), file, debug)
 		if f then table.insert(files, f) end
 	end
 end
@@ -114,9 +128,9 @@ end
 
 
 local function output_bundle(out, name, files)
-	out:write('#include <levee/lua.h>\n')
-	out:write('#include <levee/lauxlib.h>\n')
-	out:write('#include <levee/lualib.h>\n')
+	out:write('#include <luajit-2.1/lua.h>\n')
+	out:write('#include <luajit-2.1/lauxlib.h>\n')
+	out:write('#include <luajit-2.1/lualib.h>\n')
 
 	for i, file in ipairs(files) do
 		out:write(output_file(file))
@@ -162,7 +176,7 @@ Options:
 			os.exit(1)
 		end
 
-		options.name = options.name or levee.sys.os.basename(options.modules[1])
+		options.name = options.name or basename(options.modules[1])
 		options.out = options.out or io.stdout
 
 		return options
