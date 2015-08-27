@@ -5,7 +5,7 @@ local levee = require("levee")
 
 return {
 	usage = function()
-		return "Usage: levee run <path> | -e <script> [arg...]"
+		return "Usage: levee run (<path> | -e <script>) [arg...]"
 	end,
 
 	parse = function(argv)

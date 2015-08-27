@@ -115,11 +115,9 @@ end
 
 function dirname(s)
 	if s:match(".-/.-") then
-		local name = string.gsub(s, "(.*/)(.*)", "%1")
-		return name
-	else
-		return ''
+		return string.gsub(s, "(.*/)(.*)", "%1"):gsub("/$", "")
 	end
+	return ''
 end
 
 function basename(s)
