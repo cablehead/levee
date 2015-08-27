@@ -21,7 +21,7 @@ install directory:
 make DESTDIR=/tmp/foo install
 ```
 
-Finally make sure the installed location is in your `PATH`:
+Make sure the installed location is in your `PATH`:
 
 ```bash
 export PATH=$PATH:/usr/local/bin
@@ -50,8 +50,8 @@ Usage: levee run (<path> | -e <script>) [arg...]
 ### Running code snippets
 
 The `run` command let's you run LuaJIT / Levee scripts and projects in an adhoc
-way.  We'll look create a Levee project in a short bit. First `run` has a `-e`
-option which will run a string snippet:
+way. We'll look at creating a Levee project in a short bit. First `run` has a
+`-e` option which will run a string snippet:
 
 ```bash
 imgix:~ andy$ levee run -e "print('oh hai')"
@@ -65,14 +65,25 @@ imgix:~ andy$ levee run -e "
 local levee = require('levee')
 local h = levee.Hub()
 
+h:spawn(function()
+	while true do
+			print('tick')
+			h:sleep(1000)
+	end
+end)
+
+h:sleep(500)
+
 while true do
-    print('oh hai')
-    h:sleep(1000)
+	print('tock')
+	h:sleep(1000)
 end
 "
-oh hai
-oh hai
-oh hai
+tick
+tock
+tick
+tock
+tick
 ...
 ```
 
