@@ -29,8 +29,12 @@ return {
 			end
 
 			if st:is_dir() then
-				package.path = (levee.sys.os.dirname(path) .. "/?.lua;" ..
-					levee.sys.os.dirname(path) .. "/?/init.lua;" .. package.path)
+				local root = levee.sys.os.dirname(path)
+				if root == "" then root = "./" end
+				package.path = (
+					root .. "/?.lua;" ..
+					root .. "/?/init.lua;" ..
+					package.path)
 				path = path .. "/main.lua"
 			end
 
