@@ -8,6 +8,7 @@ local ret = {
 	iovec = require("levee.iovec"),
 	http = require("levee.http"),
 	buffer = require("levee.buffer"),
+	path = require("levee.path"),
 	argv = require("levee.argv"),
 	json = require("levee.json"),
 }
