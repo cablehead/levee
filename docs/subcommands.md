@@ -135,7 +135,7 @@ dtsrv/test/test_foo.lua
 
 There's the containing folder for the project. Then a folder for the project's
 Lua source.  Usually this is the same name as the project folder.  This folder
-should always have a `main.lua` script which acts as your project entry point
+should have a `main.lua` script which acts as your project entry point
 on execution.  Projects can also have a test folder to hold the project's
 tests.
 
