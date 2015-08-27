@@ -62,8 +62,7 @@ Slightly more interesting:
 
 ```bash
 imgix:~ andy$ levee run -e "
-local levee = require('levee')
-local h = levee.Hub()
+local h = require('levee').Hub()
 
 h:spawn(function()
 	while true do
@@ -90,7 +89,7 @@ tick
 ### Running scripts
 
 Of course you can run Lua scripts as well. Let's create a simple date network
-service. Put the following code snipped in a file called `dtsrv.lua`
+service. Put the following code in a file called `dtsrv.lua`
 
 ```lua
 
