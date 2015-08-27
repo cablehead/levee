@@ -5,7 +5,17 @@
 
 First, you will need a few dependencies:
 
-- **ragel**: `brew install ragel`
+On Mac:
+
+```bash
+brew install ragel
+```
+
+On Debian / Ubuntu:
+
+```bash
+# TODO
+```
 
 Next, install Levee:
 
