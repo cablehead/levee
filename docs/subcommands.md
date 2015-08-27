@@ -3,7 +3,11 @@
 
 ## Getting setup
 
-First up we need to install Levee:
+First, you will need a few dependencies:
+
+- **ragel**: `brew install ragel
+
+Next, install Levee:
 
 ```bash
 git clone git@github.com:zebrafishlabs/levee.git
