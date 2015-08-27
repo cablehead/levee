@@ -5,7 +5,7 @@
 
 First, you will need a few dependencies:
 
-- **ragel**: `brew install ragel
+- **ragel**: `brew install ragel`
 
 Next, install Levee:
 
