@@ -21,9 +21,3 @@ cmake -H. -Bbuild/release -DCMAKE_BUILD_TYPE=Release
 cmake --build build/release
 ./build/release/levee examples/chunked.lua
 ```
-
-## To run tests
-
-```
-    make test
-```
