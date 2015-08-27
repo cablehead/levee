@@ -219,7 +219,7 @@ Options:
                              # listed]
 ```
 
-This part is optional. It's can be handy to have a place to drop adhoc binaries
+This part is optional. It can be handy to have a place to drop adhoc binaries
 so you can run them.
 
 ```bash
