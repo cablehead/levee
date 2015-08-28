@@ -24,9 +24,9 @@ local function output_main(path, options)
 		#include <sysexits.h>
 		#include <err.h>
 
-		#include <luajit-2.1/lua.h>
-		#include <luajit-2.1/lauxlib.h>
-		#include <luajit-2.1/lualib.h>
+		#include <levee/lua.h>
+		#include <levee/lauxlib.h>
+		#include <levee/lualib.h>
 
 		#include "levee/levee.h"
 

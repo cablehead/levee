@@ -128,9 +128,9 @@ end
 
 
 local function output_bundle(out, name, files)
-	out:write('#include <luajit-2.1/lua.h>\n')
-	out:write('#include <luajit-2.1/lauxlib.h>\n')
-	out:write('#include <luajit-2.1/lualib.h>\n')
+	out:write('#include <levee/lua.h>\n')
+	out:write('#include <levee/lauxlib.h>\n')
+	out:write('#include <levee/lualib.h>\n')
 
 	for i, file in ipairs(files) do
 		out:write(output_file(file))

@@ -34,3 +34,9 @@ add_executable(luajit IMPORTED)
 set_target_properties(luajit PROPERTIES IMPORTED_LOCATION ${LUAJIT_BIN})
 add_dependencies(luajit luajit_project)
 
+add_custom_command(
+    TARGET luajit_project
+    POST_BUILD
+    COMMAND
+    mkdir -p ${INCLUDE_DIR} && ln -sf ${CMAKE_CURRENT_BINARY_DIR}/luajit/include/luajit-2.1 ${INCLUDE_DIR}/levee
+)

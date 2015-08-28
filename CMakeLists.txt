@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 project(levee C)
 
-set(CMAKE_C_FLAGS "-std=c99 -Wall -Wextra -Werror -pedantic")
+set(INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+
+set(CMAKE_C_FLAGS "-std=c99 -Wall -Wextra -Werror -pedantic -I${INCLUDE_DIR}")
 set(CMAKE_C_FLAGS_DEBUG "-g")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -fomit-frame-pointer -march=native")
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -55,14 +57,6 @@ install(FILES
 	${LUAJIT_INC}/lualib.h
 	DESTINATION include/levee
 )
-
-#add_custom_command(
-#	TARGET levee
-#	PRE_LINK
-#	COMMAND
-#		libtool -static -o ${LEVEE_LIB}
-#		$<TARGET_FILE:libleveebase> $<TARGET_FILE:libluajit> $<TARGET_FILE:libsiphon>
-#)
 
 if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 	target_link_libraries(levee -Wl,--whole-archive,${LEVEE_LIB},--no-whole-archive)
