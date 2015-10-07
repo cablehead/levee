@@ -31,9 +31,7 @@ function R_mt:read(buf, len, timeout)
 
 	local ev = self.r_ev:recv(timeout)
 
-	if ev == constants.TIMEOUT then
-		return constants.TIMEOUT
-	end
+	if ev == constants.TIMEOUT then return ev end
 
 	if ev < 0 then
 		self.r_error = true
@@ -43,13 +41,19 @@ function R_mt:read(buf, len, timeout)
 end
 
 
-function R_mt:readinto(buf)
+function R_mt:readinto(buf, timeout)
 	-- ensure we have *some* space to read into
 	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
-	local n, err = self:read(buf:tail())
+
+	local ptr, len = buf:tail()
+	local n, err = self:read(ptr, len, timeout)
+
+	if n == constants.TIMEOUT then return n end
+
 	if n > 0 then
 		buf:bump(n)
 	end
+
 	return n, err
 end
 

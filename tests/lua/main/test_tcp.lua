@@ -5,10 +5,12 @@ return {
 		local h = levee.Hub()
 
 		local buf = levee.buffer(4096)
-		local serve = h.tcp:listen()
+		local serve = h.tcp:listen(nil, nil, 20)
 
 		local c1 = h.tcp:connect(serve:addr():port())
 		local s1 = serve:recv()
+
+		assert.equal(s1:readinto(buf), levee.TIMEOUT)
 
 		c1:write("m1.1")
 		s1:readinto(buf)

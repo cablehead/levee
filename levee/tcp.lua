@@ -28,7 +28,7 @@ function Listener_mt:loop()
 			local no, err = sys.socket.accept(self.no)
 			-- TODO: only break on EAGAIN, should close on other errors
 			if no == nil then break end
-			self.recver:send(self.hub.io:rw(no))
+			self.recver:send(self.hub.io:rw(no, self.timeout))
 		end
 	end
 end
@@ -65,18 +65,18 @@ local function _connect(port, host)
 end
 
 
-function TCP_mt:connect(port, host)
+function TCP_mt:connect(port, host, timeout)
 	local recver = self.hub.thread:call(_connect, port, host or "127.0.0.1")
 	local no, err = recver:recv()
 	if not no then
 		return no, err
 	end
 	sys.os.nonblock(no)
-	return self.hub.io:rw(no)
+	return self.hub.io:rw(no, timeout)
 end
 
 
-function TCP_mt:listen(port, host)
+function TCP_mt:listen(port, host, timeout)
 	local no, err = sys.socket.listen(C.AF_INET, C.SOCK_STREAM, port, host)
 	if err then
 		error(errno:message(err))
@@ -85,6 +85,7 @@ function TCP_mt:listen(port, host)
 	local m = setmetatable({hub = self.hub, no = no}, Listener_mt)
 	m.r_ev = self.hub:register(no, true)
 	m.recver = self.hub:pipe()
+	m.timeout = timeout
 	self.hub:spawn(m.loop, m)
 	return m
 end
