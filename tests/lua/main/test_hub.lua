@@ -32,7 +32,9 @@ return {
 		local r_ev = h:register(r, true)
 		local _, w_ev = h:register(w, false, true)
 
-		assert.equal(w_ev:recv(), 1)
+		-- assert timeout as well
+		assert.equal(w_ev:recv(2000), 1)
+		assert.equal(w_ev:recv(20), levee.TIMEOUT)
 
 		os.write(w, "foo")
 

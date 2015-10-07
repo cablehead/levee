@@ -14,7 +14,7 @@ local State_mt = {}
 State_mt.__index = State_mt
 
 
-function State_mt:recv()
+function State_mt:recv(timeout)
 	if self.value then
 		local value = self.value
 		self.value = nil
@@ -22,7 +22,9 @@ function State_mt:recv()
 	end
 
 	self.co = coroutine.running()
-	return self.hub:_coyield()
+	local ret = self.hub:pause(timeout)
+	self.co = nil
+	return ret
 end
 
 
