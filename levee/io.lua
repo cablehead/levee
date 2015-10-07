@@ -1,6 +1,7 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local constants = require("levee.constants")
 local iovec = require("levee.iovec")
 local errno = require("levee.errno")
 local sys = require("levee.sys")
@@ -12,7 +13,9 @@ local R_mt = {}
 R_mt.__index = R_mt
 
 
-function R_mt:read(buf, len)
+function R_mt:read(buf, len, timeout)
+	timeout = timeout or self.timeout
+
 	if self.closed then return -1, errno["EBADF"] end
 
 	local n, err = sys.os.read(self.no, buf, len)
@@ -26,10 +29,16 @@ function R_mt:read(buf, len)
 		return -1, errno["EBADF"]
 	end
 
-	local ev = self.r_ev:recv()
+	local ev = self.r_ev:recv(timeout)
+
+	if ev == constants.TIMEOUT then
+		return constants.TIMEOUT
+	end
+
 	if ev < 0 then
 		self.r_error = true
 	end
+
 	return self:read(buf, len)
 end
 
@@ -232,33 +241,33 @@ local IO_mt = {}
 IO_mt.__index = IO_mt
 
 
-function IO_mt:r(no)
-	local m = setmetatable({hub = self.hub, no = no}, R_mt)
+function IO_mt:r(no, timeout)
+	local m = setmetatable({hub = self.hub, no = no, timeout=timeout}, R_mt)
 	m.r_ev = self.hub:register(no, true)
 	return m
 end
 
 
-function IO_mt:w(no)
-	local m = setmetatable({hub = self.hub, no = no}, W_mt)
+function IO_mt:w(no, timeout)
+	local m = setmetatable({hub = self.hub, no = no, timeout=timeout}, W_mt)
 	local _
 	_, m.w_ev = self.hub:register(no, false, true)
 	return m
 end
 
 
-function IO_mt:rw(no)
-	local m = setmetatable({hub = self.hub, no = no}, RW_mt)
+function IO_mt:rw(no, timeout)
+	local m = setmetatable({hub = self.hub, no = no, timeout=timeout}, RW_mt)
 	m.r_ev, m.w_ev = self.hub:register(no, true, true)
 	return m
 end
 
 
-function IO_mt:pipe()
+function IO_mt:pipe(timeout)
 	local r, w = sys.os.pipe()
 	sys.os.nonblock(r)
 	sys.os.nonblock(w)
-	return self:r(r), self:w(w)
+	return self:r(r, timeout), self:w(w, timeout)
 end
 
 

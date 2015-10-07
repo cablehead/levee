@@ -173,4 +173,15 @@ return {
 		assert.equal(#want, #buf)
 		assert.equal(want, buf:take_s())
 	end,
+
+	test_timeout = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe(20)
+
+		local buf = levee.buffer(4096)
+		local got = r:read(buf:tail())
+		assert.equal(got, levee.TIMEOUT)
+	end,
 }
