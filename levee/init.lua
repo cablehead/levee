@@ -11,6 +11,7 @@ local ret = {
 	path = require("levee.path"),
 	argv = require("levee.argv"),
 	json = require("levee.json"),
+	msgpack = require("levee.msgpack"),
 }
 
 for key, value in pairs(require("levee.constants")) do

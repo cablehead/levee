@@ -64,6 +64,7 @@ local headers = {
 	include("siphon", "rand"),
 	include("siphon", "bloom"),
 	include("siphon", "json"),
+	include("siphon", "msgpack"),
 	include("siphon", "path"),
 	include("levee", "levee"),
 }
