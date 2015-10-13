@@ -184,4 +184,22 @@ return {
 		local got = r:read(buf:tail())
 		assert.equal(got, levee.TIMEOUT)
 	end,
+
+	test_stream = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local s = r:stream()
+
+		w:write("foo")
+		s:readin()
+		w:write("foo")
+		local buf, n = s:value()
+		assert.equal(n, 3)
+
+		s:readin()
+		local buf, n = s:value()
+		assert.equal(n, 6)
+	end,
 }
