@@ -68,10 +68,10 @@ size_t
 sp_msgpack_enc_false (void *buf);
 
 size_t
-sp_msgpack_enc_negative (void *buf, int64_t val);
+sp_msgpack_enc_signed (void *buf, int64_t val);
 
 size_t
-sp_msgpack_enc_positive (void *buf, uint64_t val);
+sp_msgpack_enc_unsigned (void *buf, uint64_t val);
 
 size_t
 sp_msgpack_enc_float (void *buf, float val);

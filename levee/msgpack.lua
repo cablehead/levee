@@ -34,7 +34,7 @@ end
 
 
 local function encode_signed(buf, n)
-	local rc = C.sp_msgpack_enc_negative(buf, n)
+	local rc = C.sp_msgpack_enc_signed(buf, n)
 	assert(rc > 0)
 	return rc
 end
