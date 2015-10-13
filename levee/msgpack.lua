@@ -142,11 +142,6 @@ function Msgpack_mt:__new()
 end
 
 
-function Msgpack_mt:is_done()
-	return C.sp_msgpack_is_done(self)
-end
-
-
 function Msgpack_mt:next(eof, buf, len)
 	return C.sp_msgpack_next(self, buf, len, eof)
 end
@@ -179,15 +174,52 @@ end
 function Msgpack_mt:stream_value(stream)
 	local ok, err = self:stream_next(stream)
 	if not ok then return ok, err end
-	print(ok, err)
 
 	if self.type == C.SP_MSGPACK_MAP then
 		local ob = {}
-		local ok, key = self:stream_value(stream)
-		print(ok, key)
+		local num = self.tag.count
+
+		for _ = 1, num do
+			local ok, key = self:stream_value(stream)
+			if not ok then return ok, key end
+
+			local ok, value = self:stream_value(stream)
+			if not ok then return ok, value end
+
+			ob[key] = value
+		end
+
+		return true, ob
+
+	elseif self.type == C.SP_MSGPACK_ARRAY then
+		local num = self.tag.count
+		local arr = {}
+
+		for _ = 1, num do
+			local ok, value = self:stream_value(stream)
+			if not ok then return ok, value end
+			table.insert(arr, value)
+		end
+
+		return true, arr
+
+	elseif self.type == C.SP_MSGPACK_SIGNED then
+		return true, tonumber(self.tag.i64)
+
+	elseif self.type == C.SP_MSGPACK_UNSIGNED then
+		return true, tonumber(self.tag.i64)
+
+	elseif self.type == C.SP_MSGPACK_FALSE then
+		return true, false
+
+	elseif self.type == C.SP_MSGPACK_TRUE then
+		return true, true
+
+	elseif self.type == C.SP_MSGPACK_DOUBLE then
+		return true, self.tag.f64
 
 	elseif self.type == C.SP_MSGPACK_STRING then
-		print("string")
+		return true, stream:take_s(self.tag.count)
 
 	else
 		error("TODO: "..tostring(self.type))
@@ -203,9 +235,6 @@ function Msgpack_mt:stream_consume(stream)
 
 	local ok, value = self:stream_value(stream)
 	if not ok then return ok, value end
-	assert(self:is_done())
-	-- TODO: should we have a reset?
-	-- self:reset()
 	return true, value
 end
 

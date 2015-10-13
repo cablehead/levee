@@ -2,18 +2,16 @@ local levee = require("levee")
 
 return {
 	test_encode = function()
-		print()
-		print()
-		local buf = levee.msgpack.encode({
+		local want = {
 			foo = "bar",
-			arr = {3, "foo", true, false, 3.7},
-		})
+			arr = {3, -4, "foo", true, false, 3.7},
+		}
 
-		print(#buf)
+		local buf = levee.msgpack.encode(want)
 
-		print(levee.msgpack.decoder():stream_consume(buf))
-
-		print()
-		print()
+		local ok, got = levee.msgpack.decoder():stream_consume(buf)
+		assert(ok)
+		assert.same(want, got)
+		assert.equal(#buf, 0)
 	end,
 }
