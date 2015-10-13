@@ -63,7 +63,13 @@ end
 
 
 local function encode(data, buf)
-	if not buf then buf = buffer(4096) end
+	if not buf then
+		buf = buffer(4096)
+	else
+		-- TODO: this will continue to grow the buffer as needed. it'd be nice to
+		-- instead yield out 4k bufs so they can be put on the wire immediately
+		buf:ensure(4096)
+	end
 
 	if type(data) == "table" then
 		local n = 0
