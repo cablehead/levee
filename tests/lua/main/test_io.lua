@@ -202,4 +202,19 @@ return {
 		local buf, n = s:value()
 		assert.equal(n, 6)
 	end,
+
+	test_chunk = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local s = r:stream()
+
+		local c = s:chunk(10)
+		assert.equal(#c, 10)
+
+		h:spawn(function() w:write(x(".", 15)) end)
+		assert.equal(c:tostring(), "..........")
+		assert.equal(c.done:recv(), nil)
+	end,
 }

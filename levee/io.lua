@@ -319,6 +319,36 @@ end
 
 
 --
+-- Chunk
+
+-- A Chunk is a portion of a stream
+
+local Chunk_mt = {}
+Chunk_mt.__index = Chunk_mt
+
+
+function Chunk_mt:__len()
+	return self.len
+end
+
+
+function Chunk_mt:tostring()
+	local s = self.stream:take_s(self.len)
+	self.done:close()
+	return s
+end
+
+
+function Chunk(stream, len)
+	local self = setmetatable({}, Chunk_mt)
+	self.hub = stream.conn.hub
+	self.stream = stream
+	self.len = len
+	self.done = self.hub:pipe()
+	return self
+end
+
+--
 -- IO module interface
 --
 local IO_mt = {}
