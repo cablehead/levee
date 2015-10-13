@@ -239,6 +239,71 @@ end
 
 
 --
+-- Stream
+
+-- A Stream is combination of an io file descriptor and a buffer
+
+local Stream_mt = {}
+Stream_mt.__index = Stream_mt
+
+
+function Stream_mt:__tostring()
+	return ("levee.Stream: buffered=%s"):format(#self.buf)
+end
+
+
+function Stream_mt:readin(n)
+	if not n then
+		return self.conn:readinto(self.buf)
+	end
+
+	while #self.buf < n do
+		self.conn:readinto(self.buf)
+	end
+end
+
+
+function Stream_mt:read(buf, len, timeout)
+	local togo = len
+
+	if #self.buf > 0 then
+		local n = self.buf:copy(buf, len)
+		self.buf:trim(n)
+		togo = togo - n
+		if togo == 0 then return len end
+	end
+
+	local n, err = self.conn:read(buf, togo, timeout)
+	if n == levee.TIMEOUT then return n end
+	if n < 0 then return n, err end
+	return len
+end
+
+
+function Stream_mt:trim(len)
+	return self.buf:trim(len)
+end
+
+
+function Stream_mt:value()
+	return self.buf:value()
+end
+
+
+function Stream_mt:chunk(len)
+	return Chunk(self, len)
+end
+
+
+function Stream(conn)
+	local self = setmetatable({}, Stream_mt)
+	self.conn = conn
+	self.buf = levee.buffer(4096)
+	return self
+end
+
+
+--
 -- IO module interface
 --
 local IO_mt = {}
