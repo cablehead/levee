@@ -5,6 +5,9 @@ local errno = require("levee.errno")
 local buffer = require("levee.buffer")
 
 
+--
+-- encode
+
 local function encode_array(buf, n)
 	local rc = C.sp_msgpack_enc_array(buf, n)
 	assert(rc > 0)
@@ -120,6 +123,97 @@ local function encode(data, buf)
 	return buf
 end
 
+
+--
+-- decode
+
+local Msgpack_mt = {}
+Msgpack_mt.__index = Msgpack_mt
+
+
+function Msgpack_mt:init()
+	C.sp_msgpack_init(self)
+	return self
+end
+
+
+function Msgpack_mt:__new()
+	return ffi.new(self):init()
+end
+
+
+function Msgpack_mt:is_done()
+	return C.sp_msgpack_is_done(self)
+end
+
+
+function Msgpack_mt:next(eof, buf, len)
+	return C.sp_msgpack_next(self, buf, len, eof)
+end
+
+
+function Msgpack_mt:stream_next(stream)
+	local n = self:next(false, stream:value())
+
+	if n < 0 then
+		return false, ffi.string(C.sp_strerror(n))
+	end
+
+	if n > 0 then
+		stream:trim(n)
+		if self.type ~= C.SP_MSGPACK_NONE then
+			return true
+		end
+	end
+
+	local n, err = stream:readin()
+	if n <= 0 then
+		-- connection died
+		return false, errno:message(err)
+	end
+
+	return self:stream_next(stream)
+end
+
+
+function Msgpack_mt:stream_value(stream)
+	local ok, err = self:stream_next(stream)
+	if not ok then return ok, err end
+	print(ok, err)
+
+	if self.type == C.SP_MSGPACK_MAP then
+		local ob = {}
+		local ok, key = self:stream_value(stream)
+		print(ok, key)
+
+	elseif self.type == C.SP_MSGPACK_STRING then
+		print("string")
+
+	else
+		error("TODO: "..tostring(self.type))
+	end
+end
+
+
+function Msgpack_mt:stream_consume(stream)
+	-- stream methods:
+	--	:readin()
+	--	:value() -> returns char*, len (could return eof?)
+	--	:trim(n)
+
+	local ok, value = self:stream_value(stream)
+	if not ok then return ok, value end
+	assert(self:is_done())
+	-- TODO: should we have a reset?
+	-- self:reset()
+	return true, value
+end
+
+
+local decoder = ffi.metatype("SpMsgpack", Msgpack_mt)
+
+
 return {
 	encode = encode,
+	decoder = decoder,
 }

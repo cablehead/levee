@@ -11,6 +11,8 @@ return {
 
 		print(#buf)
 
+		print(levee.msgpack.decoder():stream_consume(buf))
+
 		print()
 		print()
 	end,
