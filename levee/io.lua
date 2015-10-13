@@ -2,6 +2,7 @@ local ffi = require("ffi")
 local C = ffi.C
 
 local constants = require("levee.constants")
+local buffer = require("levee.buffer")
 local iovec = require("levee.iovec")
 local errno = require("levee.errno")
 local sys = require("levee.sys")
@@ -66,6 +67,11 @@ function R_mt:reads(len)
 		return nil, err
 	end
 	return ffi.string(buf, n)
+end
+
+
+function R_mt:stream()
+	return Stream(self)
 end
 
 
@@ -221,6 +227,7 @@ RW_mt.__index = RW_mt
 RW_mt.read = R_mt.read
 RW_mt.reads = R_mt.reads
 RW_mt.readinto = R_mt.readinto
+RW_mt.stream = R_mt.stream
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
 RW_mt.iov = W_mt.iov
@@ -274,7 +281,7 @@ function Stream_mt:read(buf, len, timeout)
 	end
 
 	local n, err = self.conn:read(buf, togo, timeout)
-	if n == levee.TIMEOUT then return n end
+	if n == constants.TIMEOUT then return n end
 	if n < 0 then return n, err end
 	return len
 end
@@ -298,7 +305,7 @@ end
 function Stream(conn)
 	local self = setmetatable({}, Stream_mt)
 	self.conn = conn
-	self.buf = levee.buffer(4096)
+	self.buf = buffer(4096)
 	return self
 end
 
