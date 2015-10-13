@@ -297,6 +297,14 @@ function Stream_mt:value()
 end
 
 
+function Stream_mt:take_s(n)
+	if n then
+		self:readin(n)
+	end
+	return self.buf:take_s(n)
+end
+
+
 function Stream_mt:chunk(len)
 	return Chunk(self, len)
 end
