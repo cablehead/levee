@@ -201,6 +201,9 @@ return {
 		s:readin()
 		local buf, n = s:value()
 		assert.equal(n, 6)
+
+		w:close()
+		assert(s:readin(20) < 0)
 	end,
 
 	test_chunk = function()
@@ -216,5 +219,9 @@ return {
 		h:spawn(function() w:write(x(".", 15)) end)
 		assert.equal(c:tostring(), "..........")
 		assert.equal(c.done:recv(), nil)
+
+		local c = s:chunk(10)
+		w:close()
+		assert.equal(c:tostring(), -1)
 	end,
 }

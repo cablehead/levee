@@ -265,8 +265,11 @@ function Stream_mt:readin(n)
 	end
 
 	while #self.buf < n do
-		self.conn:readinto(self.buf)
+		local ok, err = self.conn:readinto(self.buf)
+		if ok < 0 then return ok, err end
 	end
+
+	return n
 end
 
 
@@ -299,7 +302,8 @@ end
 
 function Stream_mt:take_s(n)
 	if n then
-		self:readin(n)
+		local ok, err = self:readin(n)
+		if ok < 0 then return ok, err end
 	end
 	return self.buf:take_s(n)
 end
