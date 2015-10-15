@@ -7,11 +7,21 @@ local Iovec_mt = {}
 Iovec_mt.__index = Iovec_mt
 
 
-function Iovec_mt:write(val)
+function Iovec_mt:write(buf, len)
 	assert(self.n < self.size)
-	self.iov[self.n].iov_base = ffi.cast("char *", val)
-	self.iov[self.n].iov_len = #val
-	self.len = self.len + #val
+
+	if not len then
+		len = #buf
+	end
+
+	if type(buf) == "string" then
+		buf = ffi.cast("char*", buf)
+	end
+
+	self.iov[self.n].iov_base = buf
+	self.iov[self.n].iov_len = len
+
+	self.len = self.len + len
 	self.n = self.n + 1
 end
 

@@ -186,7 +186,12 @@ function W_mt:iov(size)
 
 				local n = #q
 				for s in q:iter() do
-					iov:write(s)
+					-- TODO - eep
+					if s.value then
+						iov:write(s:value())
+					else
+						iov:write(s)
+					end
 				end
 
 				local rc = self:writev(iov.iov, iov.n)
