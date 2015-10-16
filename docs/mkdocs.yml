@@ -1,0 +1,11 @@
+site_name: Levee
+
+pages:
+- Home: 'index.md'
+- http: 'http.md'
+- subcommands: 'subcommands.md'
+
+include_next_prev: false
+
+theme_dir: 'theme'
+docs_dir: 'content'
