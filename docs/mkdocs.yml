@@ -1,9 +1,13 @@
 site_name: Levee
 
 pages:
+
 - Home: 'index.md'
-- http: 'http.md'
-- subcommands: 'subcommands.md'
+
+- Sections:
+    - Subcommands: 'subcommands.md'
+    - HTTP: 'http.md'
+    - Signals: 'signals.md'
 
 include_next_prev: false
 

@@ -1,11 +1,10 @@
-# Guide
+## Guide
 
 To subscribe to signals, the hub provides a `signal` method.
 
 In this example we'll subscribe to `SIGHUP` to initiate configuration changes.
 
 ```lua
-
     local C = require("ffi").C
     local h = require("levee").Hub()
 

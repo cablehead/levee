@@ -80,7 +80,7 @@ div.col-md-3 {
     /* Widen the fixed sidebar */
     .bs-sidebar.affix,
     .bs-sidebar.affix-bottom {
-        width: 213px;
+        width: 180px;
     }
     .bs-sidebar.affix {
         position: fixed; /* Undo the static from mobile first approach */
@@ -99,6 +99,6 @@ div.col-md-3 {
     /* Widen the fixed sidebar again */
     .bs-sidebar.affix-bottom,
     .bs-sidebar.affix {
-        width: 263px;
+        width: 230px;
     }
 }
