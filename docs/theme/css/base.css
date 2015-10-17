@@ -2,6 +2,10 @@ body {
     padding-top: 70px;
 }
 
+p {
+    padding-bottom: 5px;
+}
+
 h1[id]:before, h2[id]:before, h3[id]:before, h4[id]:before, h5[id]:before, h6[id]:before {
     content: "";
     display: block;
@@ -9,11 +13,6 @@ h1[id]:before, h2[id]:before, h3[id]:before, h4[id]:before, h5[id]:before, h6[id
     height: 75px;
     pointer-events: none;
 }
-
-code, kbd, pre, samp  {
-    font-family: monospace,serif;
-}
-
 
 div.col-md-3 {
     padding-left: 0;
@@ -71,7 +70,6 @@ div.col-md-3 {
     padding-top:    3px;
     padding-bottom: 3px;
     padding-left: 30px;
-    font-size: 90%;
 }
 
 /* Show and affix the side nav when space allows it */
