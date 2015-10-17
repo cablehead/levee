@@ -6,8 +6,9 @@ pages:
 
 - Sections:
     - Subcommands: 'subcommands.md'
-    - HTTP: 'http.md'
     - Signals: 'signals.md'
+    - IO: 'io.md'
+    - HTTP: 'http.md'
 
 include_next_prev: false
 
