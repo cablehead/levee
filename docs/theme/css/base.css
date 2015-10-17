@@ -12,7 +12,6 @@ h1[id]:before, h2[id]:before, h3[id]:before, h4[id]:before, h5[id]:before, h6[id
 
 code, kbd, pre, samp  {
     font-family: monospace,serif;
-    font-size: 12px !important;
 }
 
 
@@ -42,7 +41,6 @@ div.col-md-3 {
 .bs-sidenav {
     padding-top:    10px;
     padding-bottom: 10px;
-    border-radius: 5px;
 }
 
 /* All levels of nav */
