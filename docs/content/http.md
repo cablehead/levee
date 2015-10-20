@@ -4,23 +4,33 @@
 
 #### attributes
 
-- method
-- path
-- version
-- headers
-- conn
-- response
+* method:
+  the request method *e.g. GET, POST*
 
-    response is a pipe used to communicate the response to send. the first send
-    for the response is expected to be in the form:
+* path:
+  the request path *e.g. /user/1*
 
-    `{status, headers, body}`
+* version:
+  the HTTP version *e.g. HTTP/1.1*
 
-    - status is in the form `{code, reason}`
+* headers:
+  a lua table of the HTTP request headers
 
-    - headers is a table of key, value pairs
+* conn:
+  the underlying `TCP Connection` of the request
 
-    - body can be either a string, an integer or nil
+* response:
+  response is a pipe used to communicate the response to send. the first send
+  for the response is expected to be in the form: `{status, headers, body}`
+
+    * status:
+      is in the form `{code, reason}`
+
+    * headers:
+      is a table of key, value pairs
+
+    * body:
+      can be either a string, an integer or nil
 
         * if body is a string it will be used as for the response body and the
           request is complete.
@@ -42,60 +52,52 @@
 
 #### methods
 
-- `sendfile(filename)`
+* sendfile(filename):
+  convenience to transfer `filename` as the response. if the file does not
+  exist, or is not a regular file, a 404 status is returned. currently there is
+  no sanitizing of file path.
 
-    convenience to transfer `filename` as the response. if the file does not
-    exist, or is not a regular file, a 404 status is returned. currently there
-    is no sanitizing of file path.
 
 ### Response
 
 #### attributes
 
-- code
-- reason
-- version
-- headers
+* code:
+* reason:
+* version:
+* headers:
 
-- body
+* body:
+  If this is a Content-Length response than body will be a `Stream` the
+  application can use to process the Response body.
 
-    If this is a Content-Length response than body will be a `Stream` the
-    application can use to process the Response body.
-
-- chunks
-
-    If this is a chunked response than chunks will be a pipe which will yield
-    the response's chunks. Each chunk will be a `Stream`. Generally you want to
-    fully consume each chunk before recv-ing the next. It's also possible to
-    close .done prematurely. In this case the remaining len of the current
-    chunk is preserved as a prefix for the next chunk.
-
+* chunks:
+  If this is a chunked response than chunks will be a pipe which will yield
+  the response's chunks. Each chunk will be a `Stream`. Generally you want to
+  fully consume each chunk before recv-ing the next. It's also possible to
+  close .done prematurely. In this case the remaining len of the current
+  chunk is preserved as a prefix for the next chunk.
 
 #### methods
 
-- `tostring()`
+* tostring():
+  Convenience to consume the entire response body and return it as a string.
+  Returns `nil`, `err` on error.
 
-    Convenience to consume the entire response body and return it as a string.
-    Returns `nil`, `err` on error.
+* tobuffer([buf]):
+  Convenience to stream the entire response body into a buffer. If the
+  optional `buf` is not provided, a new buffer will be created. `buf` is
+  return on success otherwise `nil`, `err` is returned.
 
-- `tobuffer([buf])`
+* save(name):
+  Convenience to stream the entire response body to the given filename.
+  Returns `true` on success, otherwise returns `nil`, `err`.
 
-    Convenience to stream the entire response body into a buffer. If the
-    optional `buf` is not provided, a new buffer will be created. `buf` is
-    return on success otherwise `nil`, `err` is returned.
+* discard():
+  Convenience to discard the entire response body using a minimal amount of
+  resources.  Returns `true` on success, otherwise returns `nil`, `err`.
 
-- `save(name)`
-
-    Convenience to stream the entire response body to the given filename.
-    Returns `true` on success, otherwise returns `nil`, `err`.
-
-- `discard()`
-
-    Convenience to discard the entire response body using a minimal amount of
-    resources.  Returns `true` on success, otherwise returns `nil`, `err`.
-
-- `json()`
-
-    Convenience to stream the entire response body through the json decoder.
-    Returns a lua table object for the decoded json on success, otherwise
-    returns `nil`, `err`.
+* json():
+  Convenience to stream the entire response body through the json decoder.
+  Returns a lua table object for the decoded json on success, otherwise
+  returns `nil`, `err`.
