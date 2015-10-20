@@ -1,3 +1,5 @@
+local version = require("levee.version")
+
 return {
 	usage = function()
 		return "Usage: levee version"
@@ -8,8 +10,10 @@ return {
 	end,
 
 	run = function(options)
-		print("Levee version 0.3 2015-10-19")
-		print("Copyright (c) 2015 Imgix")
+		print(string.format("Levee version %d.%d %s",
+				version.major, version.minor, version.date.string))
+		print(string.format("Copyright (c) %d Imgix",
+				version.date.year))
 	end
 }
 
