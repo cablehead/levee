@@ -48,6 +48,8 @@ if(LEVEE_EXECUTABLE)
 			"Command \"${LEVEE_EXECUTABLE} version --build\" failed: ${LEVEE_version_error}")
 	endif()
 
+	include_directories(${LEVEE_INCLUDE})
+
 	#============================================================
 	# LEVEE_BUNDLE (public macro)
 	#============================================================
