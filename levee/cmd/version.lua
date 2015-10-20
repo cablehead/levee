@@ -2,18 +2,43 @@ local version = require("levee.version")
 
 return {
 	usage = function()
-		return "Usage: levee version"
+		return [[Usage: levee version"
+
+Options:
+  -b, --build  # print the build version
+  -d, --date   # print the date
+]]
 	end,
 
 	parse = function(argv)
-		return {}
+		local options = {}
+		while argv:more() do
+			local opt = argv:option()
+			if opt == "build" or opt == "b" then
+				options.build = true
+			elseif opt == "date" or opt == "d" then
+				options.date = true
+			else
+				argv:exit("version command failed")
+			end
+		end
+		return options
 	end,
 
 	run = function(options)
-		print(string.format("Levee version %d.%d %s",
-				version.major, version.minor, version.date.string))
-		print(string.format("Copyright (c) %d Imgix",
-				version.date.year))
+		if options.build then
+			print(string.format("%d.%d.%d",
+				version.major, version.minor, version.patch))
+		end
+		if options.date then
+			print(version.date.string)
+		end
+		if not options.build and not options.date then
+			print(string.format("Levee version %d.%d %s",
+					version.major, version.minor, version.date.string))
+			print(string.format("Copyright (c) %d Imgix",
+					version.date.year))
+		end
 	end
 }
 

@@ -12,6 +12,6 @@ date.string = string.format(
 return {
 	major = 0,
 	minor = 2,
-	release = 0,
+	patch = 0,
 	date = date
 }
