@@ -9,8 +9,45 @@ set(CMAKE_C_FLAGS_RELEASE "-O2 -fomit-frame-pointer -march=native")
 
 include(cmake/Siphon.cmake)
 include(cmake/LuaJIT.cmake)
-include(cmake/Levee.cmake)
 
+set(LEVEE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set(LEVEE_LIB "${LEVEE_DIR}/liblevee.a")
+set(LEVEEBASE_LIB "${LEVEE_DIR}/libleveebase.a")
+set(LEVEE_INC "${PROJECT_SOURCE_DIR}/src")
+
+set(LEVEE_CDEF_MANIFEST ${PROJECT_SOURCE_DIR}/cdef/manifest.lua)
+set(LEVEE_CDEF_HEADER ${CMAKE_CURRENT_BINARY_DIR}/levee_cdef.h)
+file(GLOB_RECURSE LEVEE_CDEF ${PROJECT_SOURCE_DIR}/cdef/*.h)
+
+set(LEVEE_BUNDLE_SCRIPT ${PROJECT_SOURCE_DIR}/levee/cmd/bundle.lua)
+set(LEVEE_BUNDLE_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bundle.c)
+file(GLOB_RECURSE LEVEE_SCRIPTS ${PROJECT_SOURCE_DIR}/levee/*.lua)
+
+add_custom_command(
+	OUTPUT ${LEVEE_CDEF_HEADER}
+	COMMAND luajit ${LEVEE_CDEF_MANIFEST} ${LEVEE_CDEF_HEADER}
+	DEPENDS ${LEVEE_CDEF_MANIFEST} ${LEVEE_CDEF}
+	VERBATIM
+)
+
+add_custom_command(
+	OUTPUT ${LEVEE_BUNDLE_OUTPUT}
+	COMMAND luajit -e "local M = loadfile('${LEVEE_BUNDLE_SCRIPT}')(); M.run({modules = {'${PROJECT_SOURCE_DIR}/levee'}, name = 'levee', out = io.stdout})" > ${LEVEE_BUNDLE_OUTPUT}
+	DEPENDS ${LEVEE_BUNDLE_SCRIPT} ${LEVEE_CDEF_HEADER} ${LEVEE_SCRIPTS}
+	VERBATIM
+)
+
+add_library(
+	libleveebase
+	STATIC
+	src/chan.c
+	src/heap.c
+	src/levee.c
+	src/list.c
+	${LEVEE_BUNDLE_OUTPUT}
+)
+set_target_properties(libleveebase PROPERTIES OUTPUT_NAME leveebase)
+add_dependencies(libleveebase libluajit libsiphon)
 add_custom_target(
 	liblevee_target
 	COMMAND ${LEVEE_INC}/link.sh ${LEVEE_LIB} $<TARGET_FILE:libleveebase> ${LUAJIT_LIB} ${SIPHON_LIB}
