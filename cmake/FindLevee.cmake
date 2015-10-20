@@ -4,6 +4,8 @@
 #  LEVEE_EXECUTABLE - path to the levee program
 #  LEVEE_VERSION - version of levee
 #  LEVEE_FOUND - true if the program was found
+#  LEVEE_LIB - path to liblevee.a
+#  LEVEE_INCLUDE - path to include directory containing levee headers
 #
 # If levee is found, the module defines this macro:
 #
