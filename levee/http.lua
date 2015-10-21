@@ -620,6 +620,12 @@ function Server_mt:_response(response)
 
 	local iov = self.conn:iov()
 
+	if iov < 0 then
+		response:close()
+		self:close()
+		return
+	end
+
 	iov:send(status)
 
 	iov:send("Date")

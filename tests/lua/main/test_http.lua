@@ -395,4 +395,23 @@ return {
 		serve:close()
 		assert.same(h.registered, {})
 	end,
+
+	test_connection_dropped = function()
+		local levee = require("levee")
+
+		local h = levee.Hub()
+
+		local serve = h.http:listen()
+
+		local c = h.http:connect(serve:addr():port())
+		local response = c:get("/path")
+
+		local s = serve:recv()
+		local req = s:recv()
+
+		-- drop server connection
+		s.conn:close()
+		req.response:send({levee.http.Status(200), {}, nil})
+		assert(req.response.closed)
+	end,
 }
