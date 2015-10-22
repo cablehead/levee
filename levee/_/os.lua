@@ -36,66 +36,74 @@ function basename(s)
 end
 ----
 
-local _ = {
-	open = function(path, ...)
-		local no = C.open(path, bit.bor(...))
-		if no > 0 then return nil, no end
-		return errors.get(ffi.errno())
-	end,
+local _ = {}
 
-	pipe = function()
-		local fds = ffi.new("int[2]")
-		if C.pipe(fds) == 0 then
-			return nil, fds[0], fds[1]
+
+_.open = function(path, ...)
+	local no = C.open(path, bit.bor(...))
+	if no > 0 then return nil, no end
+	return errors.get(ffi.errno())
+end
+
+
+_.pipe = function()
+	local fds = ffi.new("int[2]")
+	if C.pipe(fds) == 0 then
+		return nil, fds[0], fds[1]
+	end
+	return errors.get(ffi.errno())
+end
+
+
+_.write = function(no, buf, len)
+	if not len then
+		if type(buf) == "cdata" then
+			len = ffi.sizeof(buf)
+		else
+			len = #buf
 		end
-		return errors.get(ffi.errno())
-	end,
+	end
+	local n = C.write(no, buf, len)
+	if n > 0 then return nil, tonumber(n) end
+	return errors.get(ffi.errno())
+end
 
-	write = function(no, buf, len)
-		if not len then
-			if type(buf) == "cdata" then
-				len = ffi.sizeof(buf)
-			else
-				len = #buf
-			end
-		end
-		local n = C.write(no, buf, len)
-		if n > 0 then return nil, tonumber(n) end
-		return errors.get(ffi.errno())
-	end,
 
-	read = function(no, buf, len)
-		if not len then len = ffi.sizeof(buf) end
-		local n = C.read(no, buf, len)
-		if n > 0 then return nil, tonumber(n) end
-		return errors.get(ffi.errno())
-	end,
+_.read = function(no, buf, len)
+	if not len then len = ffi.sizeof(buf) end
+	local n = C.read(no, buf, len)
+	if n > 0 then return nil, tonumber(n) end
+	return errors.get(ffi.errno())
+end
 
-	close = function(no)
-		local rc = C.close(no)
-		if rc ~= 0 then return errors.get(ffi.errno()) end
-	end,
 
-	stat = function(path)
-		local info = ffi.new("struct levee_stat")
-		local rc = C.levee_stat(path, info)
-		if rc == 0 then return nil, info end
-		return errors.get(ffi.errno())
-	end,
+_.close = function(no)
+	local rc = C.close(no)
+	if rc ~= 0 then return errors.get(ffi.errno()) end
+end
 
-	fstat = function(no)
-		local info = ffi.new("struct levee_stat")
-		local rc = C.levee_fstat(no, info)
-		if rc == 0 then return nil, info end
-		return errors.get(ffi.errno())
-	end,
 
-	fcntl = function(no, cmd, ...)
-		local rc = C.fcntl(no, cmd, ...)
-		if rc ~= -1 then return nil, rc end
-		return errors.get(ffi.errno())
-	end,
-}
+_.stat = function(path)
+	local info = ffi.new("struct levee_stat")
+	local rc = C.levee_stat(path, info)
+	if rc == 0 then return nil, info end
+	return errors.get(ffi.errno())
+end
+
+
+_.fstat = function(no)
+	local info = ffi.new("struct levee_stat")
+	local rc = C.levee_fstat(no, info)
+	if rc == 0 then return nil, info end
+	return errors.get(ffi.errno())
+end
+
+
+_.fcntl = function(no, cmd, ...)
+	local rc = C.fcntl(no, cmd, ...)
+	if rc ~= -1 then return nil, rc end
+	return errors.get(ffi.errno())
+end
 
 
 _.reads = function(no, len)
