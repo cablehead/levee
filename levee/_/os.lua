@@ -1,77 +1,28 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+
 local errors = require("levee.errors")
 
 
 local Stat_mt = {}
 Stat_mt.__index = Stat_mt
 
+
 function Stat_mt:is_reg()
 	return bit.band(self.st_mode, C.S_IFREG) ~= 0
 end
+
 
 function Stat_mt:is_dir()
 	return bit.band(self.st_mode, C.S_IFDIR) ~= 0
 end
 
+
 ffi.metatype("struct levee_stat", Stat_mt)
 
 
-local function nonblock(no)
-	local flags = C.fcntl(no, C.F_GETFL, 0)
-	if flags == -1 then
-		return ffi.errno()
-	end
-	flags = bit.bor(flags, C.O_NONBLOCK)
-	local rc = C.fcntl(no, C.F_SETFL, ffi.new("int", flags))
-	if rc == -1 then
-		return ffi.errno()
-	end
-	return 0
-end
-
-
-local function block(no)
-	local flags = C.fcntl(no, C.F_GETFL, 0)
-	if flags == -1 then
-		return ffi.errno()
-	end
-	flags = bit.band(flags, bit.bnot(C.O_NONBLOCK))
-	local rc = C.fcntl(no, C.F_SETFL, ffi.new("int", flags))
-	if rc == -1 then
-		return ffi.errno()
-	end
-	return 0
-end
-
-
-local nonblock_accept
-
-if ffi.os:lower() == "linux" then
-	nonblock_accept = nonblock
-else
-	nonblock_accept = function() end
-end
-
-
-
-
-
-local function fstat(no)
-	local st = ffi.new("struct levee_stat")
-	local rc = C.levee_fstat(no, st)
-	if rc < 0 then return end
-	return st
-end
-
-local function stat(path)
-	local st = ffi.new("struct levee_stat")
-	local rc = C.levee_stat(path, st)
-	if rc < 0 then return end
-	return st
-end
-
+-- TODO: move
 function dirname(s)
 	if s:match(".-/.-") then
 		return string.gsub(s, "(.*/)(.*)", "%1"):gsub("/$", "")
@@ -83,11 +34,14 @@ function basename(s)
 	local name = string.gsub(s, "(.*/)(.*)", "%2")
 	return name
 end
+----
 
-local M = {
-	nonblock = nonblock,
-	nonblock_accept = nonblock_accept,
-	block = block,
+local _ = {
+	open = function(path, ...)
+		local no = C.open(path, bit.bor(...))
+		if no > 0 then return nil, no end
+		return errors.get(ffi.errno())
+	end,
 
 	pipe = function()
 		local fds = ffi.new("int[2]")
@@ -122,18 +76,55 @@ local M = {
 		if rc ~= 0 then return errors.get(ffi.errno()) end
 	end,
 
-	fstat = fstat,
-	stat = stat,
-	dirname = dirname,
-	basename = basename,
+	stat = function(path)
+		local info = ffi.new("struct levee_stat")
+		local rc = C.levee_stat(path, info)
+		if rc == 0 then return nil, info end
+		return errors.get(ffi.errno())
+	end,
+
+	fstat = function(no)
+		local info = ffi.new("struct levee_stat")
+		local rc = C.levee_fstat(no, info)
+		if rc == 0 then return nil, info end
+		return errors.get(ffi.errno())
+	end,
+
+	fcntl = function(no, cmd, ...)
+		local rc = C.fcntl(no, cmd, ...)
+		if rc ~= -1 then return nil, rc end
+		return errors.get(ffi.errno())
+	end,
 }
 
-M.reads = function(no, len)
+
+_.reads = function(no, len)
 	len = len or 4096
 	local buf = ffi.new("char[?]", len)
-	local err, n = M.read(no, buf, len)
+	local err, n = _.read(no, buf, len)
 	if err then return err end
 	return nil, ffi.string(buf, n)
 end
 
-return M
+
+_.fcntl_nonblock = function(no)
+		local err, flags = _.fcntl(no, C.F_GETFL)
+		if err then return err end
+		local nflags = bit.bor(flags, C.O_NONBLOCK)
+		if nflags == flags then return end
+		local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
+		if err then return err end
+end
+
+
+_.fcntl_block = function(no)
+		local err, flags = _.fcntl(no, C.F_GETFL)
+		if err then return err end
+		local nflags = bit.band(flags, bit.bnot(C.O_NONBLOCK))
+		if nflags == flags then return end
+		local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
+		if err then return err end
+end
+
+
+return _
