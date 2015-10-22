@@ -1,7 +1,19 @@
 local ffi = require('ffi')
 local C = ffi.C
 
-local sys = require("levee.sys")
+local _ = require("levee")._
+
+
+if true then return {
+
+	test_os = function()
+		local err, r, w = _.pipe()
+		assert(not err)
+		assert.same({nil, 3}, {_.write(w, "foo")})
+		assert.same({nil, "foo"}, {_.reads(r)})
+	end,
+
+} end
 
 return {
 	test_core = function()

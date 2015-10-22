@@ -1,7 +1,7 @@
 local os = require('os')
 
 local cmd = require('levee.cmd')
-local _ = require('levee.utils')
+local _ = require('levee._')
 
 
 local function usage()

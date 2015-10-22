@@ -52,52 +52,12 @@ else
 	nonblock_accept = function() end
 end
 
-local function read(no, buf, len)
-	if not len then len = ffi.sizeof(buf) end
-	local len = C.read(no, buf, len)
-	if len > 0 then
-		return len, 0
-	else
-		return len, ffi.errno()
-	end
-end
 
-
-local function reads(no, len)
-	len = len or 4096
-	local buf = ffi.new("char[?]", len)
-	local len = read(no, buf, len)
-	if len >= 0 then
-		return ffi.string(buf, len)
-	end
-end
-
-
-local function write(no, buf, len)
-	if not len then
-		if type(buf) == "cdata" then
-			len = ffi.sizeof(buf)
-		else
-			len = #buf
-		end
-	end
-	local len = C.write(no, buf, len)
-	if len > 0 then
-		return len, 0
-	else
-		return len, ffi.errno()
-	end
-end
 
 local function close(fd)
 	return C.close(fd)
 end
 
-local function pipe()
-	local fds = ffi.new("int[2]")
-	assert(C.pipe(fds) == 0)
-	return fds[0], fds[1]
-end
 
 local function fstat(no)
 	local st = ffi.new("struct levee_stat")
@@ -125,17 +85,54 @@ function basename(s)
 	return name
 end
 
-return {
+local M = {
 	nonblock = nonblock,
 	nonblock_accept = nonblock_accept,
 	block = block,
 	read = read,
 	reads = reads,
-	write = write,
 	close = close,
-	pipe = pipe,
+
+	pipe = function()
+		local fds = ffi.new("int[2]")
+		if C.pipe(fds) == 0 then
+			return nil, fds[0], fds[1]
+		end
+		return errors.get(ffi.errno())
+	end,
+
+	write = function(no, buf, len)
+		if not len then
+			if type(buf) == "cdata" then
+				len = ffi.sizeof(buf)
+			else
+				len = #buf
+			end
+		end
+		local n = C.write(no, buf, len)
+		if n > 0 then return nil, tonumber(n) end
+		return errors.get(ffi.errno())
+	end,
+
+	read = function(no, buf, len)
+		if not len then len = ffi.sizeof(buf) end
+		local n = C.read(no, buf, len)
+		if n > 0 then return nil, tonumber(n) end
+		return errors.get(ffi.errno())
+	end,
+
 	fstat = fstat,
 	stat = stat,
 	dirname = dirname,
 	basename = basename,
 }
+
+M.reads = function(no, len)
+	len = len or 4096
+	local buf = ffi.new("char[?]", len)
+	local err, n = M.read(no, buf, len)
+	if err then return err end
+	return nil, ffi.string(buf, n)
+end
+
+return M

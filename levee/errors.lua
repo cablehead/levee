@@ -25,6 +25,10 @@ ffi.metatype("SpError", Error_mt)
 
 
 return {
+	get = function(code)
+		return C.sp_error(code)
+	end,
+
 	add = function(code, domain, name, msg)
 		return C.sp_error_add(code, domain, name, msg)
 	end,
