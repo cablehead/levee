@@ -90,7 +90,7 @@ return {
 		os.remove(path)
 	end,
 
-	test_getaddrinfo = function()
+	test_net = function()
 		print()
 		print()
 
@@ -104,18 +104,23 @@ return {
 		local err = _.getsockname(-3)
 		assert(err)
 
-		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM)
+		local err, s_no = _.listen(C.AF_INET, C.SOCK_STREAM)
 		assert(not err)
 		-- attempt to bind to previously bound port
-		local err, ep = _.getsockname(no)
+		local err, ep = _.getsockname(s_no)
 		assert(not err)
 		local port = ep:port()
 		local err = _.listen(C.AF_INET, C.SOCK_STREAM, nil, port)
 		assert(err)
 		-- peername for listening socket makes no sense
-		local err, ep = _.getpeername(no)
+		local err, ep = _.getpeername(s_no)
 		assert(err)
 
-
+		local err = _.connect("foo")
+		assert(err)
+		local err = _.connect("127.0.0.1", 63529)
+		assert(err)
+		local err, c_no = _.connect("127.0.0.1", port)
+		assert(not err)
 	end,
 }
