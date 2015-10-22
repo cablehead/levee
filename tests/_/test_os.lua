@@ -98,11 +98,24 @@ return {
 		-- print(_.getaddrinfo("foo"))
 		-- print(_.getaddrinfo("localhost"))
 
-		local err = _.listen(-3, C.SOCK_STREAM, "localhost", 0)
+		-- basic errors
+		local err = _.listen(-3, C.SOCK_STREAM)
+		assert(err)
+		local err = _.getsockname(-3)
 		assert(err)
 
-		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM, "localhost", 5000)
+		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM)
 		assert(not err)
+		-- attempt to bind to previously bound port
+		local err, ep = _.getsockname(no)
+		assert(not err)
+		local port = ep:port()
+		local err = _.listen(C.AF_INET, C.SOCK_STREAM, nil, port)
+		assert(err)
+		-- peername for listening socket makes no sense
+		local err, ep = _.getpeername(no)
+		assert(err)
+
 
 	end,
 }

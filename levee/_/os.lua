@@ -25,6 +25,80 @@ end
 ffi.metatype("struct levee_stat", Stat_mt)
 
 
+ffi.cdef[[
+struct LeveeEndpoint {
+	union {
+		struct sockaddr sa;
+		struct sockaddr_storage ss;
+		struct sockaddr_in sin;
+		struct sockaddr_in6 sin6;
+		struct sockaddr_un sun;
+	} addr;
+	socklen_t len[1];
+	int family[1];
+};
+]]
+
+
+local Endpoint_mt = {}
+Endpoint_mt.__index = Endpoint_mt
+
+
+if ffi.os:lower() == "linux" then
+	function Endpoint_mt:_set_family(no)
+		self.len[0] = ffi.sizeof("int")
+		local rc = C.getsockopt(
+			no, C.SOL_SOCKET, C.SO_DOMAIN, self.family, self.len)
+		if rc < 0 then return errors.get(ffi.errno()) end
+	end
+else
+	function Endpoint_mt:_set_family(no)
+		self.family[0] = self.addr.sa.sa_family
+	end
+end
+
+
+function Endpoint_mt:__new()
+	local m = ffi.new(self)
+	m.len[0] = ffi.sizeof(m)
+	return m
+end
+
+
+function Endpoint_mt:port()
+	if self.family[0] == C.AF_INET then
+		return tonumber(C.ntohs(self.addr.sin.sin_port))
+	elseif self.family[0] == C.AF_INET6 then
+		return tonumber(C.ntohs(self.addr.sin6.sin6_port))
+	end
+end
+
+
+function Endpoint_mt:__tostring()
+	if self.family[0] == C.AF_INET then
+		local buf = ffi.new("char [16]")
+		local str = C.inet_ntop(C.AF_INET, self.addr.sin.sin_addr, buf, 16)
+		if str then
+			return string.format(
+				"%s:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin.sin_port)))
+		end
+	elseif self.family[0] == C.AF_INET6 then
+		local buf = ffi.new("char [48]")
+		local str = C.inet_ntop(C.AF_INET6, self.addr.sin6.sin6_addr, buf, 48)
+		if str then
+			return string.format(
+				"[%s]:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin6.sin6_port)))
+		end
+	elseif self.family[0] == C.AF_LOCAL then
+		return ffi.string(self.addr.sun.sun_path)
+	else
+		return string.format("levee.Endpoint: %p", self)
+	end
+end
+
+local Endpoint = ffi.metatype("struct LeveeEndpoint", Endpoint_mt)
+
+
 local _ = {}
 
 
@@ -143,6 +217,7 @@ end
 
 _.listen = function(domain, type_, host, port)
 	local BACKLOG = 256
+	-- TODO: should we be using getaddrinfo here?
 	host = host or "127.0.0.1"
 	port = port or 0
 
@@ -167,6 +242,26 @@ _.listen = function(domain, type_, host, port)
 	end
 
 	return nil, no
+end
+
+
+_.getsockname = function(no)
+	local ep = Endpoint()
+	local rc = C.getsockname(no, ep.addr.sa, ep.len)
+	if rc < 0 then return errors.get(ffi.errno()) end
+	local err = ep:_set_family(no)
+	if err then return err end
+	return nil, ep
+end
+
+
+_.getpeername = function(no)
+	local ep = Endpoint()
+	local rc = C.getpeername(no, ep.addr.sa, ep.len)
+	if rc < 0 then return errors.get(ffi.errno()) end
+	local err = ep:_set_family(no)
+	if err then return err end
+	return nil, ep
 end
 
 
