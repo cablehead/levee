@@ -620,7 +620,8 @@ function Server_mt:_response(response)
 
 	local iov = self.conn:iov()
 
-	if iov < 0 then
+	if type(iov) == "number" then
+		-- iov is -1, connection closed
 		response:close()
 		self:close()
 		return
