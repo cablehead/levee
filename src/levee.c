@@ -64,8 +64,8 @@ levee_create (void)
 	lua_call (L, 1, 0);
 	lua_pop (L, 1);  // pop ffi module
 
-	require (L, "levee.channel");
-	lua_pop (L, 1); // pop levee.channel module
+	// require (L, "levee.channel");
+	// lua_pop (L, 1); // pop levee.channel module
 
 	__sync_synchronize ();
 	const LeveeConfig *cfg = config;

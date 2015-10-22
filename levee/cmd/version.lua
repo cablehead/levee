@@ -1,4 +1,4 @@
-local version = require("levee.version")
+local meta = require("levee.meta")
 
 return {
 	usage = function()
@@ -26,6 +26,7 @@ Options:
 	end,
 
 	run = function(options)
+		local version = meta.version
 		if options.build then
 			print(string.format("%d.%d.%d",
 				version.major, version.minor, version.patch))
