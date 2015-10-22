@@ -22,20 +22,6 @@ end
 ffi.metatype("struct levee_stat", Stat_mt)
 
 
--- TODO: move
-function dirname(s)
-	if s:match(".-/.-") then
-		return string.gsub(s, "(.*/)(.*)", "%1"):gsub("/$", "")
-	end
-	return ''
-end
-
-function basename(s)
-	local name = string.gsub(s, "(.*/)(.*)", "%2")
-	return name
-end
-----
-
 local _ = {}
 
 
