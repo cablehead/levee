@@ -1,6 +1,8 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local errors = require("levee.errors")
+
 
 local Stat_mt = {}
 Stat_mt.__index = Stat_mt
@@ -54,9 +56,6 @@ end
 
 
 
-local function close(fd)
-	return C.close(fd)
-end
 
 
 local function fstat(no)
@@ -89,9 +88,6 @@ local M = {
 	nonblock = nonblock,
 	nonblock_accept = nonblock_accept,
 	block = block,
-	read = read,
-	reads = reads,
-	close = close,
 
 	pipe = function()
 		local fds = ffi.new("int[2]")
@@ -119,6 +115,11 @@ local M = {
 		local n = C.read(no, buf, len)
 		if n > 0 then return nil, tonumber(n) end
 		return errors.get(ffi.errno())
+	end,
+
+	close = function(no)
+		local rc = C.close(no)
+		if rc ~= 0 then return errors.get(ffi.errno()) end
 	end,
 
 	fstat = fstat,
