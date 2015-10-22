@@ -5,6 +5,9 @@ local C = ffi.C
 local errors = require("levee.errors")
 
 
+local sockaddr_in = ffi.typeof("struct sockaddr_in")
+
+
 local Stat_mt = {}
 Stat_mt.__index = Stat_mt
 
@@ -118,6 +121,52 @@ _.fcntl_block = function(no)
 		if nflags == flags then return end
 		local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
 		if err then return err end
+end
+
+
+_.getaddrinfo = function(host, port)
+	local hints = ffi.new("struct addrinfo")
+	hints.ai_family = C.AF_INET
+	-- TODO: do we really want SOCK_STREAM as a hint here
+	hints.ai_socktype = C.SOCK_STREAM
+	local info = ffi.new("struct addrinfo *[1]")
+
+	local rc = C.getaddrinfo(host, port, hints, info)
+
+	-- TODO: segfaults
+	if rc ~= 0 then return errors.get(rc) end
+	assert(rc == 0)
+
+	return nil, info[0], ffi.new("struct addrinfo *", info[0])
+end
+
+
+_.listen = function(domain, type_, host, port)
+	local BACKLOG = 256
+	host = host or "127.0.0.1"
+	port = port or 0
+
+	local no = C.socket(domain, type_, 0)
+	if no < 0 then return errors.get(ffi.errno()) end
+
+	local on = ffi.new("int32_t[1]", 1)
+	local rc = C.setsockopt(no, C.SOL_SOCKET, C.SO_REUSEADDR, on, ffi.sizeof(on))
+	if rc < 0 then return errors.get(ffi.errno()) end
+
+	local addr = sockaddr_in()
+	addr.sin_family = domain
+	addr.sin_port = C.htons(port);
+	C.inet_aton(host, addr.sin_addr)
+
+	rc = C.bind(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
+	if rc < 0 then return errors.get(ffi.errno()) end
+
+	if type_ == C.SOCK_STREAM then
+		rc = C.listen(no, BACKLOG)
+		if rc < 0 then return errors.get(ffi.errno()) end
+	end
+
+	return nil, no
 end
 
 

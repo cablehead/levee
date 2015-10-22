@@ -89,4 +89,20 @@ return {
 
 		os.remove(path)
 	end,
+
+	test_getaddrinfo = function()
+		print()
+		print()
+
+		-- TODO: segfaults
+		-- print(_.getaddrinfo("foo"))
+		-- print(_.getaddrinfo("localhost"))
+
+		local err = _.listen(-3, C.SOCK_STREAM, "localhost", 0)
+		assert(err)
+
+		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM, "localhost", 5000)
+		assert(not err)
+
+	end,
 }
