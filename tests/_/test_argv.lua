@@ -1,4 +1,4 @@
-local Argv = require('levee.argv')
+local Argv = require('levee._.argv')
 
 return {
 	test_basic = function()
