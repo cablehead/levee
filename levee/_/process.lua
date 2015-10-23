@@ -2,6 +2,9 @@ local ffi = require('ffi')
 local C = ffi.C
 
 
+local errors = require("levee.errors")
+
+
 local string_array_t = ffi.typeof("const char *[?]")
 
 
@@ -12,19 +15,22 @@ local function to_string_array_t(argv)
 end
 
 
-local M = {}
+local _ = {}
 
-M.execv = function(path, argv)
-	return C.execv(path, to_string_array_t(argv))
+
+_.execv = function(path, argv)
+	local rc = C.execv(path, to_string_array_t(argv))
+	if rc < 0 then return errors.get(ffi.errno()) end
 end
 
 
-M.execvp = function(name, argv)
-	return C.execvp(name, to_string_array_t(argv))
+_.execvp = function(name, argv)
+	local rc = C.execvp(name, to_string_array_t(argv))
+	if rc < 0 then return errors.get(ffi.errno()) end
 end
 
 
-M.waitpid = function(pid, options)
+_.waitpid = function(pid, options)
   --[[
   pid:
 
@@ -42,24 +48,21 @@ M.waitpid = function(pid, options)
 	local stat_loc = ffi.new("int[1]")
 
 	local pid = C.waitpid(pid, stat_loc, options)
+	if pid < 0 then return errors.get(ffi.errno()) end
 
-	if pid < 0 then
-		return pid, ffi.errno()
-	end
-
-	return pid,
+	return nil, pid,
 		bit.rshift(bit.band(stat_loc[0], 0xff00), 8),
 		bit.band(stat_loc[0], 0x7f)
 end
 
 
 if ffi.os:lower() == "linux" then
-	M.set_pdeathsig = function()
+	_.set_pdeathsig = function()
 		C.prctl(C.PR_SET_PDEATHSIG, C.SIGKILL, 0, 0, 0)
 	end
 else
-	M.set_pdeathsig = function() end
+	_.set_pdeathsig = function() end
 end
 
 
-return M
+return _
