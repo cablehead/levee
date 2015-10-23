@@ -94,9 +94,10 @@ return {
 		print()
 		print()
 
-		-- TODO: segfaults
-		-- print(_.getaddrinfo("foo"))
-		-- print(_.getaddrinfo("localhost"))
+		print(_.getaddrinfo("foo"))
+		print(_.getaddrinfo("localhost"))
+
+		if true then return end
 
 		-- basic errors
 		local err = _.listen(-3, C.SOCK_STREAM)

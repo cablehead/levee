@@ -29,6 +29,10 @@ return {
 		return C.sp_error(code)
 	end,
 
+	get_eai = function(code)
+		return C.sp_error(C.sp_eai_code(code))
+	end,
+
 	add = function(code, domain, name, msg)
 		return C.sp_error_add(code, domain, name, msg)
 	end,

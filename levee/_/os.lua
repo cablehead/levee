@@ -206,10 +206,7 @@ _.getaddrinfo = function(host, port)
 	local info = ffi.new("struct addrinfo *[1]")
 
 	local rc = C.getaddrinfo(host, port, hints, info)
-
-	-- TODO: segfaults
-	if rc ~= 0 then return errors.get(rc) end
-	assert(rc == 0)
+	if rc ~= 0 then return errors.get_eai(rc) end
 
 	return nil, info[0], ffi.new("struct addrinfo *", info[0])
 end
