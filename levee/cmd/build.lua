@@ -1,8 +1,8 @@
 local ffi = require('ffi')
 local os = require('os')
 
-local dirname = require("levee._.os").dirname
-local basename = require("levee._.os").basename
+-- local dirname = require("levee._.path").dirname
+-- local basename = require("levee._.path").basename
 
 local bundle = require("levee.cmd.bundle")
 
