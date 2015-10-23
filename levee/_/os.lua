@@ -140,6 +140,15 @@ _.read = function(no, buf, len)
 end
 
 
+_.reads = function(no, len)
+	len = len or 4096
+	local buf = ffi.new("char[?]", len)
+	local err, n = _.read(no, buf, len)
+	if err then return err end
+	return nil, ffi.string(buf, n)
+end
+
+
 _.close = function(no)
 	local rc = C.close(no)
 	if rc ~= 0 then return errors.get(ffi.errno()) end
@@ -166,15 +175,6 @@ _.fcntl = function(no, cmd, ...)
 	local rc = C.fcntl(no, cmd, ...)
 	if rc ~= -1 then return nil, rc end
 	return errors.get(ffi.errno())
-end
-
-
-_.reads = function(no, len)
-	len = len or 4096
-	local buf = ffi.new("char[?]", len)
-	local err, n = _.read(no, buf, len)
-	if err then return err end
-	return nil, ffi.string(buf, n)
 end
 
 
