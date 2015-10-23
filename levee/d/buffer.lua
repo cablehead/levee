@@ -172,7 +172,7 @@ function Buffer_mt:thaw()
 end
 
 
-function Buffer_mt:peek_s(len)
+function Buffer_mt:peek(len)
 	if len then
 		len = len < self.len and len or self.len
 	else
@@ -183,14 +183,14 @@ function Buffer_mt:peek_s(len)
 end
 
 
-function Buffer_mt:take_s(len)
-	local value = self:peek_s(len)
+function Buffer_mt:take(len)
+	local value = self:peek(len)
 	self:trim(#value)
 	return value
 end
 
 
-function Buffer_mt:push_s(s)
+function Buffer_mt:push(s)
 	self:ensure(#s)
 	ffi.copy(self:tail(), s)
 	self:bump(#s)
