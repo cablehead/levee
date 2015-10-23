@@ -2,7 +2,7 @@
 
 ### Buffer
 
-Buffer provides convenient methods to facilitate continual reuse an array of
+Buffer provides convenient methods to facilitate continual reuse of an array of
 bytes. It's levee's workhorse data structure for streaming data in a memory
 efficient way.
 
