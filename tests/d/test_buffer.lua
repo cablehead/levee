@@ -1,6 +1,8 @@
 local ffi = require('ffi')
 
-local Buffer = require("levee.buffer")
+
+local d = require("levee").d
+
 
 return {
 	test_core = function()
