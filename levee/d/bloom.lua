@@ -1,5 +1,5 @@
 local ffi = require("ffi")
-local rand = require('levee.rand')
+local rand = require('levee._.rand')
 local C = ffi.C
 
 local bloom_seed = rand.integer()
