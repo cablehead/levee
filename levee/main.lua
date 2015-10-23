@@ -1,7 +1,7 @@
-local os = require('os')
+local os = require("os")
 
-local cmd = require('levee.cmd')
-local _ = require('levee._')
+local argv = require("levee.argv")
+local cmd = require("levee.cmd")
 
 
 local function usage()
@@ -45,7 +45,7 @@ local function main()
 		return
 	end
 
-	local options = command.parse(_.argv(arg, 2))
+	local options = command.parse(argv(arg, 2))
 
 	if not options then
 		print(command.usage())

@@ -2,7 +2,7 @@ local jit = require('jit')
 local ffi = require('ffi')
 local C = ffi.C
 
-local Stats = require('levee.stats')
+-- local Stats = require('levee.stats')
 
 ffi.cdef[[
 struct LeveeDate {
