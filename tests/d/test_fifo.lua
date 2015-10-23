@@ -1,7 +1,8 @@
+local d = require("levee").d
+
 return {
 	test_push_pop = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		assert.equals(0, #f)
 		f:push(1)
 		assert.equals(1, #f)
@@ -14,8 +15,7 @@ return {
 	end,
 
 	test_peek = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		assert.equals(1, f:peek())
 		f:push(2)
@@ -25,8 +25,7 @@ return {
 	end,
 
 	test_remove = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		f:push(2)
 		f:push(3)
@@ -38,8 +37,7 @@ return {
 	end,
 
 	test_iter = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		f:push(2)
 
@@ -60,8 +58,7 @@ return {
 	end,
 
 	test_popiter = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		f:push(2)
 		local i = 1
@@ -73,8 +70,7 @@ return {
 	end,
 
 	test_popiter_break = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		f:push(2)
 		for v in f:popiter() do
@@ -84,8 +80,7 @@ return {
 	end,
 
 	test_peekiter = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		f:push(2)
 		local i = 1
@@ -97,8 +92,7 @@ return {
 	end,
 
 	test_peekiter_break = function()
-		local FIFO = require('levee.fifo')
-		local f = FIFO()
+		local f = d.fifo()
 		f:push(1)
 		f:push(2)
 		for v in f:peekiter() do

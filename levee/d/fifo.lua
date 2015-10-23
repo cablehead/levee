@@ -1,4 +1,3 @@
--- TODO: need a decent structure here
 local FIFO = {}
 FIFO.__index = FIFO
 
