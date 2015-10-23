@@ -287,4 +287,13 @@ _.connect = function(host, port)
 end
 
 
+_.accept = function(no)
+	local addr = sockaddr_in()
+	local addr_len = ffi.new("socklen_t[1]")
+	local no = C.accept(no, ffi.cast("struct sockaddr *", addr), addr_len)
+	if no < 0 then return errors.get(ffi.errno()) end
+	return nil, no
+end
+
+
 return _

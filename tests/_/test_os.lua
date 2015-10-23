@@ -91,36 +91,53 @@ return {
 	end,
 
 	test_net = function()
-		print()
-		print()
-
 		-- basic errors
 		local err = _.getaddrinfo("foo")
 		assert(err)
 		local err = _.listen(-3, C.SOCK_STREAM)
 		assert(err)
+		local err = _.accept(-3, C.SOCK_STREAM)
+		assert(err)
+		local err = _.connect("foo")
+		assert(err)
+		local err = _.connect("127.0.0.1", 63529)
+		assert(err)
 		local err = _.getsockname(-3)
 		assert(err)
+		local err = _.getpeername(-3)
+		assert(err)
 
-		local err, s_no = _.listen(C.AF_INET, C.SOCK_STREAM)
+		-- listen
+		local err, l_no = _.listen(C.AF_INET, C.SOCK_STREAM)
 		assert(not err)
 		-- attempt to bind to previously bound port
-		local err, ep = _.getsockname(s_no)
+		local err, ep = _.getsockname(l_no)
 		assert(not err)
 		local port = ep:port()
 		local err = _.listen(C.AF_INET, C.SOCK_STREAM, nil, port)
 		assert(err)
 		-- peername for listening socket makes no sense
-		local err, ep = _.getpeername(s_no)
+		local err, ep = _.getpeername(l_no)
 		assert(err)
 
-		local err = _.connect("foo")
-		assert(err)
-		local err = _.connect("127.0.0.1", 63529)
-		assert(err)
+		-- connect
 		local err, c_no = _.connect("127.0.0.1", port)
 		assert(not err)
 
-		print(c_no)
+		local err, c_ep = _.getsockname(c_no)
+		assert(not err)
+		local err, ep = _.getpeername(c_no)
+		assert(not err)
+		assert.equal(ep:port(), port)
+
+		-- accept
+		local err, s_no = _.accept(l_no)
+		assert(not err)
+		local err, ep = _.getsockname(s_no)
+		assert(not err)
+		assert.equal(ep:port(), port)
+		local err, ep = _.getpeername(s_no)
+		assert(not err)
+		assert.equal(ep:port(), c_ep:port())
 	end,
 }
