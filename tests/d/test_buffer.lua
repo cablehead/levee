@@ -14,7 +14,7 @@ return {
 			return ret
 		end
 
-		local buf = Buffer(4096)
+		local buf = d.buffer(4096)
 		assert.equal(#buf, 0)
 		assert.equal(buf:peek_s(), "")
 
@@ -43,16 +43,16 @@ return {
 	end,
 
 	test_copy = function()
-		local buf = Buffer(4096)
+		local buf = d.buffer(4096)
 		local s = "012345678901234567890123456789"
 		buf:push_s(s)
-		local tgt = Buffer(4096)
+		local tgt = d.buffer(4096)
 		tgt:bump(buf:copy(tgt:tail()))
 		assert.equal(tgt:peek_s(), s)
 	end,
 
 	test_save = function()
-		local buf = Buffer(8192)
+		local buf = d.buffer(8192)
 		buf:push_s("012345678901234567890123456789")
 
 		buf:trim(10)

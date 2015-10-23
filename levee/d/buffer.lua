@@ -1,6 +1,9 @@
 local ffi = require('ffi')
+local C = ffi.C
 
-local Errno = require('levee.errno')
+
+local errors = require("levee.errors")
+
 
 ffi.cdef[[
 static const unsigned LEVEE_BUFFER_MIN_SIZE = 8192;
@@ -11,7 +14,6 @@ struct LeveeBuffer {
 };
 ]]
 
-local C = ffi.C
 
 local Buffer_mt = {}
 Buffer_mt.__index = Buffer_mt
@@ -81,9 +83,7 @@ function Buffer_mt:ensure(hint)
 
 	if self.off > 0 or cap < C.LEVEE_BUFFER_MAX_BLOCK then
 		buf = C.malloc(cap)
-		if buf == nil then
-			Errno:error("malloc")
-		end
+		if buf == nil then error(tostring(errors.get(ffi.errno()))) end
 		if self.len > 0 then
 			-- only copy the subregion containing untrimmed data
 			C.memcpy(buf, self.buf+self.off, self.len)
@@ -92,9 +92,7 @@ function Buffer_mt:ensure(hint)
 	else
 		-- use realloc to take advantage of mremap
 		buf = C.realloc(self.buf, cap)
-		if buf == nil then
-			Errno:error("realloc")
-		end
+		if buf == nil then error(tostring(errors.get(ffi.errno()))) end
 	end
 
 	-- always reset the offset back to 0
