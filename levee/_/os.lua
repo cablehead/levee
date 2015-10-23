@@ -272,16 +272,17 @@ _.connect = function(host, port)
 	local err
 	while ptr ~= nil do
 		local rc = C.connect(no, ptr.ai_addr, ptr.ai_addrlen)
-		if rc == 0 then
-			-- TODO: should call free?
-			return nil, no
-		else
-			err = ffi.errno()
-		end
+		if rc == 0 then break end
+		err = ffi.errno()
 		ptr = ptr.ai_next
 	end
 
 	C.freeaddrinfo(info)
+
+	if ptr ~= nil then
+		return nil, no
+	end
+
 	return errors.get(err)
 end
 

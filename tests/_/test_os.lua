@@ -94,12 +94,9 @@ return {
 		print()
 		print()
 
-		print(_.getaddrinfo("foo"))
-		print(_.getaddrinfo("localhost"))
-
-		if true then return end
-
 		-- basic errors
+		local err = _.getaddrinfo("foo")
+		assert(err)
 		local err = _.listen(-3, C.SOCK_STREAM)
 		assert(err)
 		local err = _.getsockname(-3)
@@ -123,5 +120,7 @@ return {
 		assert(err)
 		local err, c_no = _.connect("127.0.0.1", port)
 		assert(not err)
+
+		print(c_no)
 	end,
 }
