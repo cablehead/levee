@@ -1,5 +1,9 @@
 local ffi = require('ffi')
-local Errno = require('levee.errno')
+local C = ffi.C
+
+
+local errors = require("levee.errors")
+
 
 ffi.cdef[[
 static const int EV_POLL_IN_MAX = 64;
@@ -18,13 +22,14 @@ struct LeveePoller {
 };
 ]]
 
-local C = ffi.C
 
 local SIG_DFL = ffi.cast("sighandler_t", 0)
 local SIG_IGN = ffi.cast("sighandler_t", 1)
 
+
 local Event = {}
 Event.__index = Event
+
 
 function Event:value()
 	if self.filter == C.EVFILT_USER then
@@ -44,6 +49,7 @@ function Event:value()
 	end
 end
 
+
 ffi.metatype("LeveePollerEvent", Event)
 
 
@@ -53,7 +59,7 @@ Poller.__index = Poller
 
 function Poller:__new()
 	local self = ffi.new(self, C.kqueue(), 0, 0)
-	if self.fd < 0 then Errno:error("kqueue") end
+	if self.fd < 0 then error("kqueue") end
 	C.gettimeofday(self.tv, nil)
 	return self
 end
@@ -92,7 +98,7 @@ function Poller:signal_register(no)
 	ev.data = 0
 
 	local rc = C.kevent(self.fd, self.ev_in, self.ev_in_pos, nil, 0, nil)
-	if rc < 0 then Errno:error("kevent") end
+	if rc < 0 then error("kevent") end
 	self.ev_in_pos = 0
 
 	-- don't ignore on SIGCHLD as that will cause the child to be reaped before
@@ -114,7 +120,7 @@ function Poller:signal_unregister(no)
 	ev.data = 0
 
 	local rc = C.kevent(self.fd, self.ev_in, self.ev_in_pos, nil, 0, nil)
-	if rc < 0 then Errno:error("kevent") end
+	if rc < 0 then error("kevent") end
 	self.ev_in_pos = 0
 
 	C.signal(no, SIG_DFL)
@@ -179,10 +185,10 @@ function Poller:poll(timeout)
 
 	if n >= 0 then
 		self.ev_in_pos = 0
-		return self.ev_out, n
+		return nil, self.ev_out, n
 	end
 
-	if err ~= Errno["EINTR"] then Errno:error("kevent", err) end
+	if err ~= Errno["EINTR"] then errors.get(err) end
 
 	return self:poll(timeout)
 end
