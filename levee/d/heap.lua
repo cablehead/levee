@@ -1,8 +1,6 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local Errno = require('levee.errno')
-
 
 local HeapItem_mt = {}
 HeapItem_mt.__index = HeapItem_mt
@@ -111,9 +109,7 @@ end
 
 return function()
 	local heap = C.levee_heap_create()
-	if heap == nil then
-		Errno:error("levee_heap_create")
-	end
+	if heap == nil then error("levee_heap_create") end
 	ffi.gc(heap, C.levee_heap_destroy)
 	return setmetatable({heap = heap, refs = {}, avail={}}, Heap)
 end
