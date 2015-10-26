@@ -2,12 +2,20 @@ local ffi = require('ffi')
 local C = ffi.C
 
 
-local sys = require("levee.sys")
-local Heap = require("levee.heap")
-local FIFO = require("levee.fifo")
-local message = require("levee.message")
-local constants = require("levee.constants")
-local Channel = require("levee.channel")
+local errors = require("levee.errors")
+local _ = require("levee._")
+local d = require("levee.d")
+
+
+local TIMEOUT = errors.add(10100, "levee", "timeout", "operation timed out")
+local CLOSED = errors.add(10101, "levee", "closed", "channel is closed")
+
+
+-- local Heap = require("levee.heap")
+-- local FIFO = require("levee.fifo")
+-- local message = require("levee.message")
+-- local constants = require("levee.constants")
+-- local Channel = require("levee.channel")
 
 
 local State_mt = {}
@@ -206,7 +214,7 @@ function Hub_mt:pause(ms)
 	ms = self.poller:abstime(ms)
 	local timeout = self.scheduled:push(ms, coroutine.running())
 	local ret = self:_coyield()
-	if ret ~= constants.TIMEOUT then
+	if ret ~= TIMEOUT then
 		timeout:remove()
 	end
 	return ret
@@ -280,7 +288,8 @@ function Hub_mt:pump()
 		self.closing = {}
 	end
 
-	local events, n = self.poller:poll(timeout)
+	local err, events, n = self.poller:poll(timeout)
+	assert(not err)
 
 	while true do
 		local timeout = self.scheduled:peek()
@@ -288,7 +297,7 @@ function Hub_mt:pump()
 			break
 		end
 		local ms, co = self.scheduled:pop()
-		self:_coresume(co, constants.TIMEOUT)
+		self:_coresume(co, TIMEOUT)
 	end
 
 	for i = 0, n - 1 do
@@ -326,27 +335,26 @@ end
 local function Hub()
 	local self = setmetatable({}, Hub_mt)
 
-	self.ready = FIFO()
-	self.scheduled = Heap()
+	self.ready = d.fifo()
+	self.scheduled = d.heap()
 
 	self.signal = Signal(self)
 
 	self.registered = {}
-	self.poller = sys.poller()
+	self.poller = _.poller()
 	self.closing = {}
 
 	self._pcoro = coroutine.running()
 	self.loop = coroutine.create(function() self:main() end)
 
-	self.io = require("levee.io")(self)
-	self.tcp = require("levee.tcp")(self)
-	self.udp = require("levee.udp")(self)
-	self.http = require("levee.http")(self)
-	self.thread = require("levee.thread")(self)
-	self.process = require("levee.process")(self)
+	-- self.io = require("levee.io")(self)
+	-- self.tcp = require("levee.tcp")(self)
+	-- self.udp = require("levee.udp")(self)
+	-- self.http = require("levee.http")(self)
+	-- self.thread = require("levee.thread")(self)
+	-- self.process = require("levee.process")(self)
 
-	-- this should probably be in a seperate repo
-	self.consul = require("levee.consul")(self)
+	-- self.consul = require("levee.consul")(self)
 
 	return self
 end
