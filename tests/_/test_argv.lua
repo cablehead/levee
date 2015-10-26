@@ -1,11 +1,12 @@
-local Argv = require('levee.argv')
+local _ = require("levee")._
+
 
 return {
 	test_basic = function()
 		local function exit(idx, opt, msg)
 			return -- ignore errors for this test
 		end
-		local argv = Argv({
+		local argv = _.argv({
 			"value", "1.23", "a", "b", "--stuff", "after", "-xyz", "final"},
 			exit)
 		assert.same("value", argv:next())
@@ -30,7 +31,7 @@ return {
 		end
 
 		-- test adjacent option
-		argv = Argv({"--items", "a", "b", "--other"}, exit)
+		argv = _.argv({"--items", "a", "b", "--other"}, exit)
 		assert.same("items", argv:option())
 		assert.same({"a","b"}, argv:argn(2))
 		assert.same("other", argv:option())
@@ -38,7 +39,7 @@ return {
 		assert.is_nil(last_idx)
 
 		-- test extra values
-		argv = Argv({"--items", "a", "b", "c", "--other"}, exit)
+		argv = _.argv({"--items", "a", "b", "c", "--other"}, exit)
 		assert.same("items", argv:option())
 		assert.same({"a","b"}, argv:argn(2))
 		assert.same("c", argv:next())
@@ -47,7 +48,7 @@ return {
 		assert.is_nil(last_idx)
 
 		-- test too short
-		argv = Argv({"--items", "a", "b"}, exit)
+		argv = _.argv({"--items", "a", "b"}, exit)
 		assert.same("items", argv:option())
 		assert.is_nil(argv:argn(3))
 		assert.same("items", last_opt)
@@ -56,7 +57,7 @@ return {
 		last_idx = nil
 
 		-- test too short with adjacent option
-		argv = Argv({"--items", "a", "b", "--other"}, exit)
+		argv = _.argv({"--items", "a", "b", "--other"}, exit)
 		assert.same("items", argv:option())
 		assert.is_nil(argv:argn(3))
 		assert.same("items", last_opt)
@@ -73,7 +74,7 @@ return {
 		end
 
 		-- test non-number
-		argv = Argv({"--num", "xx"}, exit)
+		argv = _.argv({"--num", "xx"}, exit)
 		assert.same("num", argv:option())
 		assert.is_nil(argv:number())
 		assert.same("num", last_opt)
@@ -82,7 +83,7 @@ return {
 		last_idx = nil
 
 		-- test no value
-		argv = Argv({"--num"}, exit)
+		argv = _.argv({"--num"}, exit)
 		assert.same("num", argv:option())
 		assert.is_nil(argv:number())
 		assert.same("num", last_opt)
