@@ -56,3 +56,11 @@ efficient way.
 
 * push(s):
 	pushes the string `s` on to the tail of the buffer.
+
+### Fifo
+
+### Heap
+
+### Set
+
+### Bloom
