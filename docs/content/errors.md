@@ -14,3 +14,19 @@ Consistent error handling
 * add(code, domain, name, msg):
 	registers a new error with the siphon registery
 
+### objects
+
+#### Error
+
+##### methods
+
+* next():
+	returns the next error
+
+* is(domain, name):
+	returns whether this is error matches the corresponding `domain`, `name`
+
+##### attributes
+
+* is_`domain`\_`name`:
+	convenience attribute to call `:is(domain, name)`
