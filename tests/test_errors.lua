@@ -3,14 +3,19 @@ local errors = require("levee.errors")
 
 return {
 	test_core = function()
-		local e = errors.add(2001, "test", "BAD", "some bad thing")
-		assert.equal(e.code, -2001)
-		local got = errors.get(2001)
-		assert.equal(e, got)
+		local e = errors.get(2001)
+		assert.equal(type(e), "nil")
 
+		local want = errors.add(2001, "test", "BAD", "some bad thing")
+		assert.equal(want.code, -2001)
+
+		local e = errors.add(2001, "test", "BAD", "some bad thing")
+		assert.equal(type(e), "nil")
+
+		local e = errors.get(2001)
+		assert.equal(want, e)
 		assert(e:is("test", "BAD"))
 		assert(not e:is("test", "FOO"))
-
 		assert(e.is_test_BAD)
 		assert(not e.is_test_FOO)
 	end,
@@ -20,12 +25,9 @@ return {
 		assert.equal(e:next().code, -2)
 	end,
 
-	--[[
 	test_iter = function()
-		errors.add(2001, "test", "BAD", "some bad thing")
-		for err in errors() do
-			print(err)
-		end
+		local e
+		for err in errors() do e = err end
+		assert.equal(e.code, -10101)  -- levee.closed
 	end,
-	]]--
 }

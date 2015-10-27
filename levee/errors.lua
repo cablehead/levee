@@ -17,7 +17,8 @@ end
 
 
 function Error_mt:next()
-	return C.sp_error_next(self)
+	local e = C.sp_error_next(self)
+	if e ~= nil then return e end
 end
 
 
@@ -42,19 +43,24 @@ end
 ffi.metatype("SpError", Error_mt)
 
 
-local M = {
-	get = function(code)
-		return C.sp_error(code)
-	end,
+local M = {}
 
-	get_eai = function(code)
-		return C.sp_error(C.sp_eai_code(code))
-	end,
 
-	add = function(code, domain, name, msg)
-		return C.sp_error_add(code, domain, name, msg)
-	end,
-}
+M.get = function(code)
+	local e = C.sp_error(code)
+	if e ~= nil then return e end
+end
+
+
+M.get_eai = function(code)
+	return M.get(C.sp_eai_code(code))
+end
+
+
+M.add = function(code, domain, name, msg)
+	local e = C.sp_error_add(code, domain, name, msg)
+	if e ~= nil then return e end
+end
 
 
 local M_mt = {
