@@ -42,6 +42,6 @@
 	argument `a` will be passed to the callable. the current thread will yield to
 	be resumed after 1 tick of the event loop.
 
-* spawn_later(ms f, a)
-	schedules the callable `f` to run with the optional argument `a` at least
-	`ms` milliseconds in the future, in a new green thread.
+* spawn_later(ms f)
+	schedules the callable `f` to run at least `ms` milliseconds in the future,
+	in a new green thread. note an optional argument isn't available.

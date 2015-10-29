@@ -184,7 +184,7 @@ function Hub_mt:spawn(f, a)
 end
 
 
-function Hub_mt:spawn_later(ms, f, a)
+function Hub_mt:spawn_later(ms, f)
 	ms = self.poller:abstime(ms)
 	local co = coroutine.create(f)
 	self.scheduled:push(ms, co)

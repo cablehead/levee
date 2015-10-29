@@ -25,6 +25,26 @@ return {
 		assert.same(beats, {"tick", "tock", "tick", "tock"})
 	end,
 
+	test_spawn_later = function()
+		local h = levee.Hub()
+
+		local trace = {}
+
+		h:spawn_later(30, function() table.insert(trace, {"f"}) end)
+
+		table.insert(trace, {"m", 1})
+		h:sleep(20)
+		table.insert(trace, {"m", 2})
+		h:sleep(20)
+		table.insert(trace, {"m", 3})
+
+		assert.same(trace, {
+			{"m", 1},
+			{"m", 2},
+			{"f"},
+			{"m", 3}, })
+	end,
+
 	test_coro = function()
 		local h = levee.Hub()
 
