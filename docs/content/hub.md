@@ -55,3 +55,15 @@
 
 * unregister(no):
 	marks file descriptor `no` to be closed and removed from the poller.
+
+### objects
+
+#### `FDState`
+
+* recv(ms):
+	blocks until the file descriptor is in a ready state or until `ms`
+	milliseconds have passed. returns `err`, `value` where `err` indicates
+	whether a timeout occurred and `value` is either 1 or -1. -1 indicates that
+	in addition to the file descriptor potentially being ready (buffered bytes),
+	the file descriptor is closed.
+
