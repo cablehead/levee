@@ -232,14 +232,15 @@ function Hub_mt:register(no, r, w)
 end
 
 
-function Hub_mt:unregister(no, r, w)
+function Hub_mt:unregister(no)
 	local r = self.registered[no]
 	if r then
 		table.insert(self.closing, no)
 
 		-- this is only needed if a platform doesn't remove an fd from a poller on
 		-- fd close
-		self.poller:unregister(no, r, w)
+		-- TODO: detect r, w
+		-- self.poller:unregister(no, r, w)
 
 		if r[1] then r[1]:set(-1) end
 		if r[2] then r[2]:set(-1) end

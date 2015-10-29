@@ -45,3 +45,13 @@
 * spawn_later(ms f)
 	schedules the callable `f` to run at least `ms` milliseconds in the future,
 	in a new green thread. note an optional argument isn't available.
+
+#### poller
+
+* register(no, r, w):
+	registers file descriptor `no` with the poller. returns `r`, `w` where `r`
+	and `w` are either nil, or a `FDState`, depending on whether in calling
+	arguments `r` and `w` are true or fale.
+
+* unregister(no):
+	marks file descriptor `no` to be closed and removed from the poller.
