@@ -26,25 +26,26 @@ function State_mt:recv(timeout)
 	if self.value then
 		local value = self.value
 		self.value = nil
-		return value
+		return unpack(value)
 	end
 
 	self.co = coroutine.running()
-	local ret = self.hub:pause(timeout)
+	local err, value = self.hub:pause(timeout)
 	self.co = nil
-	return ret
+	return err, value
 end
 
 
-function State_mt:set(value)
+function State_mt:set(err, value)
+	print(err, value, self.co)
 	if not self.co then
-		self.value = value
+		self.value = {err, value}
 		return
 	end
 
 	local co = self.co
 	self.co = nil
-	self.hub:_coresume(co, value)
+	self.hub:_coresume(co, err, value)
 end
 
 
@@ -152,38 +153,27 @@ function Hub_mt:mimo(size)
 end
 
 
-function Hub_mt:_coresume(co, value)
-	-- TODO: test new switch_to behavior
-
+function Hub_mt:_coresume(co, err, value)
 	if co ~= self._pcoro then
-		local status, a1, a2 = coroutine.resume(co, value)
-
-		if not status then
-			error(a1)
-		end
-
-		if type(a1) == "thread" then
-			return self:_coresume(a1, a2)
-		end
-
-		return a1
+		local status
+		status, co, err, value = coroutine.resume(co, err, value)
+		if not status then error(co) end
+	else
+		co, err, value = coroutine.yield(co, err, value)
 	end
-
-	local co, value = coroutine.yield(value)
-	if type(co) == "thread" then
-		return self:_coresume(co, value)
+	if co then
+		self:_coresume(co, err, value)
 	end
 end
 
 
-function Hub_mt:_coyield(...)
-	if coroutine.running() ~= self._pcoro then return coroutine.yield(...) end
-
-	local status, message = coroutine.resume(self.loop, ...)
-	if not status then
-		error(message)
+function Hub_mt:_coyield(co, err, value)
+	if coroutine.running() ~= self._pcoro then
+		return coroutine.yield(co, err, value)
 	end
-	return message
+	local status, err, value = coroutine.resume(self.loop, co, err, value)
+	if not status then error(err) end
+	return err, value
 end
 
 
@@ -221,15 +211,20 @@ function Hub_mt:pause(ms)
 end
 
 
+function Hub_mt:resume(co, err, value)
+	self.ready:push({co, err, value})
+end
+
+
 function Hub_mt:continue()
 	self.ready:push({coroutine.running()})
 	self:_coyield()
 end
 
 
-function Hub_mt:switch_to(co, value)
+function Hub_mt:switch_to(co, err, value)
 	self.ready:push({coroutine.running()})
-	self:_coyield(co, value)
+	self:_coyield(co, err, value)
 end
 
 
@@ -270,8 +265,8 @@ end
 function Hub_mt:pump()
 	local num = #self.ready
 	for _ = 1, num do
-		local work = self.ready:pop()
-		self:_coresume(work[1], work[2])
+		local co, err, value = unpack(self.ready:pop())
+		self:_coresume(co, err, value)
 	end
 
 	local timeout
@@ -313,11 +308,11 @@ function Hub_mt:pump()
 			local r = self.registered[no]
 			if r then
 				if not e_ev then
-					if r_ev then r[1]:set(1) end
-					if w_ev then r[2]:set(1) end
+					if r_ev then r[1]:set(nil, 1) end
+					if w_ev then r[2]:set(nil, 1) end
 				else
-					if r[1] then r[1]:set(-1) end
-					if r[2] then r[2]:set(-1) end
+					if r[1] then r[1]:set(nil, -1) end
+					if r[2] then r[2]:set(nil, -1) end
 				end
 			end
 		end
