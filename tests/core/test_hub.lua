@@ -56,6 +56,9 @@ return {
 			coros[no] = coroutine.running()
 			local err, value = h:pause()
 			table.insert(trace, {"f", no, 2, err, value})
+
+			local err, value = h:pause(20)
+			table.insert(trace, {"f", no, 3, err, value})
 		end
 
 		table.insert(trace, {"m", 1})
@@ -73,7 +76,6 @@ return {
 		h:continue()
 
 		table.insert(trace, {"m", 6})
-
 		assert.same(trace, {
 			{"m", 1},
 			{"f", 1, 1},
@@ -85,6 +87,23 @@ return {
 			{"m", 5},
 			{"f", 1, 2, "e1", "v1"},
 			{"m", 6}, })
+
+		h:sleep(30)
+		table.insert(trace, {"m", 7})
+		assert.same(trace, {
+			{"m", 1},
+			{"f", 1, 1},
+			{"m", 2},
+			{"f", 2, 1},
+			{"m", 3},
+			{"f", 2, 2, "e2", "v2"},
+			{"m", 4},
+			{"m", 5},
+			{"f", 1, 2, "e1", "v1"},
+			{"m", 6},
+			{"f", 2, 3, levee.errors.TIMEOUT},
+			{"f", 1, 3, levee.errors.TIMEOUT},
+			{"m", 7}, })
 	end,
 
 	test_register = function()

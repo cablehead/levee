@@ -7,10 +7,6 @@ local _ = require("levee._")
 local d = require("levee.d")
 
 
-local TIMEOUT = errors.add(10100, "levee", "timeout", "operation timed out")
-local CLOSED = errors.add(10101, "levee", "closed", "channel is closed")
-
-
 -- local Heap = require("levee.heap")
 -- local FIFO = require("levee.fifo")
 -- local message = require("levee.message")
@@ -204,7 +200,7 @@ function Hub_mt:pause(ms)
 	ms = self.poller:abstime(ms)
 	local timeout = self.scheduled:push(ms, coroutine.running())
 	local ret = self:_coyield()
-	if ret ~= TIMEOUT then
+	if ret ~= errors.TIMEOUT then
 		timeout:remove()
 	end
 	return ret
@@ -292,7 +288,7 @@ function Hub_mt:pump()
 			break
 		end
 		local ms, co = self.scheduled:pop()
-		self:_coresume(co, TIMEOUT)
+		self:_coresume(co, errors.TIMEOUT)
 	end
 
 	for i = 0, n - 1 do

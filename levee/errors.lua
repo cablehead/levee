@@ -78,4 +78,8 @@ local M_mt = {
 }
 
 
+M.TIMEOUT = M.add(10100, "levee", "timeout", "operation timed out")
+M.CLOSED = M.add(10101, "levee", "closed", "channel is closed")
+
+
 return setmetatable(M, M_mt)
