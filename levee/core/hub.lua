@@ -22,7 +22,7 @@ function State_mt:recv(timeout)
 	if self.value then
 		local value = self.value
 		self.value = nil
-		return unpack(value)
+		return nil, value
 	end
 
 	self.co = coroutine.running()
@@ -32,16 +32,15 @@ function State_mt:recv(timeout)
 end
 
 
-function State_mt:set(err, value)
-	print(err, value, self.co)
+function State_mt:set(value)
 	if not self.co then
-		self.value = {err, value}
+		self.value = value
 		return
 	end
 
 	local co = self.co
 	self.co = nil
-	self.hub:_coresume(co, err, value)
+	self.hub:_coresume(co, nil, value)
 end
 
 
@@ -155,7 +154,7 @@ function Hub_mt:_coresume(co, err, value)
 		status, co, err, value = coroutine.resume(co, err, value)
 		if not status then error(co) end
 	else
-		co, err, value = coroutine.yield(co, err, value)
+		co, err, value = coroutine.yield(err, value)
 	end
 	if co then
 		self:_coresume(co, err, value)
@@ -199,11 +198,11 @@ function Hub_mt:pause(ms)
 
 	ms = self.poller:abstime(ms)
 	local timeout = self.scheduled:push(ms, coroutine.running())
-	local ret = self:_coyield()
-	if ret ~= errors.TIMEOUT then
+	local err, value = self:_coyield()
+	if err ~= errors.TIMEOUT then
 		timeout:remove()
 	end
-	return ret
+	return err, value
 end
 
 
@@ -304,11 +303,11 @@ function Hub_mt:pump()
 			local r = self.registered[no]
 			if r then
 				if not e_ev then
-					if r_ev then r[1]:set(nil, 1) end
-					if w_ev then r[2]:set(nil, 1) end
+					if r_ev then r[1]:set(1) end
+					if w_ev then r[2]:set(1) end
 				else
-					if r[1] then r[1]:set(nil, -1) end
-					if r[2] then r[2]:set(nil, -1) end
+					if r[1] then r[1]:set(-1) end
+					if r[2] then r[2]:set(-1) end
 				end
 			end
 		end

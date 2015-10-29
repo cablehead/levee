@@ -111,34 +111,42 @@ return {
 		local err, r, w = _.pipe()
 
 		local r_ev = h:register(r, true)
-		local _, w_ev = h:register(w, false, true)
+		local pass, w_ev = h:register(w, false, true)
 
-		-- assert timeout as well
 		local err, no = w_ev:recv(2000)
-		print(err, no)
+		assert(not err)
 		assert.equal(no, 1)
 		local err, no = w_ev:recv(20)
-		print(err, no)
 		assert(err.is_levee_timeout)
 
-		os.write(w, "foo")
+		_.write(w, "foo")
 
 		-- linux requires a read until writable will signal again
 		if ffi.os:lower() ~= "linux" then
-			assert.equal(w_ev:recv(), 1)
+			local err, no = w_ev:recv(2000)
+			assert(not err)
+			assert.equal(no, 1)
 		end
 
-		assert.equal(r_ev:recv(), 1)
+		local err, no = r_ev:recv()
+		assert(not err)
+		assert.equal(no, 1)
 
-		os.close(w)
-		assert.equal(r_ev:recv(), -1)
+		_.close(w)
+		local err, no = r_ev:recv()
+		assert(not err)
+		assert.equal(no, -1)
 
 		h:unregister(r, true)
 		h:unregister(w, false, true)
 
 		assert.same(h.registered, {})
-		assert.equal(r_ev:recv(), -1)
-		assert.equal(w_ev:recv(), -1)
+		local err, no = r_ev:recv()
+		assert(not err)
+		assert.equal(no, -1)
+		local err, no = w_ev:recv()
+		assert(not err)
+		assert.equal(no, -1)
 	end,
 
 	test_times = function()
