@@ -158,9 +158,9 @@ return {
 	
 	test_sleep = function()
 		local h = levee.Hub()
-		local start = time.now()
+		local start = _.time.now()
 		h:sleep(100)
-		local stop = time.now()
+		local stop = _.time.now()
 		local diff = (stop - start):seconds()
 		assert(diff > 0.09 and diff < 0.11, diff)
 	end,
