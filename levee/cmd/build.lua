@@ -37,25 +37,34 @@ local function output_main(path, options)
 			.init = luaopen_${name}
 		};
 
+		static Levee *state;
+
+		static int
+		pmain (lua_State *L)
+		{
+			(void)L;
+			int n = levee_require (state, "${name}.main");
+			if (n > 0) {
+				lua_pop (L, n);
+			}
+			return 0;
+		}
+
 		int
 		main (int argc, const char *argv[])
 		{
 			signal (SIGPIPE, SIG_IGN);
 
 			levee_init (&config);
-			Levee *state = levee_create ();
+
+			state = levee_create ();
 			levee_set_arg (state, argc-1, argv+1);
 
-			lua_getglobal (state->L, "require");
-			lua_pushstring (state->L, "${name}.main");
-			lua_call (state->L, 1, 1);
-
 			int rc = 0;
-			if (!levee_run (state, 0, false)) {
+			if (!levee_runf (state, pmain, 0, false)) {
 				levee_report_error (state);
 				rc = EX_DATAERR;
 			}
-
 			levee_destroy (state);
 			return rc;
 		}
@@ -77,7 +86,7 @@ return {
     return [[Usage: levee build [-o <exe] [-n <name>] <module> [module...]
 
 Options:
-  -o <exe>, --out <exe>     # file to out to [default: ./a.out]
+  -o <exe>, --out <exe>       # file to out to [default: ./a.out]
   -n <name>, --name <name>    # project name [default: name of first module
                               # listed]
   ]]
@@ -125,6 +134,7 @@ Options:
 
 		local proc = levee.path.proc()
 		local root = dirname(dirname(proc))
+		local lib = options.lib or root .. "/lib/liblevee.a"
 
 		local build = {
 			"cc",
@@ -147,12 +157,12 @@ Options:
 				"-D_BSD_SOURCE", "-D_GNU_SOURCE",
 				"-pthread", "-Wl,--export-dynamic", "-static-libgcc",
 				"-lm", "-ldl",
-				"-Wl,--whole-archive," .. root .. "/lib/liblevee.a,--no-whole-archive",
+				"-Wl,--whole-archive," .. lib .. ",--no-whole-archive",
 			},
 			osx = {
 				"-pagezero_size", "10000", "-image_base", "100000000",
 				"-Wl,-export_dynamic",
-				"-Wl,-force_load," .. root .. "/lib/liblevee.a",
+				"-Wl,-force_load," .. lib,
 			},
 		}
 
