@@ -44,6 +44,10 @@ add_library(
 	src/heap.c
 	src/levee.c
 	src/list.c
+	src/lpeg/lpcap.c
+	src/lpeg/lpcode.c
+	src/lpeg/lptree.c
+	src/lpeg/lpvm.c
 	${LEVEE_BUNDLE_OUTPUT}
 )
 set_target_properties(libleveebase PROPERTIES OUTPUT_NAME leveebase)
