@@ -27,6 +27,9 @@ static const LeveeConfig *config = NULL;
 extern int
 luaopen_levee (lua_State *L);
 
+extern int
+luaopen_lpeg (lua_State *L);
+
 static int
 require (lua_State *L, const char *name)
 {
@@ -45,6 +48,23 @@ levee_init (const LeveeConfig *cfg)
 	} while (!__sync_bool_compare_and_swap (&config, old, cfg));
 }
 
+static void
+register_3rd_party (lua_State *L)
+{
+	static const luaL_Reg libs[] = {
+		{ "lpeg", luaopen_lpeg },
+		{ NULL, NULL }
+	};
+
+	const luaL_Reg *lib;
+
+	luaL_findtable (L, LUA_REGISTRYINDEX, "_PRELOAD", 16);
+	for (lib = libs; lib->name != NULL; lib++) {
+		lua_pushcfunction (L, lib->func);
+		lua_setfield (L, -2, lib->name);
+	}
+}
+
 Levee *
 levee_create (void)
 {
@@ -55,6 +75,7 @@ levee_create (void)
 
 	luaL_openlibs (L);
 	luaopen_levee (L);
+	register_3rd_party (L);
 
 	// put ffi module on the stack
 	require (L, "ffi");
