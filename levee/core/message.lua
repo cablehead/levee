@@ -1,3 +1,4 @@
+local errors = require("levee.errors")
 local d = require("levee.d")
 
 
@@ -14,14 +15,14 @@ function Pipe_mt:send(value)
 	assert(not self.sender)
 
 	if self.closed then
-		return
+		return errors.CLOSED
 	end
 
 	if self.recver then
 		local co = self.recver
 		self.recver = nil
 		self.hub:switch_to(co, nil, value)
-		return true
+		return
 	end
 
 	self.value = value
@@ -34,7 +35,7 @@ function Pipe_mt:recv(timeout)
 	assert(not self.recver)
 
 	if self.closed then
-		return
+		return errors.CLOSED
 	end
 
 	if self.sender then
@@ -76,21 +77,22 @@ end
 
 function Pipe_mt:close()
 	if self.closed then
-		return
+		return errors.CLOSED
 	end
 
 	self.closed = true
 
+	local co
 	if self.recver then
-		local co = self.recver
+		co = self.recver
 		self.recver = nil
-		self.hub.ready:push({co})
+		self.hub:resume(co, errors.CLOSED)
 	elseif self.sender then
-		local co = self.sender
+		co = self.sender
 		self.sender = nil
-		self.hub.ready:push({co})
 	end
 
+	if co then self.hub:resume(co, errors.CLOSED) end
 	self.hub:continue()
 	return true
 end

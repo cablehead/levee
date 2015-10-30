@@ -6,13 +6,27 @@ sender and 1x recver. Sends will always lose context but will resume on the
 next poller tick. If a sender is waiting recvs return immediately, otherwise
 they block until the next send.
 
+#### methods
+
+* send(value):
+  return `err` where `err` is potentially `levee.errors.CLOSED`.
+
+* recv(ms):
+  returns `err`, `value`. where `value` is a sent value, or `err` is
+  `levee.errors.CLOSED` or `levee.errors.TIMEOUT` is the recv is blocked for
+  more than `ms` milliseconds.
+
+* close():
+  return `err`
+
+
 #### iteration
 
 ```lua
-	local p = h:pipe()
-	for i in p do
-		-- yields values until an error is encountered
-	end
+  local p = h:pipe()
+  for i in p do
+    -- yields values until an error is encountered
+  end
 ```
 
 ### Value
@@ -52,29 +66,29 @@ and will continue on the next poller tick after they have been recv'd.
 
 ## Combinations
 
-	pipe -> value
-	value -> pipe
+  pipe -> value
+  value -> pipe
 
-	pipe -> gate
-	gate -> pipe
+  pipe -> gate
+  gate -> pipe
 
-	value -> gate
-	gate -> value
+  value -> gate
+  gate -> value
 
-	pipe -> selector
-	gate -> selector
-	value -> selector
+  pipe -> selector
+  gate -> selector
+  value -> selector
 
-	pipe -> queue
-	gate -> queue
-	value -> queue
+  pipe -> queue
+  gate -> queue
+  value -> queue
 
-	pipe -> stalk
-	gate -> stalk
-	value -> stalk
+  pipe -> stalk
+  gate -> stalk
+  value -> stalk
 
 
 
-	pipe -> pipe
-	value -> value
-	gate -> gate
+  pipe -> pipe
+  value -> value
+  gate -> gate

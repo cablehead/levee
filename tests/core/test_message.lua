@@ -2,25 +2,61 @@ local levee = require("levee")
 
 
 return {
-	test_pipe_core = function()
+	test_pipe_recv_then_send = function()
 		local h = levee.Hub()
 		local p = h:pipe()
 
-		-- recv and then send
 		local sent = false
-		h:spawn_later(10, function() sent = true; p:send("1") end)
+		local state
+		h:spawn_later(10, function() sent = true; state = p:send("1") end)
 		assert(not sent)
+
 		local err, value = p:recv()
 		assert(not err)
 		assert.equal(value, "1")
+		-- give send a chance to resume
+		h:continue()
+		assert.equal(state, nil)
 
-		-- send and then recv
+		local state
+		h:spawn_later(10, function() state = p:close() end)
+
+		local err, value = p:recv()
+		assert.equal(err, levee.errors.CLOSED)
+		-- give send a chance to resume
+		h:continue()
+		assert.equal(state, nil)
+
+		assert.equal(p:send("1"), levee.errors.CLOSED)
+		assert.equal(p:recv(), levee.errors.CLOSED)
+		assert.equal(p:close(), levee.errors.CLOSED)
+	end,
+
+	test_pipe_send_then_recv = function()
+		local h = levee.Hub()
+		local p = h:pipe()
+
 		local sent = false
-		h:spawn(function() sent = true; p:send("2") end)
+		local state
+		h:spawn(function() sent = true; state = p:send("1") end)
 		assert(sent)
+
 		local err, value = p:recv()
 		assert(not err)
-		assert.equal(value, "2")
+		assert.equal(value, "1")
+		-- give send a chance to resume
+		h:continue()
+		assert.equal(state, nil)
+
+		local state
+		h:spawn(function() state = p:send("2") end)
+
+		p:close()
+		assert.equal(state, levee.errors.CLOSED)
+
+		assert.equal(p:send("1"), levee.errors.CLOSED)
+		assert.equal(p:recv(), levee.errors.CLOSED)
+		assert.equal(p:close(), levee.errors.CLOSED)
 	end,
 
 	test_pipe_timeout = function()
@@ -57,28 +93,6 @@ return {
 		local got = {}
 		for i in p do table.insert(got, i) end
 		assert.same(got, {1, 2, 3})
-	end,
-
-	test_pipe_close_recver = function()
-		local h = levee.Hub()
-		local p = h:pipe()
-
-		local state
-		h:spawn(
-			function()
-				while true do
-					local ok = p:send("foo")
-					if not ok then break end
-				end
-				state = "done"
-			end)
-
-		assert.equal(p:recv(), "foo")
-		assert.equal(p:recv(), "foo")
-		assert.equal(p:recv(), "foo")
-
-		p:close()
-		assert.equal(state, "done")
 	end,
 
 	test_value = function()
