@@ -7,9 +7,10 @@ local _ = require("levee._")
 local d = require("levee.d")
 
 
+local message = require("levee.core.message")
+
 -- local Heap = require("levee.heap")
 -- local FIFO = require("levee.fifo")
--- local message = require("levee.message")
 -- local constants = require("levee.constants")
 -- local Channel = require("levee.channel")
 

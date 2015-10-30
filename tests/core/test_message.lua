@@ -1,4 +1,25 @@
 return {
+	test_pipe_core = function()
+		local h = require("levee").Hub()
+		local p = h:pipe()
+
+		-- recv and then send
+		local sent = false
+		h:spawn_later(10, function() sent = true; p:send("1") end)
+		assert(not sent)
+		local err, value = p:recv()
+		assert(not err)
+		assert.equal(value, "1")
+
+		-- send and then recv
+		local sent = false
+		h:spawn(function() sent = true; p:send("2") end)
+		assert(sent)
+		local err, value = p:recv()
+		assert(not err)
+		assert.equal(value, "2")
+	end,
+
 	test_value = function()
 		local levee = require("levee")
 		local h = levee.Hub()
@@ -17,23 +38,6 @@ return {
 		v:send(3)
 		assert.equal(v:recv(), 3)
 		assert.equal(v:recv(), 3)
-	end,
-
-	test_pipe = function()
-		local h = require("levee").Hub()
-		local p = h:pipe()
-
-		-- recv and then send
-		local sent = false
-		h:spawn_later(10, function() sent = true; p:send("1") end)
-		assert(not sent)
-		assert.equal(p:recv(), "1")
-
-		-- send and then recv
-		local sent = false
-		h:spawn(function() sent = true; p:send("2") end)
-		assert(sent)
-		assert.equal(p:recv(), "2")
 	end,
 
 	test_pipe_timeout = function()
