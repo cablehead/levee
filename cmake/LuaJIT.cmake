@@ -4,12 +4,12 @@ set(LUAJIT_DIR "${CMAKE_CURRENT_BINARY_DIR}/luajit")
 set(LUAJIT_LIB "${LUAJIT_DIR}/lib/libluajit-5.1.a")
 set(LUAJIT_BIN "${LUAJIT_DIR}/bin/luajit")
 set(LUAJIT_INC "${LUAJIT_DIR}/include/luajit-2.1")
-set(LUAJIT_HASH 28d8728)
+set(LUAJIT_HASH "v2.1.0-beta1")
 
 externalproject_add(luajit_project
 	GIT_REPOSITORY http://luajit.org/git/luajit-2.0.git
 	GIT_TAG ${LUAJIT_HASH}
-	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/luajit_project"
+	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/luajit_project_${LUAJIT_HASH}"
 	CONFIGURE_COMMAND ""
 	UPDATE_COMMAND ""
 	BUILD_COMMAND make
