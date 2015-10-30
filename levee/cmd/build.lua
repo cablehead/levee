@@ -38,25 +38,34 @@ local function output_main(path, options)
 			.init = luaopen_${name}
 		};
 
+		static Levee *state;
+
+		static int
+		pmain (lua_State *L)
+		{
+			(void)L;
+			int n = levee_require (state, "${name}.main");
+			if (n > 0) {
+				lua_pop (L, n);
+			}
+			return 0;
+		}
+
 		int
 		main (int argc, const char *argv[])
 		{
 			signal (SIGPIPE, SIG_IGN);
 
 			levee_init (&config);
-			Levee *state = levee_create ();
+
+			state = levee_create ();
 			levee_set_arg (state, argc-1, argv+1);
 
-			lua_getglobal (state->L, "require");
-			lua_pushstring (state->L, "${name}.main");
-			lua_call (state->L, 1, 1);
-
 			int rc = 0;
-			if (!levee_run (state, 0, false)) {
+			if (!levee_runf (state, pmain, 0, false)) {
 				levee_report_error (state);
 				rc = EX_DATAERR;
 			}
-
 			levee_destroy (state);
 			return rc;
 		}
