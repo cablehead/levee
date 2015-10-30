@@ -1,6 +1,9 @@
+local levee = require("levee")
+
+
 return {
 	test_pipe_core = function()
-		local h = require("levee").Hub()
+		local h = levee.Hub()
 		local p = h:pipe()
 
 		-- recv and then send
@@ -21,8 +24,6 @@ return {
 	end,
 
 	test_pipe_timeout = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local p = h:pipe()
 
@@ -42,7 +43,7 @@ return {
 	end,
 
 	test_pipe_iter = function()
-		local h = require("levee").Hub()
+		local h = levee.Hub()
 		local p = h:pipe()
 
 		h:spawn(
@@ -61,7 +62,7 @@ return {
 	end,
 
 	test_pipe_close_recver = function()
-		local h = require("levee").Hub()
+		local h = levee.Hub()
 		local p = h:pipe()
 
 		local state
@@ -83,7 +84,6 @@ return {
 	end,
 
 	test_value = function()
-		local levee = require("levee")
 		local h = levee.Hub()
 
 		local v = h:value(1)
@@ -103,7 +103,7 @@ return {
 	end,
 
 	test_gate = function()
-		local h = require("levee").Hub()
+		local h = levee.Hub()
 		local g = h:gate()
 
 		-- test send and then recv
@@ -152,7 +152,6 @@ return {
 	end,
 
 	test_queue = function()
-		local levee = require("levee")
 		local h = levee.Hub()
 		local q = h:queue()
 
@@ -187,7 +186,7 @@ return {
 	end,
 
 	test_queue_size = function()
-		local h = require("levee").Hub()
+		local h = levee.Hub()
 
 		local q = h:queue(3)
 
@@ -205,7 +204,6 @@ return {
 	end,
 
 	test_stalk_send_then_recv = function()
-		local levee = require("levee")
 		local h = levee.Hub()
 		local q = h:stalk(3)
 
@@ -255,7 +253,6 @@ return {
 	end,
 
 	test_stalk_recv_then_send = function()
-		local levee = require("levee")
 		local h = levee.Hub()
 		local q = h:stalk(3)
 
@@ -295,7 +292,6 @@ return {
 	end,
 
 	test_mimo = function()
-		local levee = require("levee")
 		local h = levee.Hub()
 		local q = h:mimo(1)
 
@@ -333,7 +329,7 @@ return {
 	end,
 
 	test_selector = function()
-		local h = require("levee").Hub()
+		local h = levee.Hub()
 
 		local p1 = h:pipe()
 		local p2 = h:pipe()
@@ -373,8 +369,6 @@ return {
 	end,
 
 	test_selector_timeout = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 
 		local p1 = h:pipe()
