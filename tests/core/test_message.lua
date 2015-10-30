@@ -20,26 +20,6 @@ return {
 		assert.equal(value, "2")
 	end,
 
-	test_value = function()
-		local levee = require("levee")
-		local h = levee.Hub()
-
-		local v = h:value(1)
-		assert.equal(v:recv(), 1)
-		assert.equal(v:recv(), 1)
-
-		v:send()
-		assert.equal(v:recv(10), levee.TIMEOUT)
-
-		h:spawn_later(10, function() v:send(2) end)
-		assert.equal(v:recv(20), 2)
-
-		v:send(3)
-		v:send(3)
-		assert.equal(v:recv(), 3)
-		assert.equal(v:recv(), 3)
-	end,
-
 	test_pipe_timeout = function()
 		local levee = require("levee")
 
@@ -100,6 +80,26 @@ return {
 
 		p:close()
 		assert.equal(state, "done")
+	end,
+
+	test_value = function()
+		local levee = require("levee")
+		local h = levee.Hub()
+
+		local v = h:value(1)
+		assert.equal(v:recv(), 1)
+		assert.equal(v:recv(), 1)
+
+		v:send()
+		assert.equal(v:recv(10), levee.TIMEOUT)
+
+		h:spawn_later(10, function() v:send(2) end)
+		assert.equal(v:recv(20), 2)
+
+		v:send(3)
+		v:send(3)
+		assert.equal(v:recv(), 3)
+		assert.equal(v:recv(), 3)
 	end,
 
 	test_gate = function()
