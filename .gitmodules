@@ -1,6 +1,0 @@
-[submodule "src/luajit"]
-	path = src/luajit
-	url = http://luajit.org/git/luajit-2.0.git
-[submodule "src/siphon"]
-	path = src/siphon
-	url = git@github.com:imgix/siphon.git
