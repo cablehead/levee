@@ -6,6 +6,15 @@ sender and 1x recver. Sends will always lose context but will resume on the
 next poller tick. If a sender is waiting recvs return immediately, otherwise
 they block until the next send.
 
+#### iteration
+
+```lua
+	local p = h:pipe()
+	for i in p do
+		-- yields values until an error is encountered
+	end
+```
+
 ### Value
 
 Sends on a Value never block, but just update the current state of the Value.

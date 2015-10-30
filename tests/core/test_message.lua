@@ -54,11 +54,9 @@ return {
 				p:close()
 			end)
 
-		local want = 1
-		for i in p do
-			assert.equal(want, i)
-			want = want + 1
-		end
+		local got = {}
+		for i in p do table.insert(got, i) end
+		assert.same(got, {1, 2, 3})
 	end,
 
 	test_pipe_close_recver = function()

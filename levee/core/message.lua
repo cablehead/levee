@@ -53,8 +53,10 @@ function Pipe_mt:recv(timeout)
 end
 
 
-function Pipe_mt:__call(timeout)
-	return self:recv(timeout)
+function Pipe_mt:__call()
+	local err, value = self:recv()
+	if err then return end
+	return value
 end
 
 
