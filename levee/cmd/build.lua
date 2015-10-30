@@ -78,7 +78,7 @@ return {
     return [[Usage: levee build [-o <exe] [-n <name>] <module> [module...]
 
 Options:
-  -o <exe>, --out <exe>     # file to out to [default: ./a.out]
+  -o <exe>, --out <exe>       # file to out to [default: ./a.out]
   -n <name>, --name <name>    # project name [default: name of first module
                               # listed]
   ]]
@@ -126,6 +126,7 @@ Options:
 
 		local proc = levee.path.proc()
 		local root = dirname(dirname(proc))
+		local lib = options.lib or root .. "/lib/liblevee.a"
 
 		local build = {
 			"cc",
@@ -148,12 +149,12 @@ Options:
 				"-D_BSD_SOURCE", "-D_GNU_SOURCE",
 				"-pthread", "-Wl,--export-dynamic", "-static-libgcc",
 				"-lm", "-ldl",
-				"-Wl,--whole-archive," .. root .. "/lib/liblevee.a,--no-whole-archive",
+				"-Wl,--whole-archive," .. lib .. ",--no-whole-archive",
 			},
 			osx = {
 				"-pagezero_size", "10000", "-image_base", "100000000",
 				"-Wl,-export_dynamic",
-				"-Wl,-force_load," .. root .. "/lib/liblevee.a",
+				"-Wl,-force_load," .. lib,
 			},
 		}
 
