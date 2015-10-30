@@ -18,12 +18,23 @@ A Gate ensures a senders thread cannot progress until the recv-ing thread is
 ready for it too. Sends always lose context, but won't be scheduled to continue
 until the recv-ing end makes a blocking recv call.
 
-
 ### Queue
+
+A queue is exactly one Sender and one Recver with a fifo in between. Sends
+won't block until the fifo is filled. Sends will return immediately if a recver
+is ready.
 
 ### Stalk
 
+A Stalk is a delayed queue. Recv-ing on the Stalk returns true once there are
+items in the queue, but it doesn't actually return a sent item. The queue can
+then be processed and optionally cleared. Once cleared if there is a pending
+upstream sender it will be signaled to continue.
+
 ### Selector
+
+A Selector coalesces many Senders into one Recver. Senders always lose context
+and will continue on the next poller tick after they have been recv'd.
 
 
 
@@ -40,6 +51,20 @@ until the recv-ing end makes a blocking recv call.
 
 	value -> gate
 	gate -> value
+
+	pipe -> selector
+	gate -> selector
+	value -> selector
+
+	pipe -> queue
+	gate -> queue
+	value -> queue
+
+	pipe -> stalk
+	gate -> stalk
+	value -> stalk
+
+
 
 	pipe -> pipe
 	value -> value
