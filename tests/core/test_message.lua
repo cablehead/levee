@@ -210,7 +210,6 @@ return {
 		assert.equal(sent, 1)
 		assert.same(got, {nil, 1})
 
-
 		-- test recv and then send
 		h:spawn(function() got = {recver:recv()} end)
 		h:continue()
