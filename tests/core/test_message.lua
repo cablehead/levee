@@ -368,43 +368,6 @@ return {
 		assert.same(check, {1, 2, 3, 4, 5, 6, 7, 8, 9, 20})
 	end,
 
-	test_mimo = function()
-		local h = levee.Hub()
-		local q = h:mimo(1)
-
-		-- test send and then recv
-		local check = {}
-		q:send("1")
-		h:spawn(function() q:send("2"); table.insert(check, "2") end)
-		h:spawn(function() q:send("3"); table.insert(check, "3") end)
-
-		assert.equal(q:recv(), "1")
-		assert.equal(q:recv(), "2")
-		assert.equal(q:recv(), "3")
-
-		h:continue()
-		assert.same(check, {"2", "3"})
-
-		-- test recv and then send
-		local check = {}
-		h:spawn(function() table.insert(check, {1, q:recv()}) end)
-		h:spawn(function() table.insert(check, {2, q:recv()}) end)
-		h:spawn(function() table.insert(check, {3, q:recv()}) end)
-
-		q:send("1")
-		q:send("2")
-		q:send("3")
-
-		h:continue()
-		assert.same(check, {{1, "1"}, {2, "2"}, {3, "3"}})
-
-		-- test close
-		q:send("1")
-		q:close()
-		assert.equal(q:recv(), "1")
-		assert.equal(q:recv(), nil)
-	end,
-
 	test_selector = function()
 		local h = levee.Hub()
 
