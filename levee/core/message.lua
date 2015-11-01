@@ -3,6 +3,108 @@ local d = require("levee.d")
 
 
 --
+-- Sender
+
+
+local Sender_mt = {}
+Sender_mt.__index = Sender_mt
+
+
+function Sender_mt:send(value)
+	assert(not self.co)
+
+	if self.closed then return errors.CLOSED end
+
+	local err, ok = self.recver:_give(nil, value)
+
+	if err then
+		self.closed = true
+		return err
+	end
+
+	if ok then return end
+
+	self.value = value
+	self.co = coroutine.running()
+	return self.hub:_coyield()
+end
+
+
+function Sender_mt:_take()
+	if self.closed then return errors.CLOSED end
+
+	if not self.co then return end
+
+	self.hub:resume(self.co)
+	local value = self.value
+	self.co = nil
+	self.value = nil
+	return nil, value
+end
+
+
+function Sender_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.recver:_give(errors.CLOSED)
+end
+
+
+local function Sender(hub)
+	return setmetatable({hub=hub}, Sender_mt)
+end
+
+
+--
+-- Recver
+
+
+local Recver_mt = {}
+Recver_mt.__index = Recver_mt
+
+
+function Recver_mt:recv(ms)
+	assert(not self.co)
+
+	if self.closed then return errors.CLOSED end
+
+	local err, value = self.sender:_take()
+
+	if err or value then return err, value end
+
+	self.co = coroutine.running()
+	local err, value = self.hub:pause(timeout)
+	self.co = nil
+	return err, value
+end
+
+
+function Recver_mt:_give(err, value)
+	if self.closed then return errors.CLOSED end
+
+	if not self.co then return end
+
+	if err == errors.CLOSED then self.closed = true end
+
+	local co = self.co
+	self.co = nil
+	self.hub:switch_to(co, err, value)
+	return nil, true
+end
+
+
+function Recver_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+end
+
+
+local function Recver(hub)
+	return setmetatable({hub=hub}, Recver_mt)
+end
+
+
+--
 -- Pipe
 
 -- A pipe has exactly one Sender and one Recver.
@@ -62,6 +164,9 @@ end
 
 
 function Pipe_mt:redirect(target)
+	print("redirect", target)
+	if true then return end
+
 	assert(not self.recver)
 
 	self.target = target
@@ -600,12 +705,14 @@ end
 ----
 
 return {
+	Sender = Sender,
+	Recver = Recver,
+
 	Value = Value,
 	Pipe = Pipe,
 	Gate = Gate,
 	Queue = Queue,
 	Stalk = Stalk,
-	MiMo = MiMo,
 	Selector = Selector,
 	Pair = Pair,
 	}

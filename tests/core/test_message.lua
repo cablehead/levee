@@ -4,32 +4,43 @@ local levee = require("levee")
 return {
 	test_pipe_recv_then_send = function()
 		local h = levee.Hub()
-		local p = h:pipe()
+
+		local sender, recver = h:pipe()
 
 		local sent = false
-		local state
-		h:spawn_later(10, function() sent = true; state = p:send("1") end)
+
+		h:spawn_later(10, function()
+			local err
+			local i = 0
+			while true do
+				i = i + 1
+				sent = true
+				local err = sender:send(i)
+				assert(not err)
+				sent = false
+				if i == 2 then break end
+			end
+			sender:close()
+		end)
+
 		assert(not sent)
-
-		local err, value = p:recv()
+		local err, value = recver:recv()
 		assert(not err)
-		assert.equal(value, "1")
-		-- give send a chance to resume
-		h:continue()
-		assert.equal(state, nil)
+		assert.equal(value, 1)
+		assert(sent)
 
-		local state
-		h:spawn_later(10, function() state = p:close() end)
+		local err, value = recver:recv()
+		assert(not err)
+		assert.equal(value, 2)
+		assert(sent)
 
-		local err, value = p:recv()
+		local err, value = recver:recv()
 		assert.equal(err, levee.errors.CLOSED)
-		-- give send a chance to resume
-		h:continue()
-		assert.equal(state, nil)
 
-		assert.equal(p:send("1"), levee.errors.CLOSED)
-		assert.equal(p:recv(), levee.errors.CLOSED)
-		assert.equal(p:close(), levee.errors.CLOSED)
+		assert.equal(sender:send("1"), levee.errors.CLOSED)
+		assert.equal(recver:recv(), levee.errors.CLOSED)
+		assert.equal(sender:close(), levee.errors.CLOSED)
+		assert.equal(recver:close(), levee.errors.CLOSED)
 	end,
 
 	test_pipe_send_then_recv = function()
@@ -93,6 +104,45 @@ return {
 		local got = {}
 		for i in p do table.insert(got, i) end
 		assert.same(got, {1, 2, 3})
+	end,
+
+	test_pipe_redirect = function()
+		local h = levee.Hub()
+
+		print()
+		print()
+
+		local producer = (function()
+			local p = h:pipe()
+			h:spawn(function()
+				local i = 0
+				while true do
+					i = i + 1
+					if p:send(i) then return end
+				end
+			end)
+			return p
+		end)()
+
+		local check = {}
+		local consumer = (function()
+			local p = h:pipe()
+			h:spawn(function()
+				for i in p do
+					table.insert(check, i)
+				end
+			end)
+			return p
+		end)()
+
+		-- print(producer:recv())
+		-- print(producer:recv())
+		-- consumer:send("foo")
+		--
+
+		producer:redirect(consumer)
+
+
 	end,
 
 	test_value = function()

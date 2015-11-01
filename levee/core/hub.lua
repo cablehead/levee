@@ -115,7 +115,11 @@ Hub_mt.__index = Hub_mt
 
 
 function Hub_mt:pipe()
-	return message.Pipe(self)
+	local sender = message.Sender(self)
+	local recver = message.Recver(self)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
 end
 
 
