@@ -73,7 +73,7 @@ function Recver_mt:recv(ms)
 	if err or value then return err, value end
 
 	self.co = coroutine.running()
-	local err, value = self.hub:pause(timeout)
+	local err, value = self.hub:pause(ms)
 	self.co = nil
 	return err, value
 end

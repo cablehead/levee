@@ -84,20 +84,21 @@ return {
 
 	test_pipe_timeout = function()
 		local h = levee.Hub()
-		local p = h:pipe()
 
-		assert.equal(p:recv(10), levee.errors.TIMEOUT)
+		local sender, recver = h:pipe()
+
+		assert.equal(recver:recv(10), levee.errors.TIMEOUT)
 		assert.equal(#h.scheduled, 0)
 
-		h:spawn_later(10, function() p:send("foo") end)
-		assert.same({p:recv(20)}, {nil, "foo"})
+		h:spawn_later(10, function() sender:send("foo") end)
+		assert.same({recver:recv(20)}, {nil, "foo"})
 		assert.equal(#h.scheduled, 0)
 
-		h:spawn(function() p:send("foo") end)
-		assert.same({p:recv(0)}, {nil, "foo"})
+		h:spawn(function() sender:send("foo") end)
+		assert.same({recver:recv(0)}, {nil, "foo"})
 		assert.equal(#h.scheduled, 0)
 
-		assert.equal(p:recv(0), levee.errors.TIMEOUT)
+		assert.equal(recver:recv(0), levee.errors.TIMEOUT)
 		assert.equal(#h.scheduled, 0)
 	end,
 
