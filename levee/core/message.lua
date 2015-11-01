@@ -518,22 +518,20 @@ function Selector_mt:_link(sender)
 end
 
 
-Selector_mt._give = Recver_mt._give
+function Selector_mt:_give(err, sender, value)
+	if self.closed then return errors.CLOSED end
 
-
-function Selector_mt:give(sender, value)
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		-- TODO: there's a race condition here with timeout
-		-- need to check Pipe and Queue to see if they have the same issue
-		self.hub:switch_to(co, {sender, value})
-		-- self.hub.ready:push({co, {sender, value}})
-		return true
+	if not self.co then
+		self.fifo:push(sender)
+		return
 	end
 
-	self.fifo:push(sender)
-	return false
+	if err == errors.CLOSED then self.closed = true end
+
+	local co = self.co
+	self.co = nil
+	self.hub:switch_to(co, err, sender, value)
+	return nil, true
 end
 
 
@@ -542,18 +540,14 @@ function Selector_mt:recv(ms)
 
 	if #self.fifo > 0 then
 		local sender = self.fifo:pop()
-		return {sender, sender:take()}
+		local err, value = sender:_take()
+		return err, sender, value
 	end
 
 	self.co = coroutine.running()
 	local err, sender, value = self.hub:pause(ms)
 	self.co = nil
 	return err, sender, value
-end
-
-
-function Selector_mt:__call()
-	return self:recv()
 end
 
 

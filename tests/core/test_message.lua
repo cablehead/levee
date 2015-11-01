@@ -405,10 +405,7 @@ return {
 		assert.equal(q:recv(), nil)
 	end,
 
-	test_selector_core = function()
-		print()
-		print()
-
+	test_selector = function()
 		local h = levee.Hub()
 
 		local s1, r1 = h:pipe()
@@ -424,49 +421,29 @@ return {
 
 		assert.same({s:recv()}, {nil, s1, "0"})
 
-
-		if true then return end
-
 		-- send and then recv
 		h:spawn(function() s1:send("1") end)
-		assert.same(s:recv(), {s1, "1"})
+		assert.same({s:recv()}, {nil, s1, "1"})
 
 		-- recv and then send
 		local check
-		h:spawn(function() check = s:recv() end)
+		h:spawn(function() check = {s:recv()} end)
 		s2:send("2")
-		assert.same(check, {s2, "2"})
+		assert.same(check, {nil, s2, "2"})
 
 		-- 2x pending
 		h:spawn(function() s2:send("2") end)
 		h:spawn(function() s1:send("1") end)
-		assert.same(s:recv(), {s2, "2"})
-		assert.same(s:recv(), {s1, "1"})
+		assert.same({s:recv()}, {nil, s2, "2"})
+		assert.same({s:recv()}, {nil, s1, "1"})
+
+		-- test timeout
+		assert.equal(s:recv(10), levee.errors.TIMEOUT)
+		h:spawn_later(10, function() s1:send("1") end)
+		assert.same({s:recv(20)}, {nil, s1, "1"})
 
 		-- test sender close
 		h:spawn(function() s1:close() end)
-		local sender, value = unpack(s:recv())
-		assert.same(sender, s1)
-		assert.equal(sender.closed, true)
-		assert.equal(value, nil)
-	end,
-
-	test_selector_timeout = function()
-		if true then return end
-		local h = levee.Hub()
-
-		local p1 = h:pipe()
-		local p2 = h:pipe()
-
-		local s = h:selector()
-
-		p1:redirect(s)
-		p2:redirect(s)
-
-		assert.equal(s:recv(10), levee.TIMEOUT)
-		assert.equal(#h.scheduled, 0)
-
-		h:spawn_later(10, function() p1:send("1") end)
-		assert.same(s:recv(20), {p1, "1"})
+		assert.same({s:recv()}, {levee.errors.CLOSED, s1})
 	end,
 }
