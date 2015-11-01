@@ -123,13 +123,17 @@ function Hub_mt:pipe()
 end
 
 
-function Hub_mt:gate()
-	return message.Gate(self)
+function Hub_mt:value(value)
+	local sender = message.Value(self, value)
+	local recver = message.Recver(self)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
 end
 
 
-function Hub_mt:value(value)
-	return message.Value(self, value)
+function Hub_mt:gate()
+	return message.Gate(self)
 end
 
 
@@ -145,11 +149,6 @@ end
 
 function Hub_mt:stalk(size)
 	return message.Stalk(self, size)
-end
-
-
-function Hub_mt:mimo(size)
-	return message.MiMo(self, size)
 end
 
 

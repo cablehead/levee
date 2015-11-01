@@ -163,20 +163,20 @@ return {
 	test_value = function()
 		local h = levee.Hub()
 
-		local v = h:value(1)
-		assert.equal(v:recv(), 1)
-		assert.equal(v:recv(), 1)
+		local sender, recver = h:value(1)
+		assert.same({recver:recv()}, {nil, 1})
+		assert.same({recver:recv()}, {nil, 1})
 
-		v:send()
-		assert.equal(v:recv(10), levee.TIMEOUT)
+		sender:send()
+		assert.same({recver:recv(10)}, {levee.errors.TIMEOUT})
 
-		h:spawn_later(10, function() v:send(2) end)
-		assert.equal(v:recv(20), 2)
+		h:spawn_later(10, function() sender:send(2) end)
+		assert.same({recver:recv(20)}, {nil, 2})
 
-		v:send(3)
-		v:send(3)
-		assert.equal(v:recv(), 3)
-		assert.equal(v:recv(), 3)
+		sender:send(3)
+		sender:send(4)
+		assert.same({recver:recv()}, {nil, 4})
+		assert.same({recver:recv()}, {nil, 4})
 	end,
 
 	test_gate = function()

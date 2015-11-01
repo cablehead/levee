@@ -5,7 +5,6 @@ local d = require("levee.d")
 --
 -- Sender
 
-
 local Sender_mt = {}
 Sender_mt.__index = Sender_mt
 
@@ -75,7 +74,6 @@ end
 
 --
 -- Recver
-
 
 local Recver_mt = {}
 Recver_mt.__index = Recver_mt
@@ -153,32 +151,20 @@ Value_mt.__index = Value_mt
 
 
 function Value_mt:send(value)
+	if self.closed then return errors.CLOSED end
 	self.value = value
-
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub:switch_to(co, value)
-	end
-
-	return true
+	self.recver:_give(nil, self, value)
 end
 
 
-function Value_mt:recv(ms)
-	if self.value ~= nil then return self.value end
-
-	self.recver = coroutine.running()
-	local ret = self.hub:pause(ms)
-	-- TODO: handle comprehensively
-	self.recver = nil
-	return ret
+function Value_mt:_take(err)
+	if self.closed then return errors.CLOSED end
+	return nil, self.value
 end
 
 
 local function Value(hub, value)
-	local self = setmetatable({hub=hub, value=value}, Value_mt)
-	return self
+	return setmetatable({hub=hub, value=value}, Value_mt)
 end
 
 
