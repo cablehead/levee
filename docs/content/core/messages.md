@@ -46,6 +46,8 @@ return immediately with the set value.
 
 ### Gate
 
+Specialized Sender.
+
 A Gate ensures a senders thread cannot progress until the recv-ing thread is
 ready for it too. Sends always lose context, but won't be scheduled to continue
 until the recv-ing end makes a blocking recv call.

@@ -43,7 +43,7 @@ function Sender_mt:_take(err)
 
 	if not self.co then return end
 
-	self.hub:resume(self.co, err, sender, true)
+	self.hub:resume(self.co, err, nil, true)
 	local value = self.value
 	self.co = nil
 	self.value = nil
@@ -176,82 +176,54 @@ Gate_mt.__index = Gate_mt
 
 
 function Gate_mt:send(value)
-	assert(not self.sender)
+	assert(not self.co)
 
-	if self.closed then
-		return
+	if self.closed then return errors.CLOSED end
+
+	local err, ok = self.recver:_give(nil, self, value)
+
+	if err == errors.CLOSED then
+		self.closed = true
+		return err
 	end
 
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub.ready:push({co, value})
-	else
-		self.value = value
+	if not ok then self.value = value end
+	self.co = coroutine.running()
+	local err, sender, ok = self.hub:pause()
+
+	if err == errors.CLOSED then
+		self.closed = true
+		return err
 	end
 
-	self.sender = coroutine.running()
-	return self.hub:_coyield()
+	if ok then return end
+
+	return self:send(value)
 end
 
 
-function Gate_mt:recv(ms)
-	assert(not self.recver)
+function Gate_mt:_take(err)
+	if self.closed then return errors.CLOSED end
 
-	if self.closed then
-		return
-	end
+	-- there's no sender at all, block
+	if not self.co then return end
 
+	-- there's a sender with a value waiting. take the value, but leave the
+	-- sender blocked.
 	if self.value then
 		local value = self.value
 		self.value = nil
-		return value
+		return nil, value
 	end
 
-	if self.sender then
-		local co = self.sender
-		self.sender = nil
-		self.hub.ready:push({co, true})
-	end
-
-	self.recver = coroutine.running()
-	local ret = self.hub:pause(ms)
-	-- TODO: handle comprehensively
-	self.recver = nil
-	return ret
-end
-
-
-function Gate_mt:__call()
-	return self:recv()
-end
-
-
-function Gate_mt:close()
-	if self.closed then
-		return
-	end
-
-	self.closed = true
-
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub.ready:push({co})
-	elseif self.sender then
-		local co = self.sender
-		self.sender = nil
-		self.hub.ready:push({co})
-	end
-
-	self.hub:continue()
-	return true
+	-- we've already taken the sender's value. resume the sender.
+	self.hub:resume(self.co, err, nil, true)
+	self.co = nil
 end
 
 
 local function Gate(hub)
-	local self = setmetatable({hub=hub}, Gate_mt)
-	return self
+	return setmetatable({hub=hub}, Gate_mt)
 end
 
 

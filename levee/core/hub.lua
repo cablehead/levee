@@ -9,9 +9,7 @@ local d = require("levee.d")
 
 local message = require("levee.core.message")
 
--- local Heap = require("levee.heap")
--- local FIFO = require("levee.fifo")
--- local constants = require("levee.constants")
+
 -- local Channel = require("levee.channel")
 
 
@@ -133,12 +131,11 @@ end
 
 
 function Hub_mt:gate()
-	return message.Gate(self)
-end
-
-
-function Hub_mt:selector()
-	return message.Selector(self)
+	local sender = message.Gate(self)
+	local recver = message.Recver(self)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
 end
 
 
@@ -149,6 +146,11 @@ end
 
 function Hub_mt:stalk(size)
 	return message.Stalk(self, size)
+end
+
+
+function Hub_mt:selector()
+	return message.Selector(self)
 end
 
 
