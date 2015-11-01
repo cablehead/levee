@@ -227,20 +227,6 @@ function Gate_mt:__call()
 end
 
 
-function Gate_mt:redirect(target)
-	assert(not self.recver)
-
-	self.target = target
-	self = setmetatable(self, Redirect_mt)
-
-	if self.sender then
-		assert(not self.target:give(self, value))
-	end
-
-	return self
-end
-
-
 function Gate_mt:close()
 	if self.closed then
 		return
