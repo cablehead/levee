@@ -105,66 +105,7 @@ local function Recver(hub)
 end
 
 
---
--- Pipe
-
--- A pipe has exactly one Sender and one Recver.
-
-local Pipe_mt = {}
-Pipe_mt.__index = Pipe_mt
-
-
-function Pipe_mt:send(value)
-	assert(not self.sender)
-
-	if self.closed then
-		return errors.CLOSED
-	end
-
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub:switch_to(co, nil, value)
-		return
-	end
-
-	self.value = value
-	self.sender = coroutine.running()
-	return self.hub:_coyield()
-end
-
-
-function Pipe_mt:recv(timeout)
-	assert(not self.recver)
-
-	if self.closed then
-		return errors.CLOSED
-	end
-
-	if self.sender then
-		local value = self.value
-		self.value = nil
-		local co = self.sender
-		self.sender = nil
-		self.hub:resume(co)
-		return nil, value
-	end
-
-	self.recver = coroutine.running()
-	local err, value = self.hub:pause(timeout)
-	self.recver = nil
-	return err, value
-end
-
-
-function Pipe_mt:__call()
-	local err, value = self:recv()
-	if err then return end
-	return value
-end
-
-
-function Pipe_mt:redirect(target)
+local function redirect(target)
 	print("redirect", target)
 	if true then return end
 
@@ -181,33 +122,6 @@ function Pipe_mt:redirect(target)
 end
 
 
-function Pipe_mt:close()
-	if self.closed then
-		return errors.CLOSED
-	end
-
-	self.closed = true
-
-	local co
-	if self.recver then
-		co = self.recver
-		self.recver = nil
-		self.hub:resume(co, errors.CLOSED)
-	elseif self.sender then
-		co = self.sender
-		self.sender = nil
-	end
-
-	if co then self.hub:resume(co, errors.CLOSED) end
-	self.hub:continue()
-	return true
-end
-
-
-local function Pipe(hub)
-	local self = setmetatable({hub=hub}, Pipe_mt)
-	return self
-end
 
 
 
@@ -710,7 +624,6 @@ return {
 	Recver = Recver,
 
 	Value = Value,
-	Pipe = Pipe,
 	Gate = Gate,
 	Queue = Queue,
 	Stalk = Stalk,
