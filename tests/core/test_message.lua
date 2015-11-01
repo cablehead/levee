@@ -123,42 +123,41 @@ return {
 	test_pipe_redirect = function()
 		local h = levee.Hub()
 
-		if true then return end
-
-		print()
-		print()
-
 		local producer = (function()
-			local p = h:pipe()
+			local sender, recver = h:pipe()
 			h:spawn(function()
 				local i = 0
 				while true do
 					i = i + 1
-					if p:send(i) then return end
+					if sender:send(i) then return end
+					if i == 3 then break end
 				end
+				sender:close()
 			end)
-			return p
+			return recver
 		end)()
 
 		local check = {}
 		local consumer = (function()
-			local p = h:pipe()
+			local sender, recver = h:pipe()
 			h:spawn(function()
-				for i in p do
+				for i in recver do
 					table.insert(check, i)
 				end
 			end)
-			return p
+			return recver
 		end)()
 
-		-- print(producer:recv())
-		-- print(producer:recv())
-		-- consumer:send("foo")
-		--
-
 		producer:redirect(consumer)
-
-
+		assert.same(check, {})
+		h:continue()
+		assert.same(check, {1})
+		h:continue()
+		assert.same(check, {1, 2})
+		h:continue()
+		assert.same(check, {1, 2, 3})
+		h:continue()
+		assert.same(check, {1, 2, 3})
 	end,
 
 	test_value = function()

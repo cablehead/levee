@@ -26,7 +26,16 @@ function Sender_mt:send(value)
 
 	self.value = value
 	self.co = coroutine.running()
-	return self.hub:_coyield()
+	local err, ok = self.hub:_coyield()
+
+	if err == errors.CLOSED then
+		self.closed = true
+		return err
+	end
+
+	if ok then return end
+
+	return self:send(value)
 end
 
 
@@ -35,11 +44,20 @@ function Sender_mt:_take(err)
 
 	if not self.co then return end
 
-	self.hub:resume(self.co, err)
+	self.hub:resume(self.co, err, true)
 	local value = self.value
 	self.co = nil
 	self.value = nil
 	return nil, value
+end
+
+
+function Sender_mt:_link(recver)
+	self.recver = recver
+	if not self.co then return end
+	self.hub:resume(self.co)
+	self.co = nil
+	self.value = nil
 end
 
 
@@ -100,6 +118,21 @@ function Recver_mt:__call()
 end
 
 
+function Recver_mt:redirect(target)
+	if self.closed then return errors.CLOSED end
+	assert(not self.co)
+	target:_link(self.sender)
+	self.sender:_link(target)
+	self.sender = nil
+	self.closed = true
+end
+
+
+function Recver_mt:_link(sender)
+	self.sender = sender
+end
+
+
 function Recver_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
@@ -110,26 +143,6 @@ end
 local function Recver(hub)
 	return setmetatable({hub=hub}, Recver_mt)
 end
-
-
-local function redirect(target)
-	print("redirect", target)
-	if true then return end
-
-	assert(not self.recver)
-
-	self.target = target
-	self = setmetatable(self, Redirect_mt)
-
-	if self.sender then
-		assert(not self.target:give(self, value))
-	end
-
-	return self
-end
-
-
-
 
 
 --
