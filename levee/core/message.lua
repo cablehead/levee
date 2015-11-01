@@ -93,6 +93,13 @@ function Recver_mt:_give(err, value)
 end
 
 
+function Recver_mt:__call()
+	local err, value = self:recv()
+	if err then return end
+	return value
+end
+
+
 function Recver_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
