@@ -15,7 +15,7 @@ function Sender_mt:send(value)
 
 	if self.closed then return errors.CLOSED end
 
-	local err, ok = self.recver:_give(self, nil, value)
+	local err, ok = self.recver:_give(nil, self, value)
 
 	if err == errors.CLOSED then
 		self.closed = true
@@ -26,7 +26,7 @@ function Sender_mt:send(value)
 
 	self.value = value
 	self.co = coroutine.running()
-	local err, ok = self.hub:_coyield()
+	local err, sender, ok = self.hub:pause()
 
 	if err == errors.CLOSED then
 		self.closed = true
@@ -44,7 +44,7 @@ function Sender_mt:_take(err)
 
 	if not self.co then return end
 
-	self.hub:resume(self.co, err, true)
+	self.hub:resume(self.co, err, sender, true)
 	local value = self.value
 	self.co = nil
 	self.value = nil
@@ -64,7 +64,7 @@ end
 function Sender_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
-	self.recver:_give(self, errors.CLOSED)
+	self.recver:_give(errors.CLOSED, self)
 end
 
 
@@ -91,13 +91,13 @@ function Recver_mt:recv(ms)
 	if err or value then return err, value end
 
 	self.co = coroutine.running()
-	local err, value = self.hub:pause(ms)
+	local err, sender, value = self.hub:pause(ms)
 	self.co = nil
 	return err, value
 end
 
 
-function Recver_mt:_give(sender, err, value)
+function Recver_mt:_give(err, sender, value)
 	if self.closed then return errors.CLOSED end
 
 	if not self.co then return end
@@ -106,7 +106,7 @@ function Recver_mt:_give(sender, err, value)
 
 	local co = self.co
 	self.co = nil
-	self.hub:switch_to(co, err, value)
+	self.hub:switch_to(co, err, sender, value)
 	return nil, true
 end
 
@@ -165,11 +165,11 @@ function Value_mt:send(value)
 end
 
 
-function Value_mt:recv(timeout)
+function Value_mt:recv(ms)
 	if self.value ~= nil then return self.value end
 
 	self.recver = coroutine.running()
-	local ret = self.hub:pause(timeout)
+	local ret = self.hub:pause(ms)
 	-- TODO: handle comprehensively
 	self.recver = nil
 	return ret
@@ -209,7 +209,7 @@ function Gate_mt:send(value)
 end
 
 
-function Gate_mt:recv(timeout)
+function Gate_mt:recv(ms)
 	assert(not self.recver)
 
 	if self.closed then
@@ -229,15 +229,15 @@ function Gate_mt:recv(timeout)
 	end
 
 	self.recver = coroutine.running()
-	local ret = self.hub:pause(timeout)
+	local ret = self.hub:pause(ms)
 	-- TODO: handle comprehensively
 	self.recver = nil
 	return ret
 end
 
 
-function Gate_mt:__call(timeout)
-	return self:recv(timeout)
+function Gate_mt:__call()
+	return self:recv()
 end
 
 
@@ -381,7 +381,7 @@ local function Queue(hub, size)
 	local self = setmetatable({
 		hub=hub,
 		size=size,
-		fifo=FIFO(),
+		fifo=d.fifo(),
 		empty=hub:value(true), }, Queue_mt)
 	return self
 end
@@ -501,7 +501,7 @@ local function Stalk(hub, size)
 	local self = setmetatable({
 		hub=hub,
 		size=size,
-		fifo=FIFO(),
+		fifo=d.fifo(),
 		empty=hub:value(true), }, Stalk_mt)
 	return self
 end
@@ -512,6 +512,13 @@ end
 
 local Selector_mt = {}
 Selector_mt.__index = Selector_mt
+
+
+function Selector_mt:_link(sender)
+end
+
+
+Selector_mt._give = Recver_mt._give
 
 
 function Selector_mt:give(sender, value)
@@ -530,29 +537,28 @@ function Selector_mt:give(sender, value)
 end
 
 
-function Selector_mt:recv(timeout)
-	assert(not self.recver)
+function Selector_mt:recv(ms)
+	assert(not self.co)
 
 	if #self.fifo > 0 then
 		local sender = self.fifo:pop()
 		return {sender, sender:take()}
 	end
 
-	self.recver = coroutine.running()
-	local ret = self.hub:pause(timeout)
-	-- TODO: handle comprehensively
-	self.recver = nil
-	return ret
+	self.co = coroutine.running()
+	local err, sender, value = self.hub:pause(ms)
+	self.co = nil
+	return err, sender, value
 end
 
 
-function Selector_mt:__call(timeout)
-	return self:recv(timeout)
+function Selector_mt:__call()
+	return self:recv()
 end
 
 
 local function Selector(hub)
-	local self = setmetatable({hub=hub, fifo=FIFO(), }, Selector_mt)
+	local self = setmetatable({hub=hub, fifo=d.fifo(), }, Selector_mt)
 	return self
 end
 
