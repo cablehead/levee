@@ -15,7 +15,7 @@ function Sender_mt:send(value)
 
 	if self.closed then return errors.CLOSED end
 
-	local err, ok = self.recver:_give(nil, value)
+	local err, ok = self.recver:_give(self, nil, value)
 
 	if err == errors.CLOSED then
 		self.closed = true
@@ -64,7 +64,7 @@ end
 function Sender_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
-	self.recver:_give(errors.CLOSED)
+	self.recver:_give(self, errors.CLOSED)
 end
 
 
@@ -97,7 +97,7 @@ function Recver_mt:recv(ms)
 end
 
 
-function Recver_mt:_give(err, value)
+function Recver_mt:_give(sender, err, value)
 	if self.closed then return errors.CLOSED end
 
 	if not self.co then return end
