@@ -23,13 +23,13 @@ function State_mt:recv(timeout)
 	if self.value then
 		local value = self.value
 		self.value = nil
-		return nil, value
+		return nil, nil, value
 	end
 
 	self.co = coroutine.running()
-	local err, value = self.hub:pause(timeout)
+	local err, sender, value = self.hub:pause(timeout)
 	self.co = nil
-	return err, value
+	return err, sender, value
 end
 
 
@@ -41,11 +41,11 @@ function State_mt:set(value)
 
 	local co = self.co
 	self.co = nil
-	self.hub:_coresume(co, nil, value)
+	self.hub:_coresume(co, nil, nil, value)
 end
 
 
-function State_mt:__call(value)
+function State_mt:__call()
 	return self:recv()
 end
 
@@ -153,27 +153,28 @@ function Hub_mt:mimo(size)
 end
 
 
-function Hub_mt:_coresume(co, err, value)
+function Hub_mt:_coresume(co, err, sender, value)
 	if co ~= self._pcoro then
 		local status
-		status, co, err, value = coroutine.resume(co, err, value)
+		status, co, err, sender, value = coroutine.resume(co, err, sender, value)
 		if not status then error(co) end
 	else
-		co, err, value = coroutine.yield(err, value)
+		co, err, sender, value = coroutine.yield(err, sender, value)
 	end
 	if co then
-		self:_coresume(co, err, value)
+		self:_coresume(co, err, sender, value)
 	end
 end
 
 
-function Hub_mt:_coyield(co, err, value)
+function Hub_mt:_coyield(co, err, sender, value)
 	if coroutine.running() ~= self._pcoro then
-		return coroutine.yield(co, err, value)
+		return coroutine.yield(co, err, sender, value)
 	end
-	local status, err, value = coroutine.resume(self.loop, co, err, value)
+	local status, err, sender, value = coroutine.resume(
+		self.loop, co, err, sender, value)
 	if not status then error(err) end
-	return err, value
+	return err, sender, value
 end
 
 
@@ -203,16 +204,16 @@ function Hub_mt:pause(ms)
 
 	ms = self.poller:abstime(ms)
 	local timeout = self.scheduled:push(ms, coroutine.running())
-	local err, value = self:_coyield()
+	local err, sender, value = self:_coyield()
 	if err ~= errors.TIMEOUT then
 		timeout:remove()
 	end
-	return err, value
+	return err, sender, value
 end
 
 
-function Hub_mt:resume(co, err, value)
-	self.ready:push({co, err, value})
+function Hub_mt:resume(co, err, sender, value)
+	self.ready:push({co, err, sender, value})
 end
 
 
@@ -222,9 +223,9 @@ function Hub_mt:continue()
 end
 
 
-function Hub_mt:switch_to(co, err, value)
+function Hub_mt:switch_to(co, err, sender, value)
 	self.ready:push({coroutine.running()})
-	self:_coyield(co, err, value)
+	self:_coyield(co, err, sender, value)
 end
 
 
@@ -266,8 +267,8 @@ end
 function Hub_mt:pump()
 	local num = #self.ready
 	for _ = 1, num do
-		local co, err, value = unpack(self.ready:pop())
-		self:_coresume(co, err, value)
+		local co, err, sender, value = unpack(self.ready:pop())
+		self:_coresume(co, err, sender, value)
 	end
 
 	local timeout
