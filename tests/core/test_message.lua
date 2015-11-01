@@ -10,7 +10,6 @@ return {
 		local sent = false
 
 		h:spawn_later(10, function()
-			local err
 			local i = 0
 			while true do
 				i = i + 1
@@ -37,7 +36,7 @@ return {
 		local err, value = recver:recv()
 		assert.equal(err, levee.errors.CLOSED)
 
-		assert.equal(sender:send("1"), levee.errors.CLOSED)
+		assert.equal(sender:send(1), levee.errors.CLOSED)
 		assert.equal(recver:recv(), levee.errors.CLOSED)
 		assert.equal(sender:close(), levee.errors.CLOSED)
 		assert.equal(recver:close(), levee.errors.CLOSED)
@@ -45,29 +44,42 @@ return {
 
 	test_pipe_send_then_recv = function()
 		local h = levee.Hub()
-		local p = h:pipe()
+
+		local sender, recver = h:pipe()
 
 		local sent = false
 		local state
-		h:spawn(function() sent = true; state = p:send("1") end)
-		assert(sent)
 
-		local err, value = p:recv()
+		h:spawn(function()
+			local err
+			local i = 0
+			while true do
+				i = i + 1
+				sent = i
+				err = sender:send(i)
+				if err then break end
+			end
+			state = err
+		end)
+
+		assert.equal(sent, 1)
+		local err, value = recver:recv()
 		assert(not err)
-		assert.equal(value, "1")
-		-- give send a chance to resume
+		assert.equal(value, 1)
+
+		assert.equal(sent, 1)
 		h:continue()
+		assert.equal(sent, 2)
+		local err, value = recver:recv()
+		assert(not err)
+		assert.equal(value, 2)
+
+		h:continue()
+		assert.equal(sent, 3)
+		recver:close()
 		assert.equal(state, nil)
-
-		local state
-		h:spawn(function() state = p:send("2") end)
-
-		p:close()
+		h:continue()
 		assert.equal(state, levee.errors.CLOSED)
-
-		assert.equal(p:send("1"), levee.errors.CLOSED)
-		assert.equal(p:recv(), levee.errors.CLOSED)
-		assert.equal(p:close(), levee.errors.CLOSED)
 	end,
 
 	test_pipe_timeout = function()
