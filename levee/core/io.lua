@@ -337,12 +337,12 @@ function Stream_mt:value()
 end
 
 
-function Stream_mt:take_s(n)
+function Stream_mt:take(n)
 	if n then
 		local ok, err = self:readin(n)
 		if ok < 0 then return ok, err end
 	end
-	return self.buf:take_s(n)
+	return self.buf:take(n)
 end
 
 
@@ -374,7 +374,7 @@ end
 
 
 function Chunk_mt:tostring()
-	local s = self.stream:take_s(self.len)
+	local s = self.stream:take(self.len)
 	self.done:close()
 	return s
 end
