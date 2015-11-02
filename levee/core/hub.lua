@@ -353,7 +353,8 @@ local function Hub()
 	self._pcoro = coroutine.running()
 	self.loop = coroutine.create(function() self:main() end)
 
-	-- self.io = require("levee.io")(self)
+	self.io = require("levee.core.io")(self)
+
 	-- self.tcp = require("levee.tcp")(self)
 	-- self.udp = require("levee.udp")(self)
 	-- self.http = require("levee.http")(self)

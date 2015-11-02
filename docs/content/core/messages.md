@@ -1,3 +1,23 @@
+## Hub...
+
+* pipe():
+  returns `sender`, `recver`
+
+* value():
+  returns `sender`, `recver`
+
+* gate():
+  returns `sender`, `recver`
+
+* queue(size):
+  returns `sender`, `recver`
+
+* stalk(size):
+  returns `sender`, `recver`
+
+* selector():
+  returns `recver`
+
 
 ### Sender
 

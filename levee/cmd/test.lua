@@ -108,6 +108,14 @@ function dirname(str)
 	end
 end
 
+function x(s, n)
+	ret = {}
+	for _ = 1, n do
+		table.insert(ret, s)
+	end
+	return table.concat(ret)
+end
+
 
 --
 -- colors

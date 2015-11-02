@@ -1,42 +1,32 @@
-local function x(s, n)
-	ret = {}
-	for _ = 1, n do
-		table.insert(ret, s)
-	end
-	return table.concat(ret)
-end
+local levee = require("levee")
 
 
 return {
-	test_close_writer = function()
-		local levee = require("levee")
-
+	test_io_close_writer = function()
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
 
-		w:write("foo")
+		local err, r, w = h.io:pipe()
+		assert(not err)
 
-		local buf = levee.buffer(4096)
-		local n, err = r:read(buf:tail())
+		local err, n = w:write("foo")
+		assert(not err)
+		assert.equal(n, 3)
+
+		local buf = levee.d.buffer(4096)
+
+		local err, n = r:read(buf:tail())
+		assert(not err)
+		assert.equal(n, 3)
 		buf:bump(n)
-		assert.equal(buf:take_s(), "foo")
+		assert.equal(buf:take(), "foo")
 
 		w:close()
-
-		local n, err = r:read(buf:tail())
-		assert(n <= 0)
-		assert(err > 0)
-
-		local n, err = r:read(buf:tail())
-		assert(n <= 0)
-		assert(err > 0)
-
+		local err = r:read(buf:tail())
+		assert.equal(err, levee.errors.CLOSED)
 		assert.same(h.registered, {})
 	end,
 
 	test_last_read = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 
@@ -56,8 +46,6 @@ return {
 	end,
 
 	test_close_reader = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 
@@ -76,8 +64,6 @@ return {
 	end,
 
 	test_readinto = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 
@@ -98,7 +84,6 @@ return {
 	end,
 
 	test_writev = function()
-		local levee = require("levee")
 		local iov = levee.iovec.Iovec(32)
 
 		local h = levee.Hub()
@@ -133,8 +118,6 @@ return {
 	end,
 
 	test_iov = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 
@@ -175,8 +158,6 @@ return {
 	end,
 
 	test_timeout = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe(20)
 
@@ -186,8 +167,6 @@ return {
 	end,
 
 	test_stream = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 		local s = r:stream()
@@ -207,8 +186,6 @@ return {
 	end,
 
 	test_chunk = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
 		local s = r:stream()

@@ -1,4 +1,35 @@
-## API
+## Hub.io
+
+* r(no, timeout):
+	returns a readable IO object to wrap the file descriptor `no`. if `timeout`
+	is supplied all operations will use that for a default timeout.
+
+* w(no, timeout):
+	returns a writeable IO object to wrap the file descriptor `no`. if `timeout`
+	is supplied all operations will use that for a default timeout.
+
+* pipe(timeout):
+	returns `err`, `r`, `w` where `r` is a readable IO object and `w` is a
+	writeable IO object.
+
+## Objects
+
+### Readable IO
+
+* read(buf, size, timeout):
+	reads up to `size` bytes into `buf`. it will block the current green thread
+	until some bytes are available unless `timeout` is reached. returns `err`,
+	`n` where `n` is the number of bytes read.
+
+### Writable IO
+
+* write(buf, size):
+	writes `size` number of bytes from `buf` to the file descriptor. if `size` is
+	not provided write will it'll be attempted to be detected. `buf` can also be
+	a lua string.  block the current green thread until all bytes are written, or
+	an unrecoverable error occurs. returns `err`, `n` where `n` will be `size`,
+	unless there was an error.
+
 
 ### Stream
 

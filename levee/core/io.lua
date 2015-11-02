@@ -1,11 +1,11 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local constants = require("levee.constants")
-local buffer = require("levee.buffer")
-local iovec = require("levee.iovec")
-local errno = require("levee.errno")
-local sys = require("levee.sys")
+
+local errors = require("levee.errors")
+local d = require("levee.d")
+local _ = require("levee._")
+
 
 --
 -- Read
@@ -15,30 +15,25 @@ R_mt.__index = R_mt
 
 
 function R_mt:read(buf, len, timeout)
+	if self.closed then return errors.CLOSED end
+
 	timeout = timeout or self.timeout
 
-	if self.closed then return -1, errno["EBADF"] end
+	local err, n = _.read(self.no, buf, len)
 
-	local n, err = sys.os.read(self.no, buf, len)
+	if n > 0 then return nil, n end
 
-	if n > 0 then
-		return n
-	end
-
-	if n == 0 or err ~= errno["EAGAIN"] or self.r_error then
+	-- TODO: eagain
+	-- if n == 0 or err ~= errno["EAGAIN"] or self.r_error then
+	if n == 0 then
 		self:close()
-		return -1, errno["EBADF"]
+		return errors.CLOSED
 	end
 
-	local ev = self.r_ev:recv(timeout)
-
-	if ev == constants.TIMEOUT then return ev end
-
-	if ev < 0 then
-		self.r_error = true
-	end
-
-	return self:read(buf, len)
+	local err, ev = self.r_ev:recv(timeout)
+	if err then return err end
+	if ev < 0 then self.r_error = true end
+	return self:read(buf, len, timeout)
 end
 
 
@@ -77,13 +72,13 @@ end
 
 function R_mt:close()
 	if self.closed then
-		return
+		return errors.CLOSED
 	end
 
 	self.closed = true
 	self.hub:unregister(self.no, true)
 	self.hub:continue()
-	return true
+	return
 end
 
 
@@ -95,7 +90,7 @@ W_mt.__index = W_mt
 
 
 function W_mt:write(buf, len)
-	if self.closed then return -1, errno["EBADF"] end
+	if self.closed then return errors.CLOSED end
 
 	if not len then
 		len = #buf
@@ -108,25 +103,23 @@ function W_mt:write(buf, len)
 	local sent = 0
 
 	while true do
-		local n, err = sys.os.write(self.no, buf + sent, len - sent)
+		local err, n = _.write(self.no, buf + sent, len - sent)
 
-		if n <= 0 and err ~= errno["EAGAIN"] then
+		-- TODO: eagain
+		if err then
 			self:close()
-			return -1, err
+			return err
 		end
 
-		if n < 0 then
-			n = 0
-		end
-
+		if n < 0 then n = 0 end
 		sent = sent + n
 		if sent == len then break end
-
-		self.w_ev:recv()
+		local err = self.w_ev:recv()
+		if err then return err end
 	end
 
 	self.hub:continue()
-	return len
+	return nil, len
 end
 
 
@@ -387,10 +380,11 @@ end
 
 
 function IO_mt:pipe(timeout)
-	local r, w = sys.os.pipe()
-	sys.os.nonblock(r)
-	sys.os.nonblock(w)
-	return self:r(r, timeout), self:w(w, timeout)
+	local err, r, w = _.pipe()
+	if err then return err end
+	_.fcntl_nonblock(r)
+	_.fcntl_nonblock(w)
+	return nil, self:r(r, timeout), self:w(w, timeout)
 end
 
 
