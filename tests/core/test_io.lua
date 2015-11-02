@@ -26,41 +26,18 @@ return {
 		assert.same(h.registered, {})
 	end,
 
-	test_last_read = function()
+	test_io_close_reader = function()
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
 
-		w:write("foo")
-		w:close()
-
-		local buf = levee.buffer(4096)
-		local n, err = r:read(buf:tail())
-		buf:bump(n)
-		assert.equal(buf:take_s(), "foo")
-
-		local n, err = r:read(buf:tail())
-		assert(n <= 0)
-		assert(err > 0)
-
-		assert.same(h.registered, {})
-	end,
-
-	test_close_reader = function()
-		local h = levee.Hub()
-		local r, w = h.io:pipe()
+		local err, r, w = h.io:pipe()
+		assert(not err)
 
 		r:close()
-
 		-- continue is required to flush the close
 		h:continue()
 
-		local n, err = w:write("foo")
-		assert(n <= 0)
-		assert(err > 0)
-
-		local n, err = w:write("foo")
-		assert(n <= 0)
-		assert(err > 0)
+		local err, n = w:write("foo")
+		assert(err)
 	end,
 
 	test_readinto = function()
@@ -77,6 +54,26 @@ return {
 		w:close()
 
 		local n, err = r:readinto(buf)
+		assert(n <= 0)
+		assert(err > 0)
+
+		assert.same(h.registered, {})
+	end,
+
+
+	test_last_read = function()
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+
+		w:write("foo")
+		w:close()
+
+		local buf = levee.buffer(4096)
+		local n, err = r:read(buf:tail())
+		buf:bump(n)
+		assert.equal(buf:take_s(), "foo")
+
+		local n, err = r:read(buf:tail())
 		assert(n <= 0)
 		assert(err > 0)
 
