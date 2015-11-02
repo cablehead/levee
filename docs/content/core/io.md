@@ -29,6 +29,10 @@
 	convenience to read and return a lua string up to `size` bytes. `size`
 	defaults to 4096. returns `nil` or a string.
 
+* stream():
+	returns a Stream Object for this file descriptor. Note, mixing direct reads
+	with stream usage will result in sadness.
+
 ### Writable IO
 
 * write(buf, size):
@@ -43,7 +47,8 @@
 	`sender` that you can send: lua strings; pointers whose size can be detected
 	and objects that offer a :value() method. this method should return a pointer
 	and a size. items sent to the queue will eventually be flushed to the file
-	descriptor via writev operations.
+	descriptor via writev operations. Note mixing iov use with direct writes will
+	result in sadness.
 
 
 ### Stream
@@ -59,34 +64,27 @@ A Stream is combination of an IO file descriptor and a buffer.
 
 #### methods
 
-- `readin()`:
+* readin():
+	read from the stream's conn to its buf.
 
-    read from the stream's conn to its buf.
+* value():
+	returns buf, len of the stream currently buffered
 
-- `value()`
+* trim(len):
+	trims this stream's buf by len. if len is nil then trims the entire buf.  the
+	stream's len will be reduced by the actual amount trimmed. if len drops to 0
+	the stream will be marked as done.
 
-    returns buf, len of the stream currently buffered
+* splice(conn):
+	writes this stream to conn and marks it as done.
 
-- `trim(len)`
+* tostring():
+	copies the entire stream into a string and marks it as done.
 
-    trims this stream's buf by len. if len is nil then trims the entire buf.
-    the stream's len will be reduced by the actual amount trimmed. if len drops
-    to 0 the stream will be marked as done.
+* discard():
+	consumes the entire stream with as few resources as possible and marks it as
+	done.
 
-- `splice(conn)`
-
-    writes this stream to conn and marks it as done.
-
-- `tostring()`
-
-    copies the entire stream into a string and marks it as done.
-
-- `discard()`
-
-    consumes the entire stream with as few resources as possible and marks it
-    as done.
-
-- `json()`
-
-    decodes the stream using the json decoder and returns a lua table for the
-    decoded json.
+* json():
+	decodes the stream using the json decoder and returns a lua table for the
+	decoded json.
