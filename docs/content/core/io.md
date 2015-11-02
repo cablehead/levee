@@ -21,6 +21,10 @@
 	until some bytes are available unless `timeout` is reached. returns `err`,
 	`n` where `n` is the number of bytes read.
 
+* readinto(buf, timeout):
+	convenience to read into a `levee.d.buffer`. ensures there's sufficient space
+	to write into the buffer. returns `err`, `n`.
+
 ### Writable IO
 
 * write(buf, size):

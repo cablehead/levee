@@ -91,21 +91,20 @@ return {
 
 	test_readinto = function()
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
 
-		local buf = levee.buffer(4096)
+		local err, r, w = h.io:pipe()
+
+		local buf = levee.d.buffer(4096)
 
 		w:write("foo")
-
-		local n, err = r:readinto(buf)
-		assert.equal(buf:take_s(), "foo")
+		local err, n = r:readinto(buf)
+		assert(not err)
+		assert.equal(n, 3)
+		assert.equal(buf:take(), "foo")
 
 		w:close()
-
-		local n, err = r:readinto(buf)
-		assert(n <= 0)
-		assert(err > 0)
-
+		local err = r:readinto(buf)
+		assert.equal(err, levee.errors.CLOSED)
 		assert.same(h.registered, {})
 	end,
 

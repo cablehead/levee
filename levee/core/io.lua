@@ -37,17 +37,11 @@ end
 function R_mt:readinto(buf, timeout)
 	-- ensure we have *some* space to read into
 	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
-
 	local ptr, len = buf:tail()
-	local n, err = self:read(ptr, len, timeout)
-
-	if n == constants.TIMEOUT then return n end
-
-	if n > 0 then
-		buf:bump(n)
-	end
-
-	return n, err
+	local err, n = self:read(ptr, len, timeout)
+	if err then return err end
+	if n > 0 then buf:bump(n) end
+	return err, n
 end
 
 
