@@ -58,9 +58,6 @@ return {
 		local check
 		h:spawn(function() check = {w:write(want)} end)
 
-		print()
-		print()
-
 		while #buf < 100000 do
 			local err, n = r:read(buf:tail())
 			assert(not err)
