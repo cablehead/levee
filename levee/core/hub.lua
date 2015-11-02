@@ -149,7 +149,11 @@ end
 
 
 function Hub_mt:stalk(size)
-	return message.Stalk(self, size)
+	local sender = message.Sender(self)
+	local recver = message.Stalk(self, size)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
 end
 
 

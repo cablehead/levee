@@ -275,7 +275,7 @@ function Queue_mt:_give(err, sender, value)
 
 	local co = self.co
 	self.co = nil
-	self.hub:switch_to(co, err, sender, value)
+	self.hub:resume(co, err, sender, value)
 	return nil, true
 end
 
@@ -284,9 +284,7 @@ function Queue_mt:recv(ms)
 	assert(not self.co)
 
 	if #self.fifo > 0 then
-		if self.size and #self.fifo >= self.size then
-			self.sender:_link(self)
-		end
+		self.sender:_link(self)
 		local err, sender, value = unpack(self.fifo:pop())
 		if #self.fifo == 0 then self.empty:send(true) end
 		return err, value
@@ -322,50 +320,39 @@ local Stalk_mt = {}
 Stalk_mt.__index = Stalk_mt
 
 
-function Stalk_mt:send(value)
-	assert(not self.sender)
+function Stalk_mt:_give(err, sender, value)
+	if self.closed then return errors.CLOSED end
 
-	if self.closed then
-		return
-	end
+	if err == errors.CLOSED then self.closed = true end
 
-	if self.size and #self.fifo >= self.size then
-		self.sender = coroutine.running()
-		local rc = self.hub:_coyield()
-		if not rc then return end
-	end
+	if self.size and #self.fifo >= self.size then return end
 
-	self.fifo:push(value)
+	self.fifo:push({err, sender, value})
 	self.empty:send()
 
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub.ready:push({co, true})
+	if self.co then
+		local co = self.co
+		self.co = nil
+		self.hub:resume(co, nil, sender, true)
 	end
 
-	return true
+	return nil, true
 end
 
 
-function Stalk_mt:recv()
-	assert(not self.recver)
+function Stalk_mt:recv(ms)
+	assert(not self.co)
 
 	if #self.fifo > 0 then
-		return true
+		return nil, true
 	end
 
-	if self.closed then
-		return
-	end
+	if self.closed then return errors.CLOSED end
 
-	self.recver = coroutine.running()
-	return self.hub:_coyield()
-end
-
-
-function Stalk_mt:__call()
-	return self:recv()
+	self.co = coroutine.running()
+	local err, sender, value = self.hub:pause(ms)
+	self.co = nil
+	return err, value
 end
 
 
@@ -375,58 +362,35 @@ end
 
 
 function Stalk_mt:iter()
-	return self.fifo:iter()
+	local f = self.fifo:iter()
+	return function()
+		while true do
+			item = f()
+			if not item then return end
+			local err, sender, value = unpack(item)
+			if err then return end
+			return value
+		end
+	end
 end
 
 
 function Stalk_mt:remove(n)
 	assert(n > 0 and n <= #self)
-
 	self.fifo:remove(n)
-
+	self.sender:_link(self)
 	if #self == 0 then
 		self.empty:send(true)
-	end
-
-	if self.sender then
-		local co = self.sender
-		self.sender = nil
-		self.hub.ready:push({co, true})
-	end
-end
-
-
-function Stalk_mt:close()
-	if self.closed then
-		return
-	end
-
-	self.closed = true
-
-	-- TODO: these 1st two conditions need tests
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub.ready:push({co})
-	elseif self.sender then
-		local co = self.sender
-		self.sender = nil
-		self.hub.ready:push({co})
-	end
-
-	if self.on_close then
-		self.on_close(self)
 	end
 end
 
 
 local function Stalk(hub, size)
-	local self = setmetatable({
-		hub=hub,
-		size=size,
-		fifo=d.fifo(),
-		empty=hub:value(true), }, Stalk_mt)
-	return self
+	return setmetatable({
+		hub = hub,
+		size = size,
+		fifo = d.fifo(),
+		empty = Pair(hub:value(true)), }, Stalk_mt)
 end
 
 
