@@ -13,7 +13,6 @@ return {
 		assert.equal(n, 3)
 
 		local buf = levee.d.buffer(4096)
-
 		local err, n = r:read(buf:tail())
 		assert(not err)
 		assert.equal(n, 3)
@@ -38,6 +37,25 @@ return {
 
 		local err, n = w:write("foo")
 		assert(err)
+	end,
+
+	test_eagain = function()
+		print()
+		print()
+
+		local h = levee.Hub()
+
+		local buf = levee.d.buffer(4096)
+
+		local err, r, w = h.io:pipe()
+		assert(not err)
+
+		-- read eagain
+		h:spawn(function() err, n = r:read(buf:tail()); buf:bump(n) end)
+		local err, n = w:write("foo")
+		assert(not err)
+		assert.equal(n, 3)
+		assert.equal(#buf, 3)
 	end,
 
 	test_last_read = function()

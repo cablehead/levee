@@ -21,16 +21,13 @@ function R_mt:read(buf, len, timeout)
 
 	local err, n = _.read(self.no, buf, len)
 
-	if n > 0 then return nil, n end
-
-	-- TODO: eagain
-	-- if n == 0 or err ~= errno["EAGAIN"] or self.r_error then
-	if n == 0 then
+	if not err and n > 0 then return nil, n end
+	if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
 		self:close()
-		return errors.CLOSED
+		return err or errors.CLOSED
 	end
 
-	local err, ev = self.r_ev:recv(timeout)
+	local err, sender, ev = self.r_ev:recv(timeout)
 	if err then return err end
 	if ev < 0 then self.r_error = true end
 	return self:read(buf, len, timeout)
