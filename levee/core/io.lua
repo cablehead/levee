@@ -302,11 +302,11 @@ function Stream_mt:readin(n)
 	end
 
 	while #self.buf < n do
-		local ok, err = self.conn:readinto(self.buf)
-		if ok < 0 then return ok, err end
+		local err, n = self.conn:readinto(self.buf)
+		if err then return err end
 	end
 
-	return n
+	return nil, n
 end
 
 
@@ -354,7 +354,7 @@ end
 function Stream(conn)
 	local self = setmetatable({}, Stream_mt)
 	self.conn = conn
-	self.buf = buffer(4096)
+	self.buf = d.buffer(4096)
 	return self
 end
 

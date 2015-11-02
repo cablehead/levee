@@ -209,21 +209,35 @@ return {
 
 	test_stream = function()
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
+
+		local err, r, w = h.io:pipe()
 		local s = r:stream()
 
 		w:write("foo")
-		s:readin()
+		assert.same({s:readin()}, {nil, 3})
+
 		w:write("foo")
 		local buf, n = s:value()
 		assert.equal(n, 3)
 
-		s:readin()
+		assert.same({s:readin()}, {nil, 3})
 		local buf, n = s:value()
 		assert.equal(n, 6)
 
+		h:spawn(function() s:readin(9) end)
+		w:write("fo")
+		assert.equal(#s.buf, 8)
+		w:write("o")
+		assert.equal(#s.buf, 9)
+
+		w:write("o")
+		assert.equal(#s.buf, 9)
+
+		assert.equal(s:trim(), 9)
 		w:close()
-		assert(s:readin(20) < 0)
+		assert.same({s:readin(1)}, {nil, 1})
+		assert.equal(s:trim(), 1)
+		assert.same({s:readin(1)}, {levee.errors.CLOSED})
 	end,
 
 	test_chunk = function()

@@ -67,12 +67,12 @@ A Stream is combination of an IO file descriptor and a buffer.
   read from the stream's conn to its buf. if `n` is the call will block the
   current green thread until the next successful read. otherwise this call will
   block until *at least* `n` bytes are available in the `buf` if there are
-  already `n` bytes available, it returns immediately.
+  already `n` bytes available, it returns immediately. returns `err`, `n`.
 
 * read(buf, len, timeout):
   writes `len` bytes of this stream to `buf`. if some bytes are currently
   buffered they will be copied to `buf`. if more bytes are needed they'll then
-  be read directly from stream's conn.
+  be read directly from stream's conn. returns `err`, `n`.
 
 * value():
   returns `buf`, `len` of the stream currently buffered
