@@ -120,10 +120,11 @@ return {
 	end,
 
 	test_writev = function()
-		local iov = levee.iovec.Iovec(32)
-
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
+
+		local err, r, w = h.io:pipe()
+		assert(not err)
+		local iov = h.io.iovec(32)
 
 		-- to prevent gc
 		local keep = {}
@@ -136,8 +137,9 @@ return {
 		end
 		want = table.concat(want)
 
+		local err, total
 		h:spawn(function()
-			w:writev(iov.iov, iov.n)
+			err, total = w:writev(iov.iov, iov.n)
 			w:close()
 		end)
 
@@ -151,6 +153,8 @@ return {
 
 		assert.equal(#want, #got)
 		assert.equal(want, got)
+		assert.equal(total, #got)
+		assert(not err)
 	end,
 
 	test_iov = function()

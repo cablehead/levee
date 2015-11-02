@@ -8,6 +8,51 @@ local _ = require("levee._")
 
 
 --
+-- Iovec
+
+local iovec = ffi.typeof("struct iovec[?]")
+
+
+local Iovec_mt = {}
+Iovec_mt.__index = Iovec_mt
+
+
+function Iovec_mt:write(buf, len)
+	assert(self.n < self.size)
+
+	if not len then
+		len = #buf
+	end
+
+	if type(buf) == "string" then
+		buf = ffi.cast("char*", buf)
+	end
+
+	self.iov[self.n].iov_base = buf
+	self.iov[self.n].iov_len = len
+
+	self.len = self.len + len
+	self.n = self.n + 1
+end
+
+
+function Iovec_mt:reset()
+	self.n = 0
+	self.len = 0
+end
+
+
+local function Iovec(size)
+	local self = setmetatable({
+		iov = iovec(size),
+		n = 0,
+		len = 0,
+		size = size, }, Iovec_mt)
+	return self
+end
+
+
+--
 -- Read
 --
 local R_mt = {}
@@ -115,7 +160,7 @@ end
 
 
 function W_mt:writev(iov, n)
-	if self.closed then return -1, errno["EBADF"] end
+	if self.closed then return errors.CLOSED end
 
 	local len
 	local i, total = 0, 0
@@ -124,11 +169,10 @@ function W_mt:writev(iov, n)
 		while true do
 			len = C.writev(self.no, iov[i], n - i)
 			if len > 0 then break end
-
-			local err = ffi.errno()
-			if err ~= errno["EAGAIN"] then
+			local err = errors.get(ffi.errno())
+			if not err.is_system_EAGAIN then
 				self:close()
-				return len, err
+				return err
 			end
 			self.w_ev:recv()
 		end
@@ -142,7 +186,7 @@ function W_mt:writev(iov, n)
 			if i == n then
 				assert(len == 0)
 				self.hub:continue()
-				return total
+				return nil, total
 			end
 		end
 
@@ -377,6 +421,9 @@ function IO_mt:pipe(timeout)
 	_.fcntl_nonblock(w)
 	return nil, self:r(r, timeout), self:w(w, timeout)
 end
+
+
+IO_mt.iovec = Iovec
 
 
 return function(hub)
