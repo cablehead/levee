@@ -101,7 +101,6 @@ closed once the size of the chunk has been exhausted.
 * done:
   a recv-able that will `close` when the chunk is exhausted.
 
-
 #### methods
 
 * readin():
