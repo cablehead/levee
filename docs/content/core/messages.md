@@ -54,11 +54,20 @@ until the recv-ing end makes a blocking recv call.
 
 ### Queue
 
+Specialized Recver.
+
 A queue is exactly one Sender and one Recver with a fifo in between. Sends
 won't block until the fifo is filled. Sends will return immediately if a recver
-is ready.
+
+#### attributes:
+
+* empty:
+  `empty` is a Value which will be `true` when the queue is empty and unset
+  otherwise. this gives the ability to block until the queue is empty.
 
 ### Stalk
+
+Specialized Recver.
 
 A Stalk is a delayed queue. Recv-ing on the Stalk returns true once there are
 items in the queue, but it doesn't actually return a sent item. The queue can
@@ -66,6 +75,8 @@ then be processed and optionally cleared. Once cleared if there is a pending
 upstream sender it will be signaled to continue.
 
 ### Selector
+
+Specialized Recver.
 
 A Selector coalesces many Senders into one Recver. Senders always lose context
 and will continue on the next poller tick after they have been recv'd.

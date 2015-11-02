@@ -140,7 +140,11 @@ end
 
 
 function Hub_mt:queue(size)
-	return message.Queue(self, size)
+	local sender = message.Sender(self)
+	local recver = message.Queue(self, size)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
 end
 
 

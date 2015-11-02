@@ -3,6 +3,30 @@ local d = require("levee.d")
 
 
 --
+-- Pair
+
+-- Convenience to namespace a sender / recver pair
+
+local Pair_mt = {}
+Pair_mt.__index = Pair_mt
+
+
+function Pair_mt:send(value)
+	return self.sender:send(value)
+end
+
+
+function Pair_mt:recv(ms)
+	return self.recver:recv(ms)
+end
+
+
+local function Pair(sender, recver)
+	return setmetatable({sender=sender, recver=recver}, Pair_mt)
+end
+
+
+--
 -- Sender
 
 local Sender_mt = {}
@@ -237,97 +261,46 @@ local Queue_mt = {}
 Queue_mt.__index = Queue_mt
 
 
-function Queue_mt:send(value)
-	assert(not self.sender)
+function Queue_mt:_give(err, sender, value)
+	if self.closed then return errors.CLOSED end
 
-	if self.closed then
-		return
+	if not self.co then
+		self.fifo:push({err, sender, value})
+		self.empty:send()
+		return nil, true
 	end
 
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub.ready:push({co, value})
-		return true
-	end
+	if err == errors.CLOSED then self.closed = true end
 
-	self.empty:send()
-
-	if not self.size or #self.fifo < self.size then
-		self.fifo:push(value)
-		return true
-	end
-
-	self.fifo:push(value)
-	self.sender = coroutine.running()
-  return self.hub:_coyield()
+	local co = self.co
+	self.co = nil
+	self.hub:switch_to(co, err, sender, value)
+	return nil, true
 end
 
 
-function Queue_mt:recv()
-	assert(not self.recver)
-
-	if self.sender then
-		local co = self.sender
-		self.sender = nil
-		self.hub.ready:push({co, true})
-	end
+function Queue_mt:recv(ms)
+	assert(not self.co)
 
 	if #self.fifo > 0 then
-		if #self.fifo == 1 then
-			self.empty:send(true)
-		end
-		return self.fifo:pop()
+		local err, sender, value = unpack(self.fifo:pop())
+		if #self.fifo == 0 then self.empty:send(true) end
+		return err, value
 	end
 
-	if self.closed then
-		return
-	end
-
-	self.recver = coroutine.running()
-	return self.hub:_coyield()
-end
-
-
-function Queue_mt:__call()
-	return self:recv()
-end
-
-
-function Queue_mt:close()
-	if self.closed then
-		return
-	end
-
-	self.closed = true
-
-	-- TODO: these 1st two conditions need tests
-	if self.recver then
-		local co = self.recver
-		self.recver = nil
-		self.hub.ready:push({co})
-	elseif self.sender then
-		local co = self.sender
-		self.sender = nil
-		self.hub.ready:push({co})
-
-	elseif #self.fifo > 0 then
-		self.fifo:push(nil)
-	end
-
-	if self.on_close then
-		self.on_close(self)
-	end
+	self.co = coroutine.running()
+	local err, sender, value = self.hub:pause(ms)
+	self.co = nil
+	return err, value
 end
 
 
 local function Queue(hub, size)
-	local self = setmetatable({
-		hub=hub,
-		size=size,
-		fifo=d.fifo(),
-		empty=hub:value(true), }, Queue_mt)
-	return self
+	return setmetatable({
+		hub = hub,
+		size = size,
+		fifo = d.fifo(),
+		empty = Pair(hub:value(true)), }, Queue_mt)
 end
 
 
@@ -498,30 +471,6 @@ end
 local function Selector(hub)
 	local self = setmetatable({hub=hub, fifo=d.fifo(), }, Selector_mt)
 	return self
-end
-
-
---
--- Pair
-
--- Convenience to namespace a sender / recver pair
-
-local Pair_mt = {}
-Pair_mt.__index = Pair_mt
-
-
-function Pair_mt:send(value)
-	return self.sender:send(value)
-end
-
-
-function Pair_mt:recv()
-	return self.recver:recv()
-end
-
-
-local function Pair(sender, recver)
-	return setmetatable({sender=sender, recver=recver}, Pair_mt)
 end
 
 

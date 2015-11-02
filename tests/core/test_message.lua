@@ -230,38 +230,41 @@ return {
 		h:continue()
 	end,
 
-	test_queue = function()
+	test_queue_core = function()
 		local h = levee.Hub()
-		local q = h:queue()
+
+		local sender, recver = h:queue()
+
+		-- test timeout
+		assert.same({recver:recv(10)}, {levee.errors.TIMEOUT})
 
 		-- test send and then recv
-		assert.equal(q.empty:recv(), true)
-		q:send("1")
-		assert.equal(q.empty:recv(10), levee.TIMEOUT)
-		q:send("2")
-		q:send("3")
-		assert.equal(q:recv(), "1")
-		assert.equal(q:recv(), "2")
-		assert.equal(q.empty:recv(10), levee.TIMEOUT)
-		assert.equal(q:recv(), "3")
-		assert.equal(q.empty:recv(), true)
+		assert.same({recver.empty:recv()}, {nil, true})
+		sender:send("1")
+		assert.same({recver.empty:recv(10)}, {levee.errors.TIMEOUT})
+		sender:send("2")
+		sender:send("3")
+		assert.same({recver:recv()}, {nil, "1"})
+		assert.same({recver:recv()}, {nil, "2"})
+		assert.same({recver.empty:recv(10)}, {levee.errors.TIMEOUT})
+		assert.same({recver:recv()}, {nil, "3"})
+		assert.same({recver.empty:recv()}, {nil, true})
 
 		-- test recv and then send
 		local state
-		h:spawn(function() state = q:recv() end)
-		q:send("1")
-		h:continue()
-		assert.equal(state, "1")
+		h:spawn(function() state = {recver:recv()} end)
+		sender:send("1")
+		assert.same(state, {nil, "1"})
 
 		-- test close
-		q:send("1")
-		q:send("2")
-		q:send("3")
-		q:close()
-		assert.equal(q:recv(), "1")
-		assert.equal(q:recv(), "2")
-		assert.equal(q:recv(), "3")
-		assert.equal(q:recv(), nil)
+		sender:send("1")
+		sender:send("2")
+		sender:send("3")
+		sender:close()
+		assert.same({recver:recv()}, {nil, "1"})
+		assert.same({recver:recv()}, {nil, "2"})
+		assert.same({recver:recv()}, {nil, "3"})
+		assert.same({recver:recv()}, {levee.errors.CLOSED})
 	end,
 
 	test_queue_size = function()
@@ -270,8 +273,8 @@ return {
 		local q = h:queue(3)
 
 		h:spawn(function()
-			for i = 1, 10 do q:send(i) end
-			q:close()
+			for i = 1, 10 do sender:send(i) end
+			sender:close()
 		end)
 
 		local check = 0
