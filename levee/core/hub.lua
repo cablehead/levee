@@ -54,60 +54,6 @@ local function State(hub)
 end
 
 
-local Signal_mt = {}
-Signal_mt.__index = Signal_mt
-
-
-function Signal_mt:__call(hub, ...)
-	local recver = self.hub:queue()
-	self.reverse[recver] = {}
-
-	local sigs = {...}
-	for i = 1, #sigs do
-		local no = sigs[i]
-
-		if not self.registered[no] then
-			self.hub.poller:signal_register(no)
-			self.registered[no] = {}
-		end
-
-		self.registered[no][recver] = 1
-		table.insert(self.reverse[recver], no)
-	end
-
-	recver.on_close = function(recver) self:unregister(recver) end
-	return recver
-end
-
-
-function Signal_mt:unregister(recver)
-	local sigs = self.reverse[recver]
-	for i = 1, #sigs do
-		local no = sigs[i]
-		self.registered[no][recver] = nil
-
-		if not next(self.registered[no]) then
-			self.hub.poller:signal_unregister(no)
-			self.registered[no] = nil
-		end
-	end
-	self.reverse[recver]= nil
-end
-
-
-function Signal_mt:trigger(no)
-	self.hub.poller:signal_clear(no)
-	for recver, _ in pairs(self.registered[no]) do
-		recver:send(no)
-	end
-end
-
-
-local function Signal(hub)
-	return setmetatable({hub = hub, registered = {}, reverse = {}}, Signal_mt)
-end
-
-
 local Hub_mt = {}
 Hub_mt.__index = Hub_mt
 
@@ -344,8 +290,6 @@ local function Hub()
 	self.ready = d.fifo()
 	self.scheduled = d.heap()
 
-	self.signal = Signal(self)
-
 	self.registered = {}
 	self.poller = _.poller()
 	self.closing = {}
@@ -354,6 +298,7 @@ local function Hub()
 	self.loop = coroutine.create(function() self:main() end)
 
 	self.io = require("levee.core.io")(self)
+	self.signal = require("levee.core.signal")(self)
 
 	-- self.tcp = require("levee.tcp")(self)
 	-- self.udp = require("levee.udp")(self)
