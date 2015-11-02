@@ -236,13 +236,15 @@ return {
 		assert.equal(s:trim(), 9)
 		w:close()
 		assert.same({s:readin(1)}, {nil, 1})
-		assert.equal(s:trim(), 1)
+		assert.equal(s:take(1), 'o')
 		assert.same({s:readin(1)}, {levee.errors.CLOSED})
+		assert.equal(s:take(1), nil)
 	end,
 
 	test_chunk = function()
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
+
+		local err, r, w = h.io:pipe()
 		local s = r:stream()
 
 		local c = s:chunk(10)
@@ -250,10 +252,10 @@ return {
 
 		h:spawn(function() w:write(x(".", 15)) end)
 		assert.equal(c:tostring(), "..........")
-		assert.equal(c.done:recv(), nil)
+		assert.equal(c.done:recv(), levee.errors.CLOSED)
 
 		local c = s:chunk(10)
 		w:close()
-		assert.equal(c:tostring(), -1)
+		assert.equal(c:tostring(), nil)
 	end,
 }

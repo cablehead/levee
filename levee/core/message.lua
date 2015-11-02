@@ -21,6 +21,11 @@ function Pair_mt:recv(ms)
 end
 
 
+function Pair_mt:close()
+	return self.recver:close()
+end
+
+
 local function Pair(sender, recver)
 	return setmetatable({sender=sender, recver=recver}, Pair_mt)
 end

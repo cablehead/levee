@@ -2,6 +2,7 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
+local message = require("levee.core.message")
 local errors = require("levee.errors")
 local d = require("levee.d")
 local _ = require("levee._")
@@ -339,8 +340,8 @@ end
 
 function Stream_mt:take(n)
 	if n then
-		local ok, err = self:readin(n)
-		if ok < 0 then return ok, err end
+		local err, n = self:readin(n)
+		if err then return end
 	end
 	return self.buf:take(n)
 end
@@ -385,7 +386,8 @@ function Chunk(stream, len)
 	self.hub = stream.conn.hub
 	self.stream = stream
 	self.len = len
-	self.done = self.hub:pipe()
+	-- TODO:
+	self.done = message.Pair(self.hub:value())
 	return self
 end
 

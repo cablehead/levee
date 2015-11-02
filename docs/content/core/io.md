@@ -81,7 +81,11 @@ A Stream is combination of an IO file descriptor and a buffer.
   trims this stream's buf by len. if len is nil then trims the entire buf.
 
 * take(n):
-  blocks until `n` bytes are buffered, and returns them as a lua string.
+  blocks until `n` bytes are buffered, and returns them as a lua string, or
+  `nil` if there was an error.
+
+* chunk(n):
+  create a Chunk object from this stream that's `n` bytes.
 
 
 ### Chunk
@@ -118,7 +122,8 @@ closed once the size of the chunk has been exhausted.
   writes this chunk to conn and marks it as done.
 
 * tostring():
-  copies the entire chunk into a string and marks it as done.
+  copies the entire chunk into a string and marks it as done. returns `nil` if
+  there is an error.
 
 * discard():
   consumes the entire chunk with as few resources as possible and marks it as
