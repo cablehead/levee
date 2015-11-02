@@ -68,6 +68,15 @@ return {
 		assert.equal(buf:take(), want)
 	end,
 
+	test_timeout = function()
+		local h = levee.Hub()
+		local err, r, w = h.io:pipe(20)
+
+		local buf = levee.d.buffer(4096)
+		local got = r:read(buf:tail())
+		assert.equal(got, levee.errors.TIMEOUT)
+	end,
+
 	test_last_read = function()
 		local h = levee.Hub()
 
@@ -196,15 +205,6 @@ return {
 
 		assert.equal(#want, #buf)
 		assert.equal(want, buf:take())
-	end,
-
-	test_timeout = function()
-		local h = levee.Hub()
-		local r, w = h.io:pipe(20)
-
-		local buf = levee.buffer(4096)
-		local got = r:read(buf:tail())
-		assert.equal(got, levee.TIMEOUT)
 	end,
 
 	test_stream = function()
