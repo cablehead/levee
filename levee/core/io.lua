@@ -102,17 +102,19 @@ function W_mt:write(buf, len)
 	while true do
 		local err, n = _.write(self.no, buf + sent, len - sent)
 
-		-- TODO: eagain
-		if err then
+		if err and not err.is_system_EAGAIN then
 			self:close()
 			return err
 		end
 
-		if n < 0 then n = 0 end
+		if err or n < 0 then n = 0 end
 		sent = sent + n
 		if sent == len then break end
 		local err = self.w_ev:recv()
-		if err then return err end
+		if err then
+			self:close()
+			return err
+		end
 	end
 
 	self.hub:continue()

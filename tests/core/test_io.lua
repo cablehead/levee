@@ -40,22 +40,35 @@ return {
 	end,
 
 	test_eagain = function()
-		print()
-		print()
-
 		local h = levee.Hub()
-
-		local buf = levee.d.buffer(4096)
 
 		local err, r, w = h.io:pipe()
 		assert(not err)
 
 		-- read eagain
+		local buf = levee.d.buffer(100000)
 		h:spawn(function() err, n = r:read(buf:tail()); buf:bump(n) end)
 		local err, n = w:write("foo")
 		assert(not err)
 		assert.equal(n, 3)
-		assert.equal(#buf, 3)
+		assert.equal(buf:take(3), "foo")
+
+		-- write eagain
+		local want = x(".", 100000)
+		local check
+		h:spawn(function() check = {w:write(want)} end)
+
+		print()
+		print()
+
+		while #buf < 100000 do
+			local err, n = r:read(buf:tail())
+			assert(not err)
+			buf:bump(n)
+		end
+
+		assert.same(check, {nil, 100000})
+		assert.equal(buf:take(), want)
 	end,
 
 	test_last_read = function()
