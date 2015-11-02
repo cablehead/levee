@@ -58,8 +58,30 @@
 
 #### signal
 
-* h.signal(...)
+* signal(...):
   subscribe to one or more signals.
+
+#### process
+
+* process.spawn(name, options):
+  `name` is the name of a command to run. `options` is a table of options:
+
+    * argv:
+      arguments for the command
+
+    * io:
+
+      - STDIN:
+        how to treat the child processes STDIN. by default STDIN will be
+        captured, available as a stream on p.stdin. if this option is a number
+        than the child's STDIN will be mapped to that file descriptor.
+
+      - STDOUT:
+        how to treat the child processes STDOUT. by default STDOUT will be
+        captured, available as a stream on p.stdout. if this option is a number
+        than the child's STDOUT will be mapped to that file descriptor.
+
+  returns a Process object
 
 ### objects
 
@@ -72,3 +94,31 @@
   in addition to the file descriptor potentially being ready (buffered bytes),
   the file descriptor is closed.
 
+#### `Process`
+
+##### attributes
+
+* pid:
+  the processes pid
+
+* stdin, stdout:
+  unless io.STDIN or io.STDOUT are specified as spawn options, these attributes
+  will be present.
+
+* done: recv-able to indicate the process has completed.
+
+* exit_code:
+  once the process completes this attribute will be present to indicate the
+  processes exit code.
+
+* exit_sig:
+  once the process completes this attribute will be present to indicate the
+  processes exit signal.
+
+##### methods
+
+* running():
+  is the process still running?
+
+* kill(signal):
+  send `signal` to the process. defaults to SIGTERM.

@@ -1,8 +1,4 @@
-local ffi = require('ffi')
-local C = ffi.C
-
 local levee = require("levee")
-local sys = levee.sys
 
 
 return {
@@ -15,7 +11,8 @@ return {
 		assert.equal(child.stdout:reads(), "foo")
 
 		child.stdin:close()
-		child.done:recv()
+		local err, p = child.done:recv()
+		assert.equal(p:running(), false)
 	end,
 
 	test_to_fd = function()

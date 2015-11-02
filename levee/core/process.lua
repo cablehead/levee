@@ -1,8 +1,13 @@
 local ffi = require('ffi')
 local C = ffi.C
 
-local sys = require("levee.sys")
 
+local message = require("levee.core.message")
+local _ = require("levee._")
+
+
+--
+-- Process
 
 local Process_mt = {}
 Process_mt.__index = Process_mt
@@ -20,7 +25,8 @@ end
 
 
 function Process_mt:running()
-	return not self.done.closed
+	-- TODO:
+	return not self.done.sender.value
 end
 
 
@@ -33,12 +39,10 @@ local function Process(hub, pid)
 	return setmetatable({
 		hub = hub,
 		pid = pid,
-		done = hub:pipe(),  -- TODO: we need a oneshot primitive
-	}, Process_mt)
+		done = message.Pair(hub:value()), }, Process_mt)
 end
 
 
---
 -- Module interface
 --
 
@@ -52,16 +56,17 @@ function M_mt:poweron()
 	self.sigchild = self.hub:signal(C.SIGCHLD)
 
 	self.hub:spawn(function()
-		for _ in self.sigchild do
+		for no in self.sigchild do
 			while true do
-				local pid, code, sig = sys.process.waitpid(-1, C.WNOHANG)
-				if pid <= 0 then break end
+				local err, pid, code, sig = _.waitpid(-1, C.WNOHANG)
+				if err then print("TODO:", err, pid) end
+				if not pid then break end
 				local child = self.children[pid]
 				if child then
 					self.children[pid] = nil
 					child.exit_code = code
 					child.exit_sig = sig
-					child.done:close()
+					child.done:send(child)
 				end
 			end
 		end
@@ -79,11 +84,13 @@ function M_mt:spawn(name, options)
 	local out_r, out_w
 
 	if not io.STDIN then
-		in_r, in_w = sys.os.pipe()
+		err, in_r, in_w = _.pipe()
+		assert(not err)
 	end
 
 	if not io.STDOUT then
-		out_r, out_w = sys.os.pipe()
+		err, out_r, out_w = _.pipe()
+		assert(not err)
 	end
 
 	local pid = C.fork()
@@ -93,14 +100,14 @@ function M_mt:spawn(name, options)
 		local child = Process(self.hub, pid)
 
 		if not io.STDIN then
-			C.close(in_r)
-			sys.os.nonblock(in_w)
+			_.close(in_r)
+			_.fcntl_nonblock(in_w)
 			child.stdin = self.hub.io:w(in_w)
 		end
 
 		if not io.STDOUT then
-			C.close(out_w)
-			sys.os.nonblock(out_r)
+			_.close(out_w)
+			_.fcntl_nonblock(out_r)
 			child.stdout = self.hub.io:r(out_r)
 		end
 
@@ -112,13 +119,13 @@ function M_mt:spawn(name, options)
 		if type(no) == "table" then
 			-- assume this a levee io object
 			no = no.no
-			sys.os.block(no)
+			_.fcntl_block(no)
 		end
 		return no
 	end
 
 	-- child
-	sys.process.set_pdeathsig()
+	_.set_pdeathsig()
 
 	if not io.STDIN then
 		C.close(in_w)
@@ -141,9 +148,9 @@ function M_mt:spawn(name, options)
 	end
 
 	for no = 3, 65535 do
-		local st = sys.os.fstat(no)
+		local err, st = _.fstat(no)
 		if st then
-			C.fcntl(no, C.F_SETFD, 1LL)  -- FD_CLOEXEC needs to be a long
+			_.fcntl(no, C.F_SETFD, 1LL)  -- FD_CLOEXEC needs to be a long
 		end
 	end
 
@@ -161,8 +168,8 @@ function M_mt:spawn(name, options)
 
 	local argv = options.argv or {}
 	table.insert(argv, 1, name)
-	local rc = sys.process.execvp(name, argv)
-	assert(rc == 0)
+	local err = _.execvp(name, argv)
+	assert(not err)
 end
 
 
