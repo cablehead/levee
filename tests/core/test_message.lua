@@ -268,6 +268,21 @@ return {
 		assert.same({recver:recv()}, {levee.errors.CLOSED})
 	end,
 
+	test_queue_close = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:queue()
+
+		local glob = 3
+		local check
+		recver.on_close = function() check = glob end
+
+		recver:close()
+		assert.equal(check, 3)
+		assert.equal(sender:send(1), levee.errors.CLOSED)
+		assert.equal(recver:recv(), levee.errors.CLOSED)
+	end,
+
 	test_queue_size = function()
 		local h = levee.Hub()
 

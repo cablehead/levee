@@ -304,6 +304,16 @@ function Queue_mt:recv(ms)
 end
 
 
+function Queue_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.sender:_take(errors.CLOSED)
+	if self.on_close then
+		self.on_close(self)
+	end
+end
+
+
 local function Queue(hub, size)
 	return setmetatable({
 		hub = hub,
