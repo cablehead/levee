@@ -159,7 +159,8 @@ return {
 
 	test_iov = function()
 		local h = levee.Hub()
-		local r, w = h.io:pipe()
+
+		local err, r, w = h.io:pipe()
 
 		local iov = w:iov()
 
@@ -187,14 +188,14 @@ return {
 			want = table.concat(want)
 		end)
 
-		local buf = levee.buffer(4096)
+		local buf = levee.d.buffer(4096)
 		while true do
-			local rc = r:readinto(buf)
-			if rc < 0 then break end
+			local err, n = r:readinto(buf)
+			if err then break end
 		end
 
 		assert.equal(#want, #buf)
-		assert.equal(want, buf:take_s())
+		assert.equal(want, buf:take())
 	end,
 
 	test_timeout = function()

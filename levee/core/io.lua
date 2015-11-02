@@ -199,20 +199,24 @@ end
 
 
 function W_mt:iov(size)
-	if self.closed then return -1, errno["EBADF"] end
+	if self.closed then return errors.CLOSED end
 
 	if not self.iovec then
 		size = size or 32
-		self.iovec = self.hub:stalk(size)
+
+		local q
+		self.iovec, q = self.hub:stalk(size)
+		-- TODO: eww, this isn't right
+		self.iovec.empty = q.empty
 
 		self.hub:spawn(function()
-			local q = self.iovec
-			local iov = iovec.Iovec(size)
+			local iov = Iovec(size)
 
 			while true do
-				if not q:recv() then return end
+				local err = q:recv()
+				if err then return end
 
-				local n = #q
+				local num = #q
 				for s in q:iter() do
 					-- TODO - eep
 					if s.value then
@@ -222,14 +226,14 @@ function W_mt:iov(size)
 					end
 				end
 
-				local rc = self:writev(iov.iov, iov.n)
-				if rc <= 0 then
+				local err, n = self:writev(iov.iov, iov.n)
+				if err then
 					self:close()
 					return
 				end
 
 				iov:reset()
-				q:remove(n)
+				q:remove(num)
 			end
 		end)
 	end
@@ -240,14 +244,14 @@ end
 
 function W_mt:close()
 	if self.closed then
-		return
+		return errors.CLOSED
 	end
 
 	self.closed = true
 	if self.iovec then self.iovec:close() end
 	self.hub:unregister(self.no, false, true)
 	self.hub:continue()
-	return true
+	return
 end
 
 
