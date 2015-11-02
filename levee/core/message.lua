@@ -266,6 +266,9 @@ local Queue_mt = {}
 Queue_mt.__index = Queue_mt
 
 
+Queue_mt.__call = Recver_mt.__call
+
+
 function Queue_mt:_give(err, sender, value)
 	if self.closed then return errors.CLOSED end
 

@@ -268,6 +268,19 @@ return {
 		assert.same({recver:recv()}, {levee.errors.CLOSED})
 	end,
 
+	test_queue_iter = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:queue()
+
+		for i = 1, 3 do sender:send(i) end
+		sender:close()
+
+		local got = {}
+		for i in recver do table.insert(got, i) end
+		assert.same(got, {1, 2, 3})
+	end,
+
 	test_queue_close = function()
 		local h = levee.Hub()
 
