@@ -48,10 +48,8 @@ end
 function R_mt:reads(len)
 	len = len or 4096
 	local buf = ffi.new("char[?]", len)
-	local n, err = self:read(buf, len)
-	if n < 0 then
-		return nil, err
-	end
+	local err, n = self:read(buf, len)
+	if err then return end
 	return ffi.string(buf, n)
 end
 

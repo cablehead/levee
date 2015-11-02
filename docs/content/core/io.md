@@ -25,6 +25,10 @@
 	convenience to read into a `levee.d.buffer`. ensures there's sufficient space
 	to write into the buffer. returns `err`, `n`.
 
+* reads(size):
+	convenience to read and return a lua string up to `size` bytes. `size`
+	defaults to 4096. returns `nil` or a string.
+
 ### Writable IO
 
 * write(buf, size):

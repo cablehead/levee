@@ -108,6 +108,17 @@ return {
 		assert.same(h.registered, {})
 	end,
 
+	test_reads = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+		w:write("foo")
+		assert.equal(r:reads(), "foo")
+		w:close()
+		assert.equal(r:reads(), nil)
+		assert.same(h.registered, {})
+	end,
+
 	test_writev = function()
 		local iov = levee.iovec.Iovec(32)
 
