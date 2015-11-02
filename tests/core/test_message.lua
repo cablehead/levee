@@ -270,19 +270,36 @@ return {
 	test_queue_size = function()
 		local h = levee.Hub()
 
-		local q = h:queue(3)
+		local sender, recver = h:queue(2)
 
+		local check
 		h:spawn(function()
-			for i = 1, 10 do sender:send(i) end
+			for i = 1, 5 do
+				check = i
+				sender:send(i)
+			end
 			sender:close()
 		end)
 
-		local check = 0
-		for i in q do
-			check = check + 1
-			assert.equal(i, check)
-		end
-		assert.equal(check, 10)
+		assert.equal(check, 3)
+		h:continue()
+		assert.equal(check, 3)
+
+		assert.same({recver:recv()}, {nil, 1})
+		h:continue()
+		assert.equal(check, 4)
+
+		assert.same({recver:recv()}, {nil, 2})
+		h:continue()
+		assert.equal(check, 5)
+
+		assert.same({recver:recv()}, {nil, 3})
+		h:continue()
+		assert.equal(check, 5)
+
+		assert.same({recver:recv()}, {nil, 4})
+		assert.same({recver:recv()}, {nil, 5})
+		assert.same({recver:recv()}, {levee.errors.CLOSED})
 	end,
 
 	test_stalk_send_then_recv = function()

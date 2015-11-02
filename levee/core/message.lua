@@ -264,13 +264,14 @@ Queue_mt.__index = Queue_mt
 function Queue_mt:_give(err, sender, value)
 	if self.closed then return errors.CLOSED end
 
+	if err == errors.CLOSED then self.closed = true end
+
 	if not self.co then
+		if self.size and #self.fifo >= self.size then return end
 		self.fifo:push({err, sender, value})
 		self.empty:send()
 		return nil, true
 	end
-
-	if err == errors.CLOSED then self.closed = true end
 
 	local co = self.co
 	self.co = nil
@@ -283,10 +284,15 @@ function Queue_mt:recv(ms)
 	assert(not self.co)
 
 	if #self.fifo > 0 then
+		if self.size and #self.fifo >= self.size then
+			self.sender:_link(self)
+		end
 		local err, sender, value = unpack(self.fifo:pop())
 		if #self.fifo == 0 then self.empty:send(true) end
 		return err, value
 	end
+
+	if self.closed then return errors.CLOSED end
 
 	self.co = coroutine.running()
 	local err, sender, value = self.hub:pause(ms)
