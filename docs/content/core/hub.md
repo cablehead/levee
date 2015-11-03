@@ -63,13 +63,13 @@
 
 #### thread
 
-* thread.call(f, ...):
+* thread:call(f, ...):
 
-* thread.spawn(f):
+* thread:spawn(f):
 
 #### process
 
-* process.spawn(name, options):
+* process:spawn(name, options):
   `name` is the name of a command to run. `options` is a table of options:
 
     * argv:
@@ -88,6 +88,12 @@
         than the child's STDOUT will be mapped to that file descriptor.
 
   returns a Process object
+
+#### tcp
+
+* tcp:connect(port, host):
+
+* tcp:listen(port, host):
 
 ### objects
 

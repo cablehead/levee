@@ -40,11 +40,6 @@ function State_mt:set(value)
 end
 
 
-function State_mt:__call()
-	return self:recv()
-end
-
-
 local function State(hub)
 	local self = setmetatable({hub=hub}, State_mt)
 	return self
@@ -289,9 +284,8 @@ local function Hub()
 	self.signal = require("levee.core.signal")(self)
 	self.process = require("levee.core.process")(self)
 	self.thread = require("levee.core.thread")(self)
+	self.tcp = require("levee.core.tcp")(self)
 
-
-	-- self.tcp = require("levee.tcp")(self)
 	-- self.udp = require("levee.udp")(self)
 	-- self.http = require("levee.http")(self)
 
