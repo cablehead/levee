@@ -123,6 +123,7 @@ local function Recver(chan, id)
 	return setmetatable({
 		chan = chan,
 		id = id,
+		-- TODO:
 		queue = message.Pair(chan.hub:queue()), }, Recver_mt)
 end
 
@@ -366,7 +367,7 @@ end
 
 
 function Thread_mt:call(f, ...)
-	local state = levee.State()
+	local state = State()
 
 	-- bootstrap
 	assert(state:load_function(
@@ -382,7 +383,7 @@ function Thread_mt:call(f, ...)
 			end
 		end))
 
-	local recver = self.hub:channel():bind()
+	local recver = self:channel():bind()
 	state:push(recver:create_sender())
 
 	state:push(string.dump(f))
@@ -398,14 +399,14 @@ end
 
 
 function Thread_mt:spawn(f)
-	local state = levee.State()
+	local state = State()
 
 	-- bootstrap
 	assert(state:load_function(
 		function(sender, f)
 			local levee = require("levee")
 			local h = levee.Hub()
-			h.parent = levee.message.Pair(sender, sender:connect(h:channel()))
+			h.parent = levee.message.Pair(sender, sender:connect(h.thread:channel()))
 
 			local ok, got = pcall(loadstring(f), h)
 
@@ -417,13 +418,13 @@ function Thread_mt:spawn(f)
 			end
 		end))
 
-		local recver = self.hub:channel():bind()
+		local recver = self:channel():bind()
 		state:push(recver:create_sender())
 
 		state:push(string.dump(f))
 		state:run(2, true)
 
-		return levee.message.Pair(recver:recv(), recver)
+		return message.Pair(recver:recv(), recver)
 end
 
 

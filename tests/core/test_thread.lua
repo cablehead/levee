@@ -56,7 +56,7 @@ return {
 		end
 
 		local recver = h.thread:call(add, 3, 2)
-		assert.equal(recver:recv(), 5)
+		assert.same({recver:recv()}, {nil, 5})
 	end,
 
 	test_spawn = function()
