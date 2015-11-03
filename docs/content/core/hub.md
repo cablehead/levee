@@ -61,6 +61,12 @@
 * signal(...):
   subscribe to one or more signals.
 
+#### thread
+
+* thread.call(f, ...):
+
+* thread.spawn(f):
+
 #### process
 
 * process.spawn(name, options):
