@@ -405,8 +405,10 @@ function Thread_mt:spawn(f)
 	assert(state:load_function(
 		function(sender, f)
 			local levee = require("levee")
+			local message = require("levee.core.message")
+
 			local h = levee.Hub()
-			h.parent = levee.message.Pair(sender, sender:connect(h.thread:channel()))
+			h.parent = message.Pair(sender, sender:connect(h.thread:channel()))
 
 			local ok, got = pcall(loadstring(f), h)
 
@@ -424,7 +426,9 @@ function Thread_mt:spawn(f)
 		state:push(string.dump(f))
 		state:run(2, true)
 
-		return message.Pair(recver:recv(), recver)
+		local err, sender = recver:recv()
+		assert(not err)
+		return message.Pair(sender, recver)
 end
 
 

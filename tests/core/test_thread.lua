@@ -63,12 +63,14 @@ return {
 		local h = levee.Hub()
 
 		local function f(h)
-			assert(h.parent:recv() == 123)
+			local err, got = h.parent:recv()
+			assert(not err)
+			assert(got == 123)
 			h.parent:send(321)
 		end
 
 		local child = h.thread:spawn(f)
 		child:send(123)
-		assert.equal(child:recv(), 321)
+		assert.same({child:recv()}, {nil, 321})
 	end,
 }
