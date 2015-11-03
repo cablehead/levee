@@ -10,9 +10,6 @@ local d = require("levee.d")
 local message = require("levee.core.message")
 
 
--- local Channel = require("levee.channel")
-
-
 local State_mt = {}
 State_mt.__index = State_mt
 
@@ -210,15 +207,6 @@ function Hub_mt:unregister(no)
 end
 
 
--- TODO: should this just be a normal State object?
-function Hub_mt:channel()
-	if self.chan == nil then
-		self.chan = Channel(self)
-	end
-	return self.chan
-end
-
-
 function Hub_mt:pump()
 	local num = #self.ready
 	for _ = 1, num do
@@ -256,7 +244,7 @@ function Hub_mt:pump()
 		local no, c_ev, s_ev, r_ev, w_ev, e_ev = events[i]:value()
 
 		if c_ev then
-			self.chan:pump()
+			self.thread.chan:pump()
 
 		elseif s_ev then
 			self.signal:trigger(no)
@@ -300,11 +288,12 @@ local function Hub()
 	self.io = require("levee.core.io")(self)
 	self.signal = require("levee.core.signal")(self)
 	self.process = require("levee.core.process")(self)
+	self.thread = require("levee.core.thread")(self)
+
 
 	-- self.tcp = require("levee.tcp")(self)
 	-- self.udp = require("levee.udp")(self)
 	-- self.http = require("levee.http")(self)
-	-- self.thread = require("levee.thread")(self)
 
 	-- self.consul = require("levee.consul")(self)
 
