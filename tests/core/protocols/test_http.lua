@@ -1,7 +1,10 @@
 local ffi = require('ffi')
 
+
 return {
 	test_parser_request = function()
+		local parser = require("levee.core.protocols.http").parser
+
 		local request = "" ..
 			"GET /some/path HTTP/1.1\r\n" ..
 			"H1: one\r\n" ..
@@ -13,39 +16,41 @@ return {
 		local buf = ffi.cast("char*", request)
 		local len = #request
 
-		local rc
-		local p = parsers.http.Request()
+		local p = parser.Request()
 		p:init_request()
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, 5)
+		assert.equal(rc, 0)
+
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {"GET", "/some/path", 1})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {"H1", "one"})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {"H2", "two"})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {"Content-Length", "13"})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), true)
 		buf = buf + rc

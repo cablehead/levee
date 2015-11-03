@@ -1,12 +1,7 @@
 local ffi = require('ffi')
 local C = ffi.C
 
-local parsers = require("levee.parsers")
-local meta = require("levee.meta")
-local iovec = require("levee.iovec")
-local buffer = require("levee.buffer")
-local json = require("levee.json")
-local sys = require("levee.sys")
+local errors = require("levee.errors")
 
 
 local VERSION = "HTTP/1.1"
@@ -14,110 +9,9 @@ local FIELD_SEP = ": "
 local EOL = "\r\n"
 
 
-local HTTP_mt = {}
-HTTP_mt.__index = HTTP_mt
-
-
-function HTTP_mt:__new()
-	return ffi.new(self)
-end
-
-
-function HTTP_mt:__tostring()
-	return string.format(
-		"levee.parsers.HTTP: %s", self.response and "response" or "request")
-end
-
-
-function HTTP_mt:init_request()
-	return C.sp_http_init_request(self)
-end
-
-
-function HTTP_mt:init_response()
-	return C.sp_http_init_response(self)
-end
-
-
-function HTTP_mt:reset()
-	return C.sp_http_reset(self)
-end
-
-
-function HTTP_mt:next(buf, len)
-	return C.sp_http_next(self, buf, len)
-end
-
-function HTTP_mt:is_done()
-	return C.sp_http_is_done(self)
-end
-
-
-function HTTP_mt:has_value()
-	return
-		self.type == C.SP_HTTP_REQUEST or
-		self.type == C.SP_HTTP_RESPONSE or
-		self.type == C.SP_HTTP_FIELD or
-		self.type == C.SP_HTTP_BODY_START or
-		self.type == C.SP_HTTP_BODY_CHUNK
-end
-
-
-function HTTP_mt:value(buf)
-	if self.type == C.SP_HTTP_REQUEST then
-		return
-			ffi.string(
-				buf + self.as.request.method_off, self.as.request.method_len),
-			ffi.string(buf + self.as.request.uri_off, self.as.request.uri_len),
-			self.as.request.version
-	elseif self.type == C.SP_HTTP_RESPONSE then
-		return
-			self.as.response.status,
-			ffi.string(
-				buf + self.as.response.reason_off, self.as.response.reason_len),
-			self.as.request.version
-	elseif self.type == C.SP_HTTP_FIELD then
-		return
-			ffi.string(buf + self.as.field.name_off, self.as.field.name_len),
-			ffi.string(buf + self.as.field.value_off, self.as.field.value_len)
-	elseif self.type == C.SP_HTTP_BODY_START then
-		return
-			false,
-			self.as.body_start.chunked,
-			self.as.body_start.content_length
-	elseif self.type == C.SP_HTTP_BODY_CHUNK then
-		return
-			true,
-			self.as.body_chunk.length
-	elseif self.type == C.SP_HTTP_BODY_END then
-		return
-			false,
-			0
-	end
-end
-
-
-local allocate = ffi.metatype("SpHttp", HTTP_mt)
-
-
-return {
-	Request = function()
-		local p = allocate()
-		p:init_request()
-		return p
-	end,
-
-	Response = function()
-		local p = allocate()
-		p:init_response()
-		return p
-	end,
-}
-
-
 --
--- Statuses
---
+-- Status
+
 local Status = {}
 
 function Status:__call(code, reason)
@@ -210,6 +104,101 @@ Status[523] = Status(523, "Proxy Declined Request")
 Status[524] = Status(524, "A timeout occurred")
 Status[598] = Status(598, "Network read timeout error")
 Status[599] = Status(599, "Network connect timeout error")
+
+
+--
+-- Parser
+
+local Parser_mt = {}
+Parser_mt.__index = Parser_mt
+
+
+function Parser_mt:__new()
+	return ffi.new(self)
+end
+
+
+function Parser_mt:__tostring()
+	return string.format(
+		"levee.http.Parser: %s", self.response and "response" or "request")
+end
+
+
+function Parser_mt:init_request()
+	C.sp_http_init_request(self)
+end
+
+
+function Parser_mt:init_response()
+	C.sp_http_init_response(self)
+end
+
+
+function Parser_mt:reset()
+	C.sp_http_reset(self)
+end
+
+
+function Parser_mt:next(buf, len)
+	local rc = C.sp_http_next(self, buf, len)
+	if rc >= 0 then
+		return nil, rc
+	end
+	return errors.get(rc)
+end
+
+
+function Parser_mt:is_done()
+	return C.sp_http_is_done(self)
+end
+
+
+function Parser_mt:has_value()
+	return
+		self.type == C.SP_HTTP_REQUEST or
+		self.type == C.SP_HTTP_RESPONSE or
+		self.type == C.SP_HTTP_FIELD or
+		self.type == C.SP_HTTP_BODY_START or
+		self.type == C.SP_HTTP_BODY_CHUNK
+end
+
+
+function Parser_mt:value(buf)
+	if self.type == C.SP_HTTP_REQUEST then
+		return
+			ffi.string(
+				buf + self.as.request.method_off, self.as.request.method_len),
+			ffi.string(buf + self.as.request.uri_off, self.as.request.uri_len),
+			self.as.request.version
+	elseif self.type == C.SP_HTTP_RESPONSE then
+		return
+			self.as.response.status,
+			ffi.string(
+				buf + self.as.response.reason_off, self.as.response.reason_len),
+			self.as.request.version
+	elseif self.type == C.SP_HTTP_FIELD then
+		return
+			ffi.string(buf + self.as.field.name_off, self.as.field.name_len),
+			ffi.string(buf + self.as.field.value_off, self.as.field.value_len)
+	elseif self.type == C.SP_HTTP_BODY_START then
+		return
+			false,
+			self.as.body_start.chunked,
+			self.as.body_start.content_length
+	elseif self.type == C.SP_HTTP_BODY_CHUNK then
+		return
+			true,
+			self.as.body_chunk.length
+	elseif self.type == C.SP_HTTP_BODY_END then
+		return
+			false,
+			0
+	end
+end
+
+
+local Parser = ffi.metatype("SpHttp", Parser_mt)
+
 
 --
 -- Date response header cache
@@ -955,6 +944,23 @@ end
 
 local M_mt = {}
 M_mt.__index = M_mt
+
+
+M_mt.parser = {}
+
+
+M_mt.parser.Request = function()
+	local p = Parser()
+	p:init_request()
+	return p
+end
+
+
+M_mt.parser.Response = function()
+	local p = Parser()
+	p:init_response()
+	return p
+end
 
 
 function M_mt.__call(self, hub)
