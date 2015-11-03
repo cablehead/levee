@@ -64,8 +64,14 @@
 #### thread
 
 * thread:call(f, ...):
+  runs `f` in a new thread with arguments `...`. returns a `rever` which will
+  yield the return values of `f`. `f` should return `err`, `value`
 
 * thread:spawn(f):
+  spawns `f` in a new thread and returns a `channel` to send and recv data into
+  the thread. `f` will be passed a `hub` as an arugment which is it's own event
+  loop. `hub` will have an additional attribute `parent` which is a channel to
+  send and recv data back to the parent thread.
 
 #### process
 
