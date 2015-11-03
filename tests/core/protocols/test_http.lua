@@ -60,6 +60,8 @@ return {
 	end,
 
 	test_parser_response = function()
+		local parser = require("levee.core.protocols.http").parser
+
 		local response = "" ..
 			"HTTP/1.1 200 OK\r\n" ..
 			"Date: Sun, 18 Oct 2009 08:56:53 GMT\r\n" ..
@@ -70,32 +72,31 @@ return {
 		local buf = ffi.cast("char*", response)
 		local len = #response
 
-		local rc
-		local p = parsers.http.Response()
+		local p = parser.Response()
 		p:init_response()
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {200, "OK", 1})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {"Date", "Sun, 18 Oct 2009 08:56:53 GMT"})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
 		assert.same({p:value(buf)}, {"Content-Length", "13"})
 		buf = buf + rc
 		len = len - rc
 
-		rc = p:next(buf, len)
+		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), true)
 		buf = buf + rc
