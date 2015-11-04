@@ -212,21 +212,21 @@ return {
 		local levee = require("levee")
 
 		local h = levee.Hub()
-		local serve = h.http:listen()
-		local c = h.http:connect(serve:addr():port())
-		local s = serve:recv()
 
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
+
+		local err, c = h.http:connect(addr:port())
 		local response = c:post("/path", {data="foo"})
 
-		local req = s:recv()
-
+		local err, s = serve:recv()
+		local err, req = s:recv()
 		assert.equal(req.method, "POST")
 		assert.equal(req.path, "/path")
 		assert.equal(req.body:tostring(), "foo")
+		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
-		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
-
-		response = response:recv()
+		local err, response = response:recv()
 		assert.equal(response.code, 200)
 		assert.equal(response.body:tostring(), "Hello world\n")
 
