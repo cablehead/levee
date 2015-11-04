@@ -511,9 +511,8 @@ function Client_mt:request(method, path, params, headers, data)
 		path = table.concat(s)
 	end
 
-	local iov = self.conn:iov()
-
-	iov:send(("%s %s %s\r\n"):format(method, path, VERSION))
+	local err = self.conn:send(("%s %s %s\r\n"):format(method, path, VERSION))
+	if err then return err end
 
 	headers = self:__headers(headers)
 	if data then
@@ -521,18 +520,19 @@ function Client_mt:request(method, path, params, headers, data)
 	end
 
 	for k, v in pairs(headers) do
-		iov:send(k)
-		iov:send(FIELD_SEP)
-		iov:send(v)
-		iov:send(EOL)
+		local err = self.conn:send(k, FIELD_SEP, v, EOL)
+		if err then return err end
 	end
-	iov:send(EOL)
+	self.conn:send(EOL)
 
-	if data then iov:send(data) end
+	if data then
+		local err = self.conn:send(data)
+		if err then return err end
+	end
 
 	local sender, recver = self.hub:pipe()
 	self.responses:send(sender)
-	return recver
+	return nil, recver
 end
 
 
@@ -562,6 +562,7 @@ end
 --
 local Request_mt = {}
 Request_mt.__index = Request_mt
+
 
 function Request_mt:_sendfile(name)
 	local no = C.open(name, C.O_RDONLY)
@@ -594,6 +595,7 @@ function Request_mt:_sendfile(name)
 	return true, no
 end
 
+
 function Request_mt:sendfile(name)
 	local ok, no = self:_sendfile(name)
 	if not ok then
@@ -608,6 +610,7 @@ function Request_mt:__tostring()
 	return ("levee.http.Request: %s %s"):format(self.method, self.path)
 end
 
+
 local Server_mt = {}
 Server_mt.__index = Server_mt
 
@@ -617,104 +620,70 @@ function Server_mt:recv()
 end
 
 
-Server_mt.__call = Server_mt.recv
-
-
 function Server_mt:_response(response)
-	-- TODO: should bail on iov:send err
-
 	local err, value = response:recv()
+	if err then return err end
 	local status, headers, body = unpack(value)
-	local iov = self.conn:iov()
 
-	if type(iov) == "number" then
-		-- iov is -1, connection closed
-		response:close()
-		self:close()
+	local err = self.conn:send(status)
+	if err then return err end
+
+	headers["Date"] = httpdate()
+
+	if type(body) == "string" then
+			headers["Content-Length"] = tostring(#body)
+	elseif body ~= nil then
+			headers["Content-Length"] = tostring(tonumber(body))
+	else
+			headers["Transfer-Encoding"] = "chunked"
+	end
+
+	for k, v in pairs(headers) do
+		local err = self.conn:send(k, FIELD_SEP, v, EOL)
+		if err then return err end
+	end
+	self.conn:send(EOL)
+
+	if type(body) == "string" then
+		return self.conn:send(body)
+	end
+
+	if body ~= nil then
+		-- wait until headers have been sent
+		self.conn.empty:recv()
+		-- wait until app signals body sent
+		local err = response:recv()
+		assert(err)
 		return
 	end
 
-	iov:send(status)
+	local err, chunk = response:recv()
+	while not err do
+		if type(chunk) == "string" then
+			self.conn:send(num2hex(#chunk), EOL, chunk, EOL)
+			err, chunk = response:recv()
 
-	iov:send("Date")
-	iov:send(FIELD_SEP)
-	iov:send(httpdate())
-	iov:send(EOL)
-
-	for k, v in pairs(headers) do
-		iov:send(k)
-		iov:send(FIELD_SEP)
-		iov:send(v)
-		iov:send(EOL)
+		else
+			self.conn:send(num2hex(chunk), EOL)
+			-- wait until headers have been sent
+			self.conn.empty:recv()
+			-- next chunk signals continue
+			err, chunk = response:recv()
+			self.conn:send(EOL)
+		end
 	end
-
-	if type(body) == "string" then
-		iov:send("Content-Length")
-		iov:send(FIELD_SEP)
-		iov:send(tostring(#body))
-		iov:send(EOL)
-		iov:send(EOL)
-		iov:send(body)
-
-	elseif body ~= nil then
-		iov:send("Content-Length")
-		iov:send(FIELD_SEP)
-		iov:send(tostring(tonumber(body)))
-		iov:send(EOL)
-		iov:send(EOL)
-		-- wait until headers have been sent
-		iov.empty:recv()
-		-- wait until app signals body sent
-		assert(not response:recv())
-
-	else
-			iov:send("Transfer-Encoding")
-			iov:send(FIELD_SEP)
-			iov:send("chunked")
-			iov:send(EOL)
-			iov:send(EOL)
-
-			local function write_chunk(response, chunk)
-				if type(chunk) == "string" then
-					iov:send(num2hex(#chunk))
-					iov:send(EOL)
-					iov:send(chunk)
-					iov:send(EOL)
-
-					chunk = response:recv()
-
-				else
-					iov:send(num2hex(chunk))
-					iov:send(EOL)
-					-- wait until headers have been sent
-					iov.empty:recv()
-					--
-					-- next chunk signals continue
-					chunk = response:recv()
-					iov:send(EOL)
-				end
-
-				if not chunk then return true end
-				return write_chunk(response, chunk)
-			end
-
-			local ok = write_chunk(response, response:recv())
-			if not ok then
-				self:close()
-				return
-			end
-
-			iov:send("0")
-			iov:send(EOL)
-			iov:send(EOL)
-	end
+	return self.conn:send("0", EOL, EOL)
 end
 
 
 function Server_mt:writer(responses)
 	for response in responses do
-		self:_response(response)
+		local err = self:_response(response)
 		response:close()
+		if err then
+			self:close()
+			return
+		end
 	end
 end
 

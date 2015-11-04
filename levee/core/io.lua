@@ -207,8 +207,10 @@ function W_mt:iov(size)
 
 		local q
 		self.iovec, q = self.hub:stalk(size)
+
 		-- TODO: eww, this isn't right
 		self.iovec.empty = q.empty
+		self.empty = q.empty
 
 		self.hub:spawn(function()
 			local iov = Iovec(size)
