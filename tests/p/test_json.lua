@@ -68,7 +68,7 @@ return {
 		
 		local decoder = p.json.decoder()
 
-		local err, value = decoder:stream_consume(stream)
+		local err, value = decoder:stream(stream)
 		assert(not err)
 		assert.same(value, {
 			int = 3,
@@ -78,18 +78,20 @@ return {
 				yes = true,
 				no = false, } })
 
-		local err, value = decoder:stream_consume(stream)
+		local err, value = decoder:stream(stream)
 		assert(not err)
 		assert.same(value, {foo = "bar"})
 
-		local err, value = decoder:stream_consume(stream)
+		local err, value = decoder:stream(stream)
 		assert(err)
 	end,
 
 	test_decode = function()
-		local s = '{"foo": "bar"}'
-		local got = levee.json.decode(s)
-		assert.same(got, {foo="bar"})
+		local err, value = p.json.decode('{"foo": "bar"}')
+		assert(not err)
+		assert.same(value, {foo="bar"})
+		local err, value = p.json.decode('}{')
+		assert(err)
 	end,
 
 	test_encode = function()

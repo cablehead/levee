@@ -108,7 +108,7 @@ function Json_mt:stream_value(stream)
 end
 
 
-function Json_mt:stream_consume(stream)
+function Json_mt:stream(stream)
 	-- stream methods:
 	--	:readin()
 	--	:value() -> returns char*, len (could return eof?)
@@ -208,10 +208,7 @@ local function decode(s)
 	local buf = ffi.cast("const char*", s)
 	local n = #s
 	local stream = setmetatable({buf=buf, n=n}, StringStream_mt)
-	local parser = decoder()
-	local ok, got = parser:stream_consume(stream)
-	assert(ok)
-	return got
+	return decoder():stream(stream)
 end
 
 
