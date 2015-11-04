@@ -5,6 +5,10 @@ local errors = require("levee.errors")
 local d = require("levee.d")
 
 
+-- TODO
+local meta = {version = "foo"}
+
+
 local VERSION = "HTTP/1.1"
 local FIELD_SEP = ": "
 local EOL = "\r\n"
@@ -411,10 +415,12 @@ function Response_mt:json()
 	return data
 end
 
-function Client_mt:reader()
+function Client_mt:reader(responses)
 	local _next, res
 
-	for response in self.responses do
+	for response in responses do
+		if true then return end
+
 		_next = parser_next(self)
 		if not _next then return end
 
@@ -830,19 +836,19 @@ HTTP_mt.__index = HTTP_mt
 function HTTP_mt:connect(port, host)
 	local m = setmetatable({}, Client_mt)
 
-	local conn, err = self.hub.tcp:connect(port, host)
-	if not conn then
-		return conn, err
-	end
+	local err, conn = self.hub.tcp:connect(port, host)
+	if err then return end
 
 	m.hub = self.hub
 	m.conn = conn
-	m.parser = parsers.http.Response()
-	m.buf = buffer(64*1024)
 
-	m.responses = self.hub:pipe()
-	self.hub:spawn(m.reader, m)
-	return m
+	m.stream = m.conn:stream()
+	m.parser = parser.Response()
+
+	local res_sender, res_recver = self.hub:pipe()
+	self.hub:spawn(function() m:reader(res_recver) end)
+	m.responses = res_sender
+	return nil, m
 end
 
 

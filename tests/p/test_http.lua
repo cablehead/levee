@@ -171,14 +171,20 @@ return {
 	end,
 
 	test_core = function()
+		print()
+		print()
+
 		local levee = require("levee")
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen()
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
 
-		local c = h.http:connect(serve:addr():port())
+		local err, c = h.http:connect(addr:port())
 		local response = c:get("/path")
+
+		if true then return end
 
 		local s = serve:recv()
 
