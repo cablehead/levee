@@ -1,8 +1,43 @@
-local levee = require("levee")
+local ffi = require("ffi")
+local C = ffi.C
 
 
 return {
+	test_basics = function()
+		local json = require("levee.p.json")
+
+		local decoder = json.decoder()
+
+		local err, n = decoder:next("}{", 2, false)
+		assert(err)
+
+		decoder:reset()
+
+		local err, n = decoder:next("{}", 2, false)
+		assert(not err)
+		assert.equal(n, 1)
+		assert.equal(decoder.type, C.SP_JSON_OBJECT)
+		assert(not decoder:is_done())
+
+		local err, n = decoder:next("}", 1, false)
+		assert(not err)
+		assert.equal(n, 1)
+		assert.equal(decoder.type, C.SP_JSON_OBJECT_END)
+		assert(decoder:is_done())
+
+		local err, n = decoder:next("{}", 2, false)
+		assert(err)
+
+		decoder:reset()
+		local err, n = decoder:next("{}", 2, false)
+		assert(not err)
+	end,
+
+
 	test_core = function()
+
+
+		if true then return end
 
 		-- stream stub
 		local buf = levee.buffer(4096)

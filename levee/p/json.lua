@@ -1,7 +1,7 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local errno = require("levee.errno")
+local errors = require("levee.errors")
 
 
 local Json_mt = {}
@@ -34,8 +34,10 @@ function Json_mt:is_done()
 end
 
 
-function Json_mt:next(eof, buf, len)
-	return C.sp_json_next(self, buf, len, eof)
+function Json_mt:next(buf, len, eof)
+	local rc = C.sp_json_next(self, buf, len, eof)
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
