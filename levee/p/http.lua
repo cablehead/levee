@@ -720,7 +720,7 @@ function Server_mt:reader(requests, responses)
 		local err, value
 
 		err, value = self.parser:stream_next(self.stream)
-		if err then goto __cleanup return end
+		if err then goto __cleanup end
 
 		local res_sender, res_recver = self.hub:gate()
 
@@ -735,7 +735,7 @@ function Server_mt:reader(requests, responses)
 
 		while true do
 			err, value = self.parser:stream_next(self.stream)
-			if err then goto __cleanup return end
+			if err then goto __cleanup end
 			if not value[1] then break end
 			req.headers[value[1]] = value[2]
 		end
