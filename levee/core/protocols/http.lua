@@ -2,6 +2,7 @@ local ffi = require('ffi')
 local C = ffi.C
 
 local errors = require("levee.errors")
+local d = require("levee.d")
 
 
 local VERSION = "HTTP/1.1"
@@ -200,9 +201,25 @@ end
 local Parser = ffi.metatype("SpHttp", Parser_mt)
 
 
+local parser = {}
+
+parser.Request = function()
+	local p = Parser()
+	p:init_request()
+	return p
+end
+
+
+parser.Response = function()
+	local p = Parser()
+	p:init_response()
+	return p
+end
+
+
 --
 -- Date response header cache
---
+
 local http_time = ffi.new("time_t [1]")
 local http_date = nil
 local http_date_buf = ffi.new("char [32]")
@@ -237,7 +254,7 @@ end
 
 --
 -- Stream
---
+
 local Stream_mt = {}
 Stream_mt.__index = Stream_mt
 
@@ -338,7 +355,7 @@ end
 
 --
 -- Parser
---
+
 local function parser_next(self)
 	local n = self.parser:next(self.buf:value())
 
@@ -865,8 +882,8 @@ local function Server(hub, conn)
 
 	self.requests = hub:pipe()
 	self.responses = hub:pipe()
-	self.parser = parsers.http.Request()
-	self.buf = buffer(64*1024)
+	self.parser = parser.Request()
+	self.buf = d.buffer(64*1024)
 
 	hub:spawn(self.reader, self)
 	hub:spawn(self.writer, self)
@@ -891,7 +908,7 @@ Listener_mt.__call = Listener_mt.recv
 
 function Listener_mt:loop()
 	for conn in self.serve do
-		self.recver:send(Server(self.hub, conn))
+		self.sender:send(Server(self.hub, conn))
 	end
 end
 
@@ -934,11 +951,12 @@ end
 
 
 function HTTP_mt:listen(port, host)
-	local serve = self.hub.tcp:listen(port, host)
+	local err, serve = self.hub.tcp:listen(port, host)
+	if err then return err end
 	local m = setmetatable({hub = self.hub, serve = serve}, Listener_mt)
-	m.recver = self.hub:pipe()
+	m.sender, m.recver = self.hub:pipe()
 	self.hub:spawn(m.loop, m)
-	return m
+	return nil, m
 end
 
 
@@ -946,21 +964,7 @@ local M_mt = {}
 M_mt.__index = M_mt
 
 
-M_mt.parser = {}
-
-
-M_mt.parser.Request = function()
-	local p = Parser()
-	p:init_request()
-	return p
-end
-
-
-M_mt.parser.Response = function()
-	local p = Parser()
-	p:init_response()
-	return p
-end
+M_mt.parser = parser
 
 
 function M_mt.__call(self, hub)

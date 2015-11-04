@@ -106,17 +106,22 @@ return {
 	end,
 
 	test_basic = function()
+		print()
+		print()
+
 		local request = "" ..
 			"GET /some/path HTTP/1.1\r\n" ..
 			"H1: one\r\n" ..
 			"\r\n"
 
 		local levee = require("levee")
-
 		local h = levee.Hub()
-		local serve = h.http:listen()
 
-		local c = h.tcp:connect(serve:addr():port())
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
+		local c = h.tcp:connect(addr:port())
+
+		if true then return end
 		c:write(request)
 
 		local s = serve:recv()

@@ -4,16 +4,19 @@ local C = ffi.C
 local _ = require("levee._")
 
 
-local function __recv(self)
+local Listener_mt = {}
+Listener_mt.__index = Listener_mt
+
+
+Listener_mt.recv = function(self)
 	return self.recver:recv()
 end
 
 
-local Listener_mt = {}
-Listener_mt.__index = Listener_mt
-
-Listener_mt.__call = __recv
-Listener_mt.recv = __recv
+Listener_mt.__call = function(self)
+	local err, value = self.recver:recv()
+	if not err then return value end
+end
 
 
 function Listener_mt:loop()
