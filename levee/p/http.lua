@@ -619,8 +619,8 @@ Server_mt.__call = Server_mt.recv
 
 
 function Server_mt:_response(response)
-	local status, headers, body = unpack(response:recv())
-
+	local err, value = response:recv()
+	local status, headers, body = unpack(value)
 	local iov = self.conn:iov()
 
 	if type(iov) == "number" then
@@ -707,57 +707,53 @@ function Server_mt:_response(response)
 end
 
 
-function Server_mt:writer()
-	for response in self.responses do
+function Server_mt:writer(responses)
+	for response in responses do
 		self:_response(response)
 		response:close()
 	end
 end
 
 
-function Server_mt:reader()
-	local _next, req
-
+function Server_mt:reader(requests, responses)
 	while true do
-		_next = parser_next(self)
-		if not _next then
-			self:close()
-			return
-		end
+		local err, value
 
-		req = setmetatable({
+		err, value = self.parser:stream_next(self.stream)
+		if err then self:close(); return end
+
+		print(err, value)
+		print(repr(value))
+
+		local res_sender, res_recver = self.hub:gate()
+
+		local req = setmetatable({
 			serve = self,
-			method=_next[1],
-			path=_next[2],
-			version=_next[3],
-			headers={},
+			method = value[1],
+			path = value[2],
+			version = value[3],
+			headers = {},
 			conn = self.conn,
-			response = self.hub:gate(), }, Request_mt)
+			response = res_sender, }, Request_mt)
 
 		while true do
-			_next = parser_next(self)
-			if not _next then
-				self:close()
-				return
-			end
-			if not _next[1] then break end
-			req.headers[_next[1]] = _next[2]
+			err, value = self.parser:stream_next(self.stream)
+			if err then self:close(); return end
+			if not value[1] then break end
+			req.headers[value[1]] = value[2]
 		end
 
-		if _next[2] then error("TODO: chunked") end
+		if value[2] then error("TODO: chunked") end
 
-		local len = _next[3]
-
+		local len = value[3]
 		if len > 0 then
-			req.body = setmetatable({
-				len = len,
-				conn = self.conn,
-				buf = self.buf,
-				done = self.hub:pipe(), }, Stream_mt)
+			req.body = self.stream:chunk(len)
 		end
 
-		self.requests:send(req)
-		self.responses:send(req.response)
+		print(req)
+
+		requests:send(req)
+		responses:send(res_recver)
 
 		if len > 0 then req.body.done:recv() end
 	end
@@ -773,16 +769,18 @@ end
 
 local function Server(hub, conn)
 	local self = setmetatable({}, Server_mt)
+
 	self.hub = hub
 	self.conn = conn
 
-	self.requests = hub:pipe()
-	self.responses = hub:pipe()
+	self.stream = self.conn:stream()
 	self.parser = parser.Request()
-	self.buf = d.buffer(64*1024)
 
-	hub:spawn(self.reader, self)
-	hub:spawn(self.writer, self)
+	local req_sender, req_recver = hub:pipe()
+	local res_sender, res_recver = hub:pipe()
+	hub:spawn(function() self:reader(req_sender, res_sender) end)
+	hub:spawn(function() self:writer(res_recver) end)
+	self.requests = req_recver
 	return self
 end
 

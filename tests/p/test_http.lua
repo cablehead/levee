@@ -141,31 +141,33 @@ return {
 		print()
 		print()
 
-		local request = "" ..
-			"GET /some/path HTTP/1.1\r\n" ..
-			"H1: one\r\n" ..
-			"\r\n"
-
 		local levee = require("levee")
 		local h = levee.Hub()
 
 		local err, serve = h.http:listen()
 		local err, addr = serve:addr()
-		local c = h.tcp:connect(addr:port())
 
-		if true then return end
-		c:write(request)
+		local err, c = h.tcp:connect(addr:port())
+		c:write(
+			"" ..
+			"GET /some/path HTTP/1.1\r\n" ..
+			"H1: one\r\n" ..
+			"\r\n")
 
-		local s = serve:recv()
-		local req = s:recv()
+		local err, s = serve:recv()
+		local err, req = s:recv()
+
+		print(err, req)
+
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/some/path")
 		assert.same(req.headers, {H1 = "one"})
 
-		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
+		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
-		local buf = levee.buffer(4096)
-		assert(c:readinto(buf) > 0)
+		local buf = levee.d.buffer(4096)
+		local err, n = c:readinto(buf)
+		assert(n > 0)
 
 		s:close()
 		serve:close()
