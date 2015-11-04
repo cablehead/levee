@@ -171,9 +171,6 @@ return {
 	end,
 
 	test_core = function()
-		print()
-		print()
-
 		local levee = require("levee")
 
 		local h = levee.Hub()
@@ -184,30 +181,25 @@ return {
 		local err, c = h.http:connect(addr:port())
 		local response = c:get("/path")
 
-		if true then return end
-
-		local s = serve:recv()
-
-		local req = s:recv()
+		local err, s = serve:recv()
+		local err, req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
-		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
+		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
-		response = response:recv()
+		local err, response = response:recv()
 		assert.equal(response.code, 200)
 		assert.equal(response.body:tostring(), "Hello world\n")
 
 		-- make another request on the same connection
-
 		local response = c:get("/path")
 
-		local req = s:recv()
+		local err, req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
+		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
-		req.response:send({levee.http.Status(200), {}, "Hello world\n"})
-
-		response = response:recv()
+		local err, response = response:recv()
 		assert.equal(response.code, 200)
 		assert.equal(response.body:tostring(), "Hello world\n")
 

@@ -415,55 +415,46 @@ function Response_mt:json()
 	return data
 end
 
+
 function Client_mt:reader(responses)
-	local _next, res
-
 	for response in responses do
-		if true then return end
+		local err, value
 
-		_next = parser_next(self)
-		if not _next then return end
+		err, value = self.parser:stream_next(self.stream)
+		if err then goto __cleanup end
 
-		res = setmetatable({
+		local res = setmetatable({
 			client = self,
-			code = _next[1],
-			reason = _next[2],
-			version = _next[3],
-			headers = {},
-			}, Response_mt)
+			code = value[1],
+			reason = value[2],
+			version = value[3],
+			headers = {}, }, Response_mt)
 
 		while true do
-			_next = parser_next(self)
-			if not _next then return end
-			if not _next[1] then break end
-			res.headers[_next[1]] = _next[2]
+			err, value = self.parser:stream_next(self.stream)
+			if err then goto __cleanup end
+			if not value[1] then break end
+			res.headers[value[1]] = value[2]
 		end
 
-		-- content-length
-		if not _next[2] then
-			-- TODO: handle Content-Length == 0
-
-			res.body = setmetatable({
-				len = tonumber(_next[3]),
-				conn = self.conn,
-				buf = self.buf,
-				-- TODO: done should be an ultra lightweight primitive
-				done = self.hub:pipe(), }, Stream_mt)
-
+		if not value[2] then
+			-- content-length
+			local len = tonumber(value[3])
+			if len > 0 then res.body = self.stream:chunk(len) end
 			response:send(res)
-			res.body.done:recv()
+			if len > 0 then res.body.done:recv() end
 
-		-- chunked tranfer
 		else
+			-- chunked tranfer
 			res.chunks = self.hub:pipe()
 			response:send(res)
 
 			while true do
-				_next = parser_next(self)
-				if not _next then return end
-				if not _next[1] then break end
+				value = parser_next(self)
+				if not value then return end
+				if not value[1] then break end
 
-				local len = tonumber(_next[2])
+				local len = tonumber(value[2])
 
 				if self.buf.sav > 0 then
 					len = len + self.buf.sav
@@ -488,6 +479,9 @@ function Client_mt:reader(responses)
 			res.chunks:close()
 		end
 	end
+
+	::__cleanup::
+	self:close()
 end
 
 
@@ -536,8 +530,8 @@ function Client_mt:request(method, path, params, headers, data)
 
 	if data then iov:send(data) end
 
-	local recver = self.hub:pipe()
-	self.responses:send(recver)
+	local sender, recver = self.hub:pipe()
+	self.responses:send(sender)
 	return recver
 end
 
@@ -556,6 +550,8 @@ end
 
 
 function Client_mt:close()
+	if self.closed then return end
+	self.closed = true
 	self.conn:close()
 	self.responses:close()
 end
@@ -750,14 +746,10 @@ function Server_mt:reader(requests, responses)
 
 		if value[2] then error("TODO: chunked") end
 
-		local len = value[3]
-		if len > 0 then
-			req.body = self.stream:chunk(len)
-		end
-
+		local len = tonumber(value[3])
+		if len > 0 then req.body = self.stream:chunk(len) end
 		requests:send(req)
 		responses:send(res_recver)
-
 		if len > 0 then req.body.done:recv() end
 	end
 
