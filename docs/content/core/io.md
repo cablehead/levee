@@ -43,13 +43,15 @@
   unless there was an error.
 
 * iov(size):
-  `size` is the size of the write queue. it defaults to 32.  it returns
+  `size` is the size of the write queue. it defaults to 32.  it returns `err`,
   `sender` that you can send: lua strings; pointers whose size can be detected
   and objects that offer a :value() method. this method should return a pointer
   and a size. items sent to the queue will eventually be flushed to the file
   descriptor via writev operations. Note mixing iov use with direct writes will
   result in sadness.
 
+* send(...):
+  convenience to send multiple values to :iov(). returns `err`.
 
 ### Stream
 

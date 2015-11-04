@@ -170,8 +170,7 @@ return {
 		local h = levee.Hub()
 
 		local err, r, w = h.io:pipe()
-
-		local iov = w:iov()
+		local err, iov = w:iov()
 
 		local want = {}
 
@@ -205,6 +204,21 @@ return {
 
 		assert.equal(#want, #buf)
 		assert.equal(want, buf:take())
+	end,
+
+	test_send = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+		w:send("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+		assert.equal(r:reads(10), "1234567890")
+
+		r:close()
+		w:send("1")
+		h:continue()
+
+		local err = w:send("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+		assert(err)
 	end,
 
 	test_stream = function()

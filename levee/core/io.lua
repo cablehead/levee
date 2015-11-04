@@ -239,7 +239,18 @@ function W_mt:iov(size)
 		end)
 	end
 
-	return self.iovec
+	return nil, self.iovec
+end
+
+
+function W_mt:send(...)
+	local err, iov = self:iov()
+	if err then return err end
+	local arg = {...}
+	for i = 1, #arg do
+		local err = iov:send(arg[i])
+		if err then return err end
+	end
 end
 
 

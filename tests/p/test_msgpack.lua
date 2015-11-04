@@ -25,7 +25,7 @@ return {
 
 		local want = "foo"
 		local err, buf = levee.p.msgpack.encode(want)
-		w:iov():send(buf)
+		w:send(buf)
 
 		local err, got = levee.p.msgpack.decoder():stream(s)
 		assert(not err)
