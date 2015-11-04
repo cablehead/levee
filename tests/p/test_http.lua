@@ -3,7 +3,7 @@ local ffi = require('ffi')
 
 return {
 	test_parser_request = function()
-		local parser = require("levee.core.protocols.http").parser
+		local parser = require("levee.p.http").parser
 
 		local request = "" ..
 			"GET /some/path HTTP/1.1\r\n" ..
@@ -60,7 +60,7 @@ return {
 	end,
 
 	test_parser_response = function()
-		local parser = require("levee.core.protocols.http").parser
+		local parser = require("levee.p.http").parser
 
 		local response = "" ..
 			"HTTP/1.1 200 OK\r\n" ..
