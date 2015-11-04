@@ -720,10 +720,7 @@ function Server_mt:reader(requests, responses)
 		local err, value
 
 		err, value = self.parser:stream_next(self.stream)
-		if err then self:close(); return end
-
-		print(err, value)
-		print(repr(value))
+		if err then goto __cleanup return end
 
 		local res_sender, res_recver = self.hub:gate()
 
@@ -738,7 +735,7 @@ function Server_mt:reader(requests, responses)
 
 		while true do
 			err, value = self.parser:stream_next(self.stream)
-			if err then self:close(); return end
+			if err then goto __cleanup return end
 			if not value[1] then break end
 			req.headers[value[1]] = value[2]
 		end
@@ -750,20 +747,23 @@ function Server_mt:reader(requests, responses)
 			req.body = self.stream:chunk(len)
 		end
 
-		print(req)
-
 		requests:send(req)
 		responses:send(res_recver)
 
 		if len > 0 then req.body.done:recv() end
 	end
+
+	::__cleanup::
+	responses:close()
+	self:close()
 end
 
 
 function Server_mt:close()
+	if self.closed then return end
+	self.closed = true
 	self.conn:close()
 	self.requests:close()
-	self.responses:close()
 end
 
 

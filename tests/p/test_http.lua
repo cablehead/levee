@@ -138,9 +138,6 @@ return {
 	end,
 
 	test_basic = function()
-		print()
-		print()
-
 		local levee = require("levee")
 		local h = levee.Hub()
 
@@ -156,8 +153,6 @@ return {
 
 		local err, s = serve:recv()
 		local err, req = s:recv()
-
-		print(err, req)
 
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/some/path")
