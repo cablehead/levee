@@ -1,8 +1,8 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local errno = require("levee.errno")
-local buffer = require("levee.buffer")
+local errors = require("levee.errors")
+local d = require("levee.d")
 
 
 --
@@ -10,109 +10,121 @@ local buffer = require("levee.buffer")
 
 local function encode_array(buf, n)
 	local rc = C.sp_msgpack_enc_array(buf, n)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_map(buf, n)
 	local rc = C.sp_msgpack_enc_map(buf, n)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_true(buf)
 	local rc = C.sp_msgpack_enc_true(buf)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_false(buf)
 	local rc = C.sp_msgpack_enc_false(buf)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_signed(buf, n)
 	local rc = C.sp_msgpack_enc_signed(buf, n)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_unsigned(buf, n)
 	local rc = C.sp_msgpack_enc_positive(buf, n)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_double(buf, n)
 	local rc = C.sp_msgpack_enc_double(buf, n)
-	assert(rc > 0)
-	return rc
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 local function encode_string(buf, s)
 	local rc = C.sp_msgpack_enc_string(buf, #s)
-	assert(rc > 0)
+	if rc < 0 then return errors.get(rc) end
 	C.memmove(buf + rc, s, #s)
-	return rc + #s
+	return nil, rc + #s
 end
 
 
 local function encode(data, buf)
 	if not buf then
-		buf = buffer(4096)
+		buf = d.buffer(4096)
 	else
 		-- TODO: this will continue to grow the buffer as needed. it'd be nice to
 		-- instead yield out 4k bufs so they can be put on the wire immediately
 		buf:ensure(4096)
 	end
 
+	local err, rc
+
 	if type(data) == "table" then
 		local n = 0
 		for k, v in pairs(data) do n = n + 1 end
 		if n == #data then
 			-- this is an array
-			local rc = encode_array(buf:tail(), n)
+			err, rc = encode_array(buf:tail(), n)
+			if err then return err end
 			buf:bump(rc)
 			for _, v in ipairs(data) do
-				buf = encode(v, buf)
+				err, buf = encode(v, buf)
+				if err then return err end
 			end
 		else
 			-- this is a map
-			local rc = encode_map(buf:tail(), n)
+			err, rc = encode_map(buf:tail(), n)
+			if err then return err end
 			buf:bump(rc)
 			for k, v in pairs(data) do
-				buf = encode(k, buf)
-				buf = encode(v, buf)
+				err, buf = encode(k, buf)
+				if err then return err end
+				err, buf = encode(v, buf)
+				if err then return err end
 			end
 		end
 
 	elseif type(data) == "boolean" then
 		if data then
-			local rc = encode_true(buf:tail(), data)
+			err, rc = encode_true(buf:tail(), data)
+			if err then return err end
 			buf:bump(rc)
 		else
-			local rc = encode_false(buf:tail(), data)
+			err, rc = encode_false(buf:tail(), data)
+			if err then return err end
 			buf:bump(rc)
 		end
 
 	elseif type(data) == "string" then
-		local rc = encode_string(buf:tail(), data)
+		err, rc = encode_string(buf:tail(), data)
+		if err then return err end
 		buf:bump(rc)
 
 	elseif type(data) == "number" then
 		if math.floor(data) == data then
-			local rc = encode_signed(buf:tail(), data)
+			err, rc = encode_signed(buf:tail(), data)
+			if err then return err end
 			buf:bump(rc)
 		else
-			local rc = encode_double(buf:tail(), data)
+			err, rc = encode_double(buf:tail(), data)
+			if err then return err end
 			buf:bump(rc)
 		end
 
@@ -120,7 +132,7 @@ local function encode(data, buf)
 		error("TODO: " .. type(data))
 	end
 
-	return buf
+	return nil, buf
 end
 
 
@@ -142,84 +154,75 @@ function Msgpack_mt:__new()
 end
 
 
-function Msgpack_mt:next(eof, buf, len)
-	return C.sp_msgpack_next(self, buf, len, eof)
+function Msgpack_mt:next(buf, len, eof)
+	local rc = C.sp_msgpack_next(self, buf, len, eof)
+	if rc >= 0 then return nil, rc end
+	return errors.get(rc)
 end
 
 
 function Msgpack_mt:stream_next(stream)
-	local n = self:next(false, stream:value())
+	local buf, len = stream:value()
 
-	if n < 0 then
-		return false, ffi.string(C.sp_strerror(n))
-	end
+	local err, n = self:next(buf, len, false)
+	if err then return err end
 
 	if n > 0 then
 		stream:trim(n)
 		if self.type ~= C.SP_MSGPACK_NONE then
-			return true
+			return
 		end
 	end
 
-	local n, err = stream:readin()
-	if n <= 0 then
-		-- connection died
-		return false, errno:message(err)
-	end
-
+	local err, n = stream:readin()
+	if err then return err end
 	return self:stream_next(stream)
 end
 
 
 function Msgpack_mt:stream_value(stream)
-	local ok, err = self:stream_next(stream)
-	if not ok then return ok, err end
+	local err = self:stream_next(stream)
+	if err then return err end
 
 	if self.type == C.SP_MSGPACK_MAP then
 		local ob = {}
 		local num = self.tag.count
-
 		for _ = 1, num do
-			local ok, key = self:stream_value(stream)
-			if not ok then return ok, key end
-
-			local ok, value = self:stream_value(stream)
-			if not ok then return ok, value end
-
+			local err, key = self:stream_value(stream)
+			if err then return err end
+			local err, value = self:stream_value(stream)
+			if err then return err end
 			ob[key] = value
 		end
-
-		return true, ob
+		return nil, ob
 
 	elseif self.type == C.SP_MSGPACK_ARRAY then
 		local num = self.tag.count
 		local arr = {}
-
 		for _ = 1, num do
-			local ok, value = self:stream_value(stream)
-			if not ok then return ok, value end
+			local err, value = self:stream_value(stream)
+			if err then return err end
 			table.insert(arr, value)
 		end
-
-		return true, arr
+		return nil, arr
 
 	elseif self.type == C.SP_MSGPACK_SIGNED then
-		return true, tonumber(self.tag.i64)
+		return nil, tonumber(self.tag.i64)
 
 	elseif self.type == C.SP_MSGPACK_UNSIGNED then
-		return true, tonumber(self.tag.i64)
+		return nil, tonumber(self.tag.i64)
 
 	elseif self.type == C.SP_MSGPACK_FALSE then
-		return true, false
+		return nil, false
 
 	elseif self.type == C.SP_MSGPACK_TRUE then
-		return true, true
+		return nil, true
 
 	elseif self.type == C.SP_MSGPACK_DOUBLE then
-		return true, self.tag.f64
+		return nil, self.tag.f64
 
 	elseif self.type == C.SP_MSGPACK_STRING then
-		return true, stream:take_s(self.tag.count)
+		return nil, stream:take(self.tag.count)
 
 	else
 		error("TODO: "..tostring(self.type))
@@ -227,15 +230,12 @@ function Msgpack_mt:stream_value(stream)
 end
 
 
-function Msgpack_mt:stream_consume(stream)
+function Msgpack_mt:stream(stream)
 	-- stream methods:
 	--	:readin()
 	--	:value() -> returns char*, len (could return eof?)
 	--	:trim(n)
-
-	local ok, value = self:stream_value(stream)
-	if not ok then return ok, value end
-	return true, value
+	return self:stream_value(stream)
 end
 
 

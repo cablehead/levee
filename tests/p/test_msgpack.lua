@@ -1,33 +1,34 @@
-local levee = require("levee")
-
 return {
 	test_nested = function()
+		local p = require("levee.p")
+
 		local want = {
 			foo = "bar",
 			arr = {3, -4, "foo", true, false, 3.7},
 		}
 
-		local buf = levee.msgpack.encode(want)
+		local err, buf = p.msgpack.encode(want)
 
-		local ok, got = levee.msgpack.decoder():stream_consume(buf)
-		assert(ok)
+		local err, got = p.msgpack.decoder():stream(buf)
+		assert(not err)
 		assert.same(want, got)
 		assert.equal(#buf, 0)
 	end,
 
 	test_stream = function()
+		local levee = require("levee")
+
 		local h = levee.Hub()
 
-		local r, w = h.io:pipe()
+		local err, r, w = h.io:pipe()
 		local s = r:stream()
 
 		local want = "foo"
-		local buf = levee.msgpack.encode(want)
+		local err, buf = levee.p.msgpack.encode(want)
 		w:iov():send(buf)
 
-		local ok, got = levee.msgpack.decoder():stream_consume(s)
-		assert(ok)
+		local err, got = levee.p.msgpack.decoder():stream(s)
+		assert(not err)
 		assert.same(want, got)
 	end,
-
 }
