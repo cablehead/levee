@@ -198,6 +198,25 @@ function Parser_mt:value(buf)
 end
 
 
+function Parser_mt:stream_next(stream)
+	local err, n = self:next(stream:value())
+	if err then return err end
+
+	if n > 0 then
+		local value = {self:value(stream:value())}
+		stream:trim(n)
+		if self:is_done() then
+			self:reset()
+		end
+		return nil, value
+	end
+
+	local err, n = stream:readin()
+	if err then return err end
+	return self:stream_next(stream)
+end
+
+
 local Parser = ffi.metatype("SpHttp", Parser_mt)
 
 

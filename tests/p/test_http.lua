@@ -105,6 +105,38 @@ return {
 		assert.equal(ffi.string(buf, len), "Hello World!\n")
 	end,
 
+	test_parser_stream_next = function()
+		local levee = require("levee")
+
+		local request = "" ..
+			"GET /some/path HTTP/1.1\r\n" ..
+			"H1: one\r\n" ..
+			"H2: two\r\n" ..
+			"Content-Length: 13\r\n" ..
+			"\r\n" ..
+			"Hello World!\n"
+
+		local h = levee.Hub()
+		local err, r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(request)
+
+		local p = levee.p.http.parser.Request()
+		p:init_request()
+
+		local err, value = p:stream_next(stream)
+		assert.same(value, {"GET", "/some/path", 1})
+		local err, value = p:stream_next(stream)
+		assert.same(value, {"H1", "one"})
+		local err, value = p:stream_next(stream)
+		assert.same(value, {"H2", "two"})
+		local err, value = p:stream_next(stream)
+		assert.same(value, {"Content-Length", "13"})
+
+		local err, value = p:stream_next(stream)
+		assert.same(value, {false, false, 13ULL})
+	end,
+
 	test_basic = function()
 		print()
 		print()
