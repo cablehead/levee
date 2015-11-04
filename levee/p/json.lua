@@ -42,75 +42,68 @@ end
 
 
 function Json_mt:stream_next(stream)
-	local n = self:next(false, stream:value())
-	if n < 0 then
-		return false, ffi.string(C.sp_strerror(n))
-	end
+	local buf, len = stream:value()
+
+	local err, n = self:next(buf, len, false)
+	if err then return err end
 
 	if n > 0 then
 		stream:trim(n)
 		-- need to read more if SP_JSON_NONE
 		if self.type ~= C.SP_JSON_NONE then
-			return true
+			return
 		end
 	end
 
-	local n, err = stream:readin()
-	if n <= 0 then
-		-- connection died
-		return false, errno:message(err)
-	end
+	local err, n = stream:readin()
+	if err then return err end
 
 	return self:stream_next(stream)
 end
 
 
 function Json_mt:stream_value(stream)
-	local ok, err = self:stream_next(stream)
-	if not ok then return ok, err end
+	local err = self:stream_next(stream)
+	if err then return err end
 
 	if self.type == C.SP_JSON_OBJECT then
 		local ob = {}
 		while true do
-			local ok, key = self:stream_value(stream)
-			if not ok then return ok, key end
-			if key == C.SP_JSON_OBJECT_END then
-				return true, ob
-			end
-			local ok, value = self:stream_value(stream)
-			if not ok then return ok, value end
+			local err, key = self:stream_value(stream)
+			if err then return err end
+			if key == C.SP_JSON_OBJECT_END then return nil, ob end
+			local err, value = self:stream_value(stream)
+			if err then return err end
 			ob[key] = value
 		end
 
 	elseif self.type == C.SP_JSON_ARRAY then
 		local arr = {}
 		while true do
-			local ok, item = self:stream_value(stream)
-			if not ok then return ok, item end
-			if item == C.SP_JSON_ARRAY_END then
-				return true, arr
-			end
+			local err, item = self:stream_value(stream)
+			if err then return err end
+			if item == C.SP_JSON_ARRAY_END then return nil, arr end
 			table.insert(arr, item)
 		end
 
 	elseif self.type == C.SP_JSON_NUMBER then
-		return true, self.number
+		return nil, self.number
 
 	elseif self.type == C.SP_JSON_STRING then
-		return true, ffi.string(self.utf8.buf, self.utf8.len)
+		return nil, ffi.string(self.utf8.buf, self.utf8.len)
 
 	elseif self.type == C.SP_JSON_TRUE then
-		return true, true
+		return nil, true
 
 	elseif self.type == C.SP_JSON_FALSE then
-		return true, false
+		return nil, false
 
 	elseif self.type == C.SP_JSON_NULL then
-		return true, nil
+		return nil, nil
 
 	else
 		-- should only be SP_JSON_OBJECT_END and SP_JSON_ARRAY_END
-		return true, self.type
+		return nil, self.type
 	end
 end
 
@@ -120,13 +113,13 @@ function Json_mt:stream_consume(stream)
 	--	:readin()
 	--	:value() -> returns char*, len (could return eof?)
 	--	:trim(n)
-
-	local ok, value = self:stream_value(stream)
-	if not ok then return ok, value end
+	local err, value = self:stream_value(stream)
+	if err then return err end
 	assert(self:is_done())
 	self:reset()
-	return true, value
+	return nil, value
 end
+
 
 local decoder = ffi.metatype("SpJson", Json_mt)
 

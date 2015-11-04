@@ -1,12 +1,13 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local d = require("levee.d")
+local p = require("levee.p")
+
 
 return {
-	test_basics = function()
-		local json = require("levee.p.json")
-
-		local decoder = json.decoder()
+	test_core = function()
+		local decoder = p.json.decoder()
 
 		local err, n = decoder:next("}{", 2, false)
 		assert(err)
@@ -33,14 +34,10 @@ return {
 		assert(not err)
 	end,
 
-
-	test_core = function()
-
-
-		if true then return end
-
+	test_stream = function()
 		-- stream stub
-		local buf = levee.buffer(4096)
+		local buf = d.buffer(4096)
+
 		local stream = {
 			segments = {
 				'{"int": 3, "f',
@@ -48,7 +45,7 @@ return {
 				'd": {"null": null, "alist": ',
 				'[1, 2, 3], "yes": tr',
 				'ue, "no": false}}{',
-				'"foo": "bar"}', }}
+				'"foo": "bar"}}', }}
 		stream.__index = stream
 
 		function stream:readin()
@@ -56,8 +53,8 @@ return {
 			if not s then
 				return -1
 			end
-			buf:push_s(s)
-			return #s
+			buf:push(s)
+			return nil, #s
 		end
 
 		function stream:value()
@@ -68,12 +65,12 @@ return {
 			return buf:trim(n)
 		end
 		--
+		
+		local decoder = p.json.decoder()
 
-		local parser = levee.json.decoder()
-
-		local ok, got = parser:stream_consume(stream)
-		assert(ok)
-		assert.same(got, {
+		local err, value = decoder:stream_consume(stream)
+		assert(not err)
+		assert.same(value, {
 			int = 3,
 			foo = "bar",
 			nested = {
@@ -81,12 +78,12 @@ return {
 				yes = true,
 				no = false, } })
 
-		local ok, got = parser:stream_consume(stream)
-		assert(ok)
-		assert.same(got, {foo = "bar"})
+		local err, value = decoder:stream_consume(stream)
+		assert(not err)
+		assert.same(value, {foo = "bar"})
 
-		local ok, got = parser:stream_consume(stream)
-		assert(not ok)
+		local err, value = decoder:stream_consume(stream)
+		assert(err)
 	end,
 
 	test_decode = function()
