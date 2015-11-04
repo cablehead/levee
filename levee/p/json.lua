@@ -137,6 +137,7 @@ function is_array(t)
     return true
 end
 
+
 local function encode(data)
 	if type(data) == "table" then
 		if is_array(data) then
