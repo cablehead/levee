@@ -619,6 +619,8 @@ Server_mt.__call = Server_mt.recv
 
 
 function Server_mt:_response(response)
+	-- TODO: should bail on iov:send err
+
 	local err, value = response:recv()
 	local status, headers, body = unpack(value)
 	local iov = self.conn:iov()
