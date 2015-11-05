@@ -353,9 +353,8 @@ return {
 		assert.equal(response.code, 200)
 		assert(#response.body:tostring() == 10000)
 
-		if true then return end
-
-		local err, response = c:get("/"):recv()
+		local err, response = c:get("/")
+		local err, response = response:recv()
 		assert.equal(response.code, 200)
 		assert(#response.body:tostring() == 10000)
 

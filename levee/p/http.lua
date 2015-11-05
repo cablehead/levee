@@ -725,6 +725,7 @@ function Server_mt:reader(requests, responses)
 	end
 
 	::__cleanup::
+	requests:close()
 	responses:close()
 	self:close()
 end
