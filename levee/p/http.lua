@@ -615,6 +615,13 @@ function Server_mt:recv()
 end
 
 
+function Server_mt:__call()
+	local err, value = self.requests:recv()
+	if err then return end
+	return value
+end
+
+
 function Server_mt:_response(response)
 	local err, value = response:recv()
 	if err then return err end
@@ -761,7 +768,11 @@ function Listener_mt:recv()
 end
 
 
-Listener_mt.__call = Listener_mt.recv
+function Listener_mt:__call()
+	local err, value = self.recver:recv()
+	if err then return end
+	return value
+end
 
 
 function Listener_mt:loop()
