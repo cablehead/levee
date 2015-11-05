@@ -827,7 +827,7 @@ function HTTP_mt:connect(port, host)
 	local m = setmetatable({}, Client_mt)
 
 	local err, conn = self.hub.tcp:connect(port, host)
-	if err then return end
+	if err then return err end
 
 	m.hub = self.hub
 	m.conn = conn

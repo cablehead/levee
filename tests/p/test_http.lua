@@ -401,8 +401,8 @@ return {
 	test_connect_fail = function()
 		local levee = require("levee")
 		local h = levee.Hub()
-		local conn, err = h.http:connect(50000)
-		assert(not conn)
+		local err, conn = h.http:connect(50000)
+		assert(err)
 	end,
 
 	test_conveniences_content_length = function()
