@@ -446,37 +446,32 @@ function Client_mt:reader(responses)
 
 		else
 			-- chunked tranfer
-			res.chunks = self.hub:pipe()
+			local chunks
+			chunks, res.chunks = self.hub:pipe()
 			response:send(res)
 
 			while true do
-				value = parser_next(self)
-				if not value then return end
+				err, value = self.parser:stream_next(self.stream)
+				if err then goto __cleanup end
 				if not value[1] then break end
 
 				local len = tonumber(value[2])
 
-				if self.buf.sav > 0 then
-					len = len + self.buf.sav
-					self.buf:thaw()
+				if self.stream.buf.sav > 0 then
+					len = len + self.stream.buf.sav
+					self.stream.buf:thaw()
 				end
 
-				local chunk = setmetatable({
-					len = len,
-					conn = self.conn,
-					buf = self.buf,
-					done = self.hub:pipe(), }, Stream_mt)
-
-				res.chunks:send(chunk)
+				local chunk = self.stream:chunk(len)
+				chunks:send(chunk)
 				-- TODO: still need to package this up better
 				chunk.done:recv()
 				if chunk.len > 0 then
-					while #chunk.buf < chunk.len do chunk:readin() end
-					self.buf:freeze(chunk.len)
+					chunk:readin(chunk.len)
+					self.stream.buf:freeze(chunk.len)
 				end
 			end
-
-			res.chunks:close()
+			chunks:close()
 		end
 	end
 

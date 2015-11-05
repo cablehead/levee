@@ -391,6 +391,7 @@ end
 
 function Chunk_mt:tostring()
 	local s = self.stream:take(self.len)
+	self.len = 0
 	self.done:close()
 	return s
 end

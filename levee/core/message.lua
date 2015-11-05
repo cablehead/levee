@@ -22,7 +22,8 @@ end
 
 
 function Pair_mt:close()
-	return self.recver:close()
+	self.sender:close()
+	self.recver:close()
 end
 
 
@@ -192,6 +193,13 @@ function Value_mt:_take(err)
 end
 
 
+function Value_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.recver:_give(errors.CLOSED, self)
+end
+
+
 local function Value(hub, value)
 	return setmetatable({hub=hub, value=value}, Value_mt)
 end
@@ -255,6 +263,13 @@ function Gate_mt:_take(err)
 	-- we've already taken the sender's value. resume the sender.
 	self.hub:resume(self.co, err, nil, true)
 	self.co = nil
+end
+
+
+function Gate_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.recver:_give(errors.CLOSED, self)
 end
 
 

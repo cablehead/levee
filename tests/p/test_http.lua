@@ -254,7 +254,7 @@ return {
 		local err, response = response:recv()
 		assert.equal(response.code, 200)
 
-		req.conn:write(body)
+		req.conn:send(body)
 		assert.equal(response.body:tostring(), "Hello world\n")
 
 		c:close()
@@ -278,28 +278,25 @@ return {
 		local body = "Hello world\n"
 		req.response:send({levee.HTTPStatus(200), {}, nil})
 
-		if true then return end
-
-		response = response:recv()
+		local err, response = response:recv()
 		assert.equal(response.code, 200)
 		assert(not response.body)
 		assert(response.chunks)
 
 		-- send chunk 1
 		req.response:send(17)
-		req.conn:write("01234567012345678")
-
-		local chunk = response.chunks:recv()
+		req.conn:send("01234567012345678")
+		local err, chunk = response.chunks:recv()
 		assert.equal(chunk:tostring(), "01234567012345678")
 
 		-- send chunk 2
 		req.response:send("90123456701234567")
-		local chunk = response.chunks:recv()
+		local err, chunk = response.chunks:recv()
 		assert.equal(chunk:tostring(), "90123456701234567")
 
 		-- end response
 		req.response:close()
-		assert.equal(response.chunks:recv(), nil)
+		assert.equal(response.chunks:recv(), levee.errors.CLOSED)
 
 		c:close()
 		serve:close()
