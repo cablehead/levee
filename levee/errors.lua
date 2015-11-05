@@ -76,10 +76,19 @@ local M_mt = {
 		end
 	end,
 }
+setmetatable(M, M_mt)
 
 
-M.TIMEOUT = M.add(10100, "levee", "timeout", "operation timed out")
-M.CLOSED = M.add(10101, "levee", "closed", "channel is closed")
+M.TIMEOUT = M.add(10100, "levee", "TIMEOUT", "operation timed out")
+M.CLOSED = M.add(10101, "levee", "CLOSED", "channel is closed")
 
 
-return setmetatable(M, M_mt)
+for err in M() do
+	if not M[err.domain] then
+		M[err.domain] = {}
+	end
+	M[err.domain][err.name] = err
+end
+
+
+return M

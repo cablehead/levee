@@ -109,7 +109,7 @@ return {
 		assert(not err)
 		assert.equal(no, 1)
 		local err, sender, no = w_ev:recv(20)
-		assert(err.is_levee_timeout)
+		assert(err.is_levee_TIMEOUT)
 
 		_.write(w, "foo")
 

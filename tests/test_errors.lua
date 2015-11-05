@@ -30,4 +30,8 @@ return {
 		for err in errors() do e = err end
 		assert.equal(e.code, -10101)  -- levee.closed
 	end,
+
+	test_enum = function()
+		assert(errors.system.EACCES.is_system_EACCES)
+	end,
 }
