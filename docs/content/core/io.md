@@ -107,6 +107,12 @@ closed once the size of the chunk has been exhausted.
 * done:
   a recv-able that will `close` when the chunk is exhausted.
 
+* splice(conn):
+  splice this chunk to `conn`.
+
+* discard():
+  discard this chunk in the most memory efficient way.
+
 #### methods
 
 * readin():

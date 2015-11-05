@@ -422,6 +422,17 @@ function Chunk_mt:splice(conn)
 end
 
 
+function Chunk_mt:discard()
+	local n = self.len
+	while self.len > 0 do
+		local err = self:readin(1)
+		if err then return err end
+		self:trim()
+	end
+	return nil, n
+end
+
+
 function Chunk_mt:tostring()
 	local s = self.stream:take(self.len)
 	self.len = 0

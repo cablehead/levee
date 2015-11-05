@@ -290,4 +290,20 @@ return {
 		assert.equal(r2:reads(), x(".", 20))
 		assert.equal(s:take(), x(".", 10))
 	end,
+
+	test_chunk_discard = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+
+		local s = r:stream()
+		w:write(x(".", 10))
+		s:readin()
+		w:write(x(".", 20))
+
+		local c = s:chunk(20)
+		assert.same({c:discard()}, {nil, 20})
+		c.done:recv()
+		assert.equal(s:take(), x(".", 10))
+	end,
 }
