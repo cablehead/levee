@@ -2,6 +2,7 @@ local ffi = require('ffi')
 local C = ffi.C
 
 local errors = require("levee.errors")
+local _ = require("levee._")
 local d = require("levee.d")
 
 
@@ -559,47 +560,68 @@ local Request_mt = {}
 Request_mt.__index = Request_mt
 
 
-function Request_mt:_sendfile(name)
-	local no = C.open(name, C.O_RDONLY)
-	if no < 0 then return false, -1 end
+function Request_mt:_open(name)
+	-- TODO: chroot
+	local err, no, st
+	err, no = _.open(name, C.O_RDONLY)
+	if err then return err end
 
-	local st = sys.os.fstat(no)
-	if not st then return false, no end
+	local err, st = _.fstat(no)
+	if err then goto __cleanup end
+
 	-- check this is a regular file
-	if bit.band(st.st_mode, C.S_IFREG) == 0 then return false, no end
+	if bit.band(st.st_mode, C.S_IFREG) == 0 then
+		err = errors.system.EACCES
+		goto __cleanup
+	end
 
-	self.response:send({Status(200), {}, st.st_size})
+	if not err then return nil, no, st.st_size end
+
+	::__cleanup::
+	_.close(no)
+	return err
+end
+
+
+function Request_mt:_sendfile(no, size)
 
 	local off = 0
 
 	while true do
-		local n = C.levee_sendfile(self.conn.no, no, off, st.st_size - off)
+		local n = C.levee_sendfile(self.conn.no, no, off, size - off)
 
 		if n > 0 then
 			off = off + n
-			if off == st.st_size then
+			if off == size then
 				break
 			end
 		end
-
-		local ev = self.conn.w_ev:recv()
-		assert(ev > 0)  -- TODO: handle shutdown on error
+		local err, ev = self.conn.w_ev:recv()
+		if err then
+			return err
+		end
 	end
 
 	self.response:close()
-	return true, no
 end
 
 
 function Request_mt:sendfile(name)
-	local ok, no = self:_sendfile(name)
-	if not ok then
+	local err, no, size = self:_open(name)
+	if err then
 		self.response:send({Status(404), {}, "Not Found\n"})
+		return
 	end
-	if no > 0 then
-		C.close(no)
-	end
+
+	self.response:send({Status(200), {}, size})
+	local err = self:_sendfile(no, size)
+	self.response:close()
+	_.close(no)
+
+	if err then self.serve:close() end
+	return err
 end
+
 
 function Request_mt:__tostring()
 	return ("levee.http.Request: %s %s"):format(self.method, self.path)

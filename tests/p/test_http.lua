@@ -370,26 +370,26 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen()
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
 		h:spawn(function()
 			for conn in serve do
 				h:spawn(function()
-					for req in conn do
-						-- TODO: sanitize path
-						req:sendfile(req.path)
-					end
+					for req in conn do req:sendfile(req.path) end
 				end)
 			end
 		end)
 
-		local c = h.http:connect(serve:addr():port())
+		local err, c = h.http:connect(addr:port())
 
-		local res = c:get("/foo"):recv()
+		local err, res = c:get("/")
+		local err, res = res:recv()
 		assert.equal(res.code, 404)
 		assert.equal(res.body:tostring(), "Not Found\n")
 
 		local filename = debug.getinfo(1, 'S').source:sub(2)
-		local res = c:get(filename):recv()
+		local err, res = c:get(filename)
+		local err, res = res:recv()
 		assert.equal(res.code, 200)
 		assert(res.body:tostring():find("wombat"))
 
