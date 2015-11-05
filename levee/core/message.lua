@@ -209,7 +209,10 @@ function Gate_mt:send(value)
 
 	if self.closed then return errors.CLOSED end
 
+	self.miss = nil
 	local err, ok = self.recver:_give(nil, self, value)
+	-- we handed off to a recver, and they recv'd again before our _give returned
+	if ok and self.miss then return end
 
 	if err == errors.CLOSED then
 		self.closed = true
@@ -217,6 +220,7 @@ function Gate_mt:send(value)
 	end
 
 	if not ok then self.value = value end
+
 	self.co = coroutine.running()
 	local err, sender, ok = self.hub:pause()
 
@@ -235,7 +239,10 @@ function Gate_mt:_take(err)
 	if self.closed then return errors.CLOSED end
 
 	-- there's no sender at all, block
-	if not self.co then return end
+	if not self.co then
+		self.miss = true  -- mark miss incase sender is mid-give
+		return
+	end
 
 	-- there's a sender with a value waiting. take the value, but leave the
 	-- sender blocked.

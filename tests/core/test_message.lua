@@ -215,9 +215,6 @@ return {
 		h:continue()
 		assert.equal(sent, 2)
 		assert.same(got, {nil, 2})
-		h:continue()
-		assert.equal(sent, 2)
-		assert.same(got, {nil, 2})
 
 		got = {recver:recv()}
 		assert.equal(sent, 3)
