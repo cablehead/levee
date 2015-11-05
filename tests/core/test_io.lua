@@ -255,7 +255,7 @@ return {
 		assert.equal(s:take(1), nil)
 	end,
 
-	test_chunk = function()
+	test_chunk_core = function()
 		local h = levee.Hub()
 
 		local err, r, w = h.io:pipe()
@@ -271,5 +271,23 @@ return {
 		local c = s:chunk(10)
 		w:close()
 		assert.equal(c:tostring(), nil)
+	end,
+
+	test_chunk_splice = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+		local err, r2, w2 = h.io:pipe()
+
+		local s = r:stream()
+		w:write(x(".", 10))
+		s:readin()
+		w:write(x(".", 20))
+
+		local c = s:chunk(20)
+		assert.same({c:splice(w2)}, {nil, 20})
+		c.done:recv()
+		assert.equal(r2:reads(), x(".", 20))
+		assert.equal(s:take(), x(".", 10))
 	end,
 }

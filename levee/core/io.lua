@@ -389,6 +389,39 @@ function Chunk_mt:__len()
 end
 
 
+function Chunk_mt:readin(n)
+	return self.stream:readin(n)
+end
+
+
+function Chunk_mt:value()
+	return self.stream.buf:slice(self.len)
+end
+
+
+function Chunk_mt:trim()
+	local n = self.stream:trim(self.len)
+	self.len = self.len - n
+	if self.len == 0 then
+		self.done:close()
+	end
+	return n
+end
+
+
+function Chunk_mt:splice(conn)
+	local n = self.len
+	while self.len > 0 do
+		local err = self:readin(1)
+		if err then return err end
+		local err, n = conn:write(self:value())
+		if err then return err end
+		self:trim()
+	end
+	return nil, n
+end
+
+
 function Chunk_mt:tostring()
 	local s = self.stream:take(self.len)
 	self.len = 0
