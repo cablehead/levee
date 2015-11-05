@@ -531,17 +531,19 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen()
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
 
-		local c = h.http:connect(serve:addr():port())
-		local err, response = c:get("/path")
+		local err, c = h.http:connect(addr:port())
+		local err, res = c:get("/path")
 
-		local s = serve:recv()
-		local req = s:recv()
+		local err, s = serve:recv()
+		local err, req = s:recv()
 
 		-- drop server connection
 		s.conn:close()
 		req.response:send({levee.HTTPStatus(200), {}, nil})
-		assert(req.response.closed)
+		local err = req.response:send(17)
+		assert(err)
 	end,
 }
