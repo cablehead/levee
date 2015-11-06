@@ -102,9 +102,35 @@ local Endpoint = ffi.metatype("struct LeveeEndpoint", Endpoint_mt)
 local _ = {}
 
 
-_.open = function(path, ...)
-	local no = C.open(path, bit.bor(...))
-	if no > 0 then return nil, no end
+_.open_modes = {
+	["r"]   = C.O_RDONLY,
+	["r+"]  = C.O_RDWR,
+	["w"]   = bit.bor(C.O_WRONLY, C.O_TRUNC),
+	["w+"]  = bit.bor(C.O_RDWR, C.O_CREAT, C.O_TRUNC),
+	["a"]   = bit.bor(C.O_WRONLY, C.O_CREAT, C.O_APPEND),
+	["a+"]  = bit.bor(C.O_RDWR, C.O_CREAT, C.O_APPEND),
+	["rx"]  = bit.bor(C.O_RDONLY, C.O_EXCL),
+	["r+x"] = bit.bor(C.O_RDWR, C.O_EXCL),
+	["wx"]  = bit.bor(C.O_WRONLY, C.O_TRUNC, C.O_EXCL),
+	["w+x"] = bit.bor(C.O_RDWR, C.O_CREAT, C.O_TRUNC, C.O_EXCL),
+	["ax"]  = bit.bor(C.O_WRONLY, C.O_CREAT, C.O_APPEND, C.O_EXCL),
+	["a+x"] = bit.bor(C.O_RDWR, C.O_CREAT, C.O_APPEND, C.O_EXCL),
+}
+
+
+_.open = function(path, mode, ...)
+	if type(mode) == "string" then
+		mode = _.open_modes[str]
+		if not mode then
+			return errors.system.EINVAL
+		end
+	elseif mode ~= nil then
+		mode = bit.bor(mode, ...)
+	else
+		mode = C.O_RDONLY
+	end
+	local no = C.open(path, mode)
+	if no > 0 then return nil, no, mode end
 	return errors.get(ffi.errno())
 end
 

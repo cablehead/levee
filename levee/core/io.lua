@@ -508,13 +508,13 @@ end
 
 
 function IO_mt:open(name, ...)
-	local err, no = _.open(name, ...)
+	local err, no, mode = _.open(name, ...)
 
-	if bit.band(C.O_WRONLY, ...) > 0 then
+	if bit.band(C.O_WRONLY, mode) > 0 then
 		return nil, self:w(no)
 	end
 
-	if bit.band(C.O_RDWR, ...) > 0 then
+	if bit.band(C.O_RDWR, mode) > 0 then
 		return nil, self:rw(no)
 	end
 
