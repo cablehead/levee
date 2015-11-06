@@ -2,10 +2,6 @@ local os = require('os')
 local ffi = require('ffi')
 local C = ffi.C
 
-if C.sp_rand_init() < 0 then
-	os.exit(1)
-end
-
 local tmp_int = ffi.new("uint32_t [1]")
 local tmp_num = ffi.new("double [1]")
 
