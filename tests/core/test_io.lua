@@ -221,7 +221,7 @@ return {
 		assert(err)
 	end,
 
-	test_stream = function()
+	test_stream_core = function()
 		local h = levee.Hub()
 
 		local err, r, w = h.io:pipe()
@@ -253,6 +253,26 @@ return {
 		assert.equal(s:take(1), 'o')
 		assert.same({s:readin(1)}, {levee.errors.CLOSED})
 		assert.equal(s:take(1), nil)
+	end,
+
+	test_stream_read = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+
+		local s = r:stream()
+		local buf = levee.d.buffer(4096)
+
+		w:write(x(".", 10))
+		s:readin()
+		w:write(x(".", 20))
+
+		assert.same({s:read(buf:tail(), 20)}, {nil, 20})
+		buf:bump(20)
+		assert.equal(buf:take(), x(".", 20))
+
+		s:readin()
+		assert.equal(s:take(), x(".", 10))
 	end,
 
 	test_chunk_core = function()

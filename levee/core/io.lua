@@ -330,16 +330,18 @@ function Stream_mt:read(buf, len, timeout)
 	local togo = len
 
 	if #self.buf > 0 then
-		local n = self.buf:copy(buf, len)
+		local n = self.buf:copy(buf, togo)
 		self.buf:trim(n)
 		togo = togo - n
-		if togo == 0 then return len end
 	end
 
-	local n, err = self.conn:read(buf, togo, timeout)
-	if n == constants.TIMEOUT then return n end
-	if n < 0 then return n, err end
-	return len
+	while togo > 0 do
+		local err, n = self.conn:read(buf + (len -togo), togo, timeout)
+		if err then return err end
+		togo = togo - n
+	end
+
+	return nil, len
 end
 
 
