@@ -12,6 +12,11 @@
   returns `err`, `r`, `w` where `r` is a readable IO object and `w` is a
   writeable IO object.
 
+* open(name, ...):
+  convenience to open the file `name` with the flags specified in `...`. e.g.
+  `C.O_RDWR`. returns `err`, `io` where `io` is either `r`, `w` or `rw`
+  depending on the mode specified.
+
 ## Objects
 
 ### Readable IO
@@ -85,6 +90,10 @@ A Stream is combination of an IO file descriptor and a buffer.
 * take(n):
   blocks until `n` bytes are buffered, and returns them as a lua string, or
   `nil` if there was an error.
+
+* json():
+  decodes the stream using the json decoder and returns a lua table for the
+  decoded json.
 
 * chunk(n):
   create a Chunk object from this stream that's `n` bytes.

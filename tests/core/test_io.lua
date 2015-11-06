@@ -1,3 +1,6 @@
+local ffi = require('ffi')
+local C = ffi.C
+
 local levee = require("levee")
 
 
@@ -219,6 +222,25 @@ return {
 
 		local err = w:send("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 		assert(err)
+	end,
+
+	test_open = function()
+		local h = levee.Hub()
+
+		local tmp = os.tmpname()
+
+		local err, w = h.io:open(tmp, C.O_WRONLY)
+		w:write('{"foo":"bar"}')
+		w:close()
+
+		local err, r = h.io:open(tmp, C.O_RDONLY)
+		local s = r:stream()
+		local err, value = s:json()
+		assert.same(value, {foo = "bar"})
+		r:close()
+
+		os.remove(tmp)
+		assert.same(h.registered, {})
 	end,
 
 	test_stream_core = function()

@@ -365,6 +365,11 @@ function Stream_mt:take(n)
 end
 
 
+function Stream_mt:json()
+	return p.json.decoder():stream(self)
+end
+
+
 function Stream_mt:chunk(len)
 	return Chunk(self, len)
 end
@@ -499,6 +504,21 @@ function IO_mt:pipe(timeout)
 	_.fcntl_nonblock(r)
 	_.fcntl_nonblock(w)
 	return nil, self:r(r, timeout), self:w(w, timeout)
+end
+
+
+function IO_mt:open(name, ...)
+	local err, no = _.open(name, ...)
+
+	if bit.band(C.O_WRONLY, ...) > 0 then
+		return nil, self:w(no)
+	end
+
+	if bit.band(C.O_RDWR, ...) > 0 then
+		return nil, self:rw(no)
+	end
+
+	return nil, self:r(no)
 end
 
 
