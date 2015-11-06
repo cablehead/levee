@@ -78,7 +78,7 @@ local function next_event(self)
 	if self.ev_in_pos == C.EV_POLL_IN_MAX then
 		-- flush pending events if the list is full
 		local rc = C.kevent(self.fd, self.ev_in, C.EV_POLL_IN_MAX, nil, 0, nil)
-		if rc < 0 then errors.get(rc):abort() end
+		if rc < 0 then errors.get(ffi.errno()):abort() end
 		self.ev_in_pos = 0
 	end
 	local ev = self.ev_in[self.ev_in_pos]

@@ -59,7 +59,7 @@ Poller.__index = Poller
 
 function Poller:__new()
 	local self = ffi.new(self, C.epoll_create1(0))
-	if self.fd < 0 then errors.get(self.fd):abort() end
+	if self.fd < 0 then errors.get(ffi.errno()):abort() end
 	C.gettimeofday(self.tv, nil)
 	return self
 end
