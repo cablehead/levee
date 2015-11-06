@@ -58,7 +58,13 @@ end
 
 M.add = function(code, domain, name, msg)
 	local e = C.sp_error_add(code, domain, name, msg)
-	if e ~= nil then return e end
+	if e ~= nil then
+		if not M[e.domain] then
+			M[e.domain] = {}
+		end
+		M[e.domain][e.name] = e
+		return e
+	end
 end
 
 
