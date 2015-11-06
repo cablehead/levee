@@ -57,6 +57,7 @@ local function collect_file(root, file, debug)
 	local f = check(loadfile(file))
 	return {
 		id = id,
+		req_name = id,
 		func_name = id:gsub("%.", "_"),
 		path = path,
 		bytecode = string.dump(f, not debug)
@@ -105,7 +106,7 @@ local function output_open_file(file)
 	return ([[
 		lua_pushcfunction (L, load_%s);
 		lua_setfield (L, -2, "%s");
-	]]):format(file.func_name, file.id)
+	]]):format(file.func_name, file.req_name)
 end
 
 
@@ -150,6 +151,7 @@ Options:
   -o <file>, --out <file>     # file to out to [default: stdout]
   -n <name>, --name <name>    # bundle name [default: name of first module
                               # listed]
+  -f <file>, --file <file>    # bundle a single file
   ]]
 	end,
 
@@ -168,15 +170,18 @@ Options:
 
 			elseif opt == "n" or opt == "name" then
 				options.name = argv:next()
+
+			elseif opt == "f" or opt == "file" then
+				options.file = argv:next()
+
 			end
 		end
 
-		if #options.modules == 0 then
+		if #options.modules == 0 and not options.file then
 			io.stderr:write("no modules provided\n")
 			os.exit(1)
 		end
 
-		options.name = options.name or basename(options.modules[1])
 		options.out = options.out or io.stdout
 
 		return options
@@ -185,10 +190,21 @@ Options:
 	run = function(options)
 		local files = {}
 		local inc = options.include or "levee"
+		local debug = true
 
-		for _, path in ipairs(options.modules) do
-			-- TODO: make debug mode externally configurable
-			collect(path, files, true)
+		if options.file then
+			options.name = options.name or options.file:match("^(.+)%..+$")
+			local f = collect_file(dirname(options.file), options.file, debug)
+			if f then
+				f.req_name = f.req_name .. ".main"
+				table.insert(files, f)
+			end
+		else
+			options.name = options.name or basename(options.modules[1])
+			for _, path in ipairs(options.modules) do
+				-- TODO: make debug mode externally configurable
+				collect(path, files, debug)
+			end
 		end
 
 		output_bundle(options.out, inc, options.name, files)

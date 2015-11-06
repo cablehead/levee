@@ -1,8 +1,8 @@
 local ffi = require('ffi')
 local os = require('os')
 
--- local dirname = require("levee._.path").dirname
--- local basename = require("levee._.path").basename
+local levee = require("levee")
+local _ = require("levee._")
 
 local bundle = require("levee.cmd.bundle")
 
@@ -115,7 +115,13 @@ Options:
 			os.exit(1)
 		end
 
-		options.name = options.name or basename(options.modules[1])
+		local err, st = _.stat(options.modules[1])
+		if err then err:exit() end
+
+		if st:is_reg() then
+			options.file = options.modules[1]
+		end
+
 		options.exe = options.exe or "./a.out"
 
 		return options
@@ -129,11 +135,13 @@ Options:
 		local main = tmp .. "/main.c"
 		local bundle = tmp .. "/bundle.c"
 
-		output_main(main, options)
 		output_bundle(bundle, options)
+		output_main(main, options)
 
-		local proc = levee.path.proc()
-		local root = dirname(dirname(proc))
+		local err, proc = _.procname()
+		if err then err:exit() end
+
+		local root = _.dirname(_.dirname(proc))
 		local lib = options.lib or root .. "/lib/liblevee.a"
 
 		local build = {
