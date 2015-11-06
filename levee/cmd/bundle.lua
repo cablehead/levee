@@ -127,10 +127,10 @@ local function output_open(name, files)
 end
 
 
-local function output_bundle(out, name, files)
-	out:write('#include <levee/lua.h>\n')
-	out:write('#include <levee/lauxlib.h>\n')
-	out:write('#include <levee/lualib.h>\n')
+local function output_bundle(out, inc, name, files)
+	out:write('#include <'..inc..'/lua.h>\n')
+	out:write('#include <'..inc..'/lauxlib.h>\n')
+	out:write('#include <'..inc..'/lualib.h>\n')
 
 	for i, file in ipairs(files) do
 		out:write(output_file(file))
@@ -184,12 +184,13 @@ Options:
 
 	run = function(options)
 		local files = {}
+		local inc = options.include or "levee"
 
 		for _, path in ipairs(options.modules) do
 			-- TODO: make debug mode externally configurable
 			collect(path, files, true)
 		end
 
-		output_bundle(options.out, options.name, files)
+		output_bundle(options.out, inc, options.name, files)
 	end,
 }
