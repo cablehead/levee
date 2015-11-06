@@ -497,37 +497,35 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen()
-		local c = h.http:connect(serve:addr():port())
-		local s = serve:recv()
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
 
-		local err, response = c:get("/path")
-		local req = s:recv()
+		local err, c = h.http:connect(addr:port())
+		local err, res = c:get("/path")
+
+		local err, s = serve:recv()
+		local err, req = s:recv()
 
 		req.response:send({levee.HTTPStatus(200), {}, nil})
-
-		response = response:recv()
-		assert.equal(response.code, 200)
-		assert(not response.body)
-		assert(response.chunks)
+		local err, res = res:recv()
 
 		-- send chunk 1
 		req.response:send(17)
 		req.conn:write("0123456701-34567-")
 
-		local chunk = response.chunks:recv()
-		while #chunk.buf < 10 do chunk:readin() end
+		local err, chunk = res.chunks:recv()
+		chunk:readin(10)
 		chunk:trim(10)
 		chunk.done:close()  -- leave bytes in the buffer
 
 		-- send chunk 2
 		req.response:send("90123456701234567")
-		local chunk = response.chunks:recv()
+		local err, chunk = res.chunks:recv()
 		assert.equal(chunk:tostring(), "-34567-90123456701234567")
 
 		-- end response
 		req.response:close()
-		assert.equal(response.chunks:recv(), nil)
+		assert.equal(res.chunks:recv(), levee.errors.CLOSED)
 
 		c:close()
 		serve:close()
