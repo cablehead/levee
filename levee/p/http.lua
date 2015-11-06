@@ -304,29 +304,23 @@ function Response_mt:tostring()
 	return table.concat(bits)
 end
 
-function Response_mt:tobuffer(buf)
-	local function _copy(chunk, buf)
-		buf:ensure(#chunk)
-		local n, err = chunk:read(buf:tail(), #chunk)
-		if n < 0 then return nil, err end
-		buf:bump(n)
-		return true
-	end
 
-	buf = buf or buffer()
+function Response_mt:tobuffer(buf)
+	buf = buf or d.buffer()
 
 	if self.body then
-		local rc, err = _copy(self.body, buf)
-		if not rc then return nil, err end
-		return buf
+		buf:ensure(#self.body)
+		local err, n = self.body.stream:read(buf:tail(), #self.body)
+		if err then return err end
+		buf:bump(n)
+		return nil, buf
 	end
 
 	for chunk in self.chunks do
-		local rc, err = _copy(chunk, buf)
-		if not rc then return nil, err end
+		assert(false)
 	end
-	return buf
 end
+
 
 function Response_mt:save(name)
 	local function _save(chunk, no)
