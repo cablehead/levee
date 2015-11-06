@@ -7,7 +7,7 @@ local Error_mt = {}
 
 function Error_mt:__tostring()
 	return string.format(
-		"%s error [%s]: %s (%s)\n", self.domain, self.code, self.name, self.msg)
+		"%s (%s.%s)", self.msg, self.domain, self.name)
 end
 
 
@@ -16,9 +16,8 @@ function Error_mt:is(domain, name)
 end
 
 
-function Error_mt:next()
-	local e = C.sp_error_next(self)
-	if e ~= nil then return e end
+function Error_mt:exit(code)
+	C.sp_exit(self.code, code or 1)
 end
 
 
@@ -59,31 +58,26 @@ end
 
 M.add = function(code, domain, name, msg)
 	local e = C.sp_error_add(code, domain, name, msg)
-	if e ~= nil then return e end
-end
-
-
-local M_mt = {
-	__call = function()
-		local e
-		return function()
-			if not e then
-				e = M.get(-1)
-			else
-				e = e:next()
-			end
-			return e
+	if e ~= nil then
+		if not M[e.domain] then
+			M[e.domain] = {}
 		end
-	end,
-}
-setmetatable(M, M_mt)
+		M[e.domain][e.name] = e
+		return e
+	end
+end
 
 
 M.TIMEOUT = M.add(10100, "levee", "TIMEOUT", "operation timed out")
 M.CLOSED = M.add(10101, "levee", "CLOSED", "channel is closed")
 
 
-for err in M() do
+local err = nil
+while true do
+	err = C.sp_error_next(err)
+	if err == nil then
+		break
+	end
 	if not M[err.domain] then
 		M[err.domain] = {}
 	end
