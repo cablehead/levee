@@ -1,7 +1,6 @@
 local ffi = require('ffi')
 local C = ffi.C
 
-
 local errors = require("levee.errors")
 
 
@@ -79,7 +78,7 @@ local function next_event(self)
 	if self.ev_in_pos == C.EV_POLL_IN_MAX then
 		-- flush pending events if the list is full
 		local rc = C.kevent(self.fd, self.ev_in, C.EV_POLL_IN_MAX, nil, 0, nil)
-		if rc < 0 then Errno:error("kevent") end
+		if rc < 0 then errors.get(rc):abort() end
 		self.ev_in_pos = 0
 	end
 	local ev = self.ev_in[self.ev_in_pos]
@@ -178,7 +177,6 @@ function Poller:poll(timeout)
 
 	local n = C.kevent(
 		self.fd, self.ev_in, self.ev_in_pos, self.ev_out, C.EV_POLL_OUT_MAX, ts)
-
 	local err = ffi.errno()
 
 	C.gettimeofday(self.tv, nil)
@@ -188,7 +186,8 @@ function Poller:poll(timeout)
 		return nil, self.ev_out, n
 	end
 
-	if err ~= Errno["EINTR"] then errors.get(err) end
+	local err = errors.get(err)
+	if not err == errors.system.EINTR then err:abort() end
 
 	return self:poll(timeout)
 end

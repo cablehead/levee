@@ -1,5 +1,8 @@
 local ffi = require('ffi')
-local Errno = require('levee.errno')
+local C = ffi.C
+
+local errors = require("levee.errors")
+
 
 ffi.cdef[[
 static const int EV_POLL_OUT_MAX = 64;
@@ -18,7 +21,6 @@ struct LeveePoller {
 };
 ]]
 
-local C = ffi.C
 
 local LEVEE_POLL_MASK    = 0x0FFFFFFFFULL
 local LEVEE_POLL_CHANNEL = 0x100000000ULL
@@ -57,7 +59,7 @@ Poller.__index = Poller
 
 function Poller:__new()
 	local self = ffi.new(self, C.epoll_create1(0))
-	if self.fd < 0 then Errno:error("epoll_create1") end
+	if self.fd < 0 then errors.get(self.fd):abort() end
 	C.gettimeofday(self.tv, nil)
 	return self
 end
@@ -88,7 +90,7 @@ function Poller:signal_register(no)
 	ev.events = bit.bor(C.EPOLLET, C.EPOLLERR, C.EPOLLHUP, C.EPOLLIN)
 	ev.data.u64 = bit.bor(LEVEE_POLL_SIGNAL, no)
 	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_ADD, fd, ev)
-	if rc < 0 then Errno:error("epoll_ctl") end
+	if rc < 0 then errors.get(rc):abort() end
 
 	local rc = C.sigprocmask(C.SIG_BLOCK, sigset, nil)
 	assert(rc == 0)
@@ -127,7 +129,7 @@ function Poller:register(fd, r, w)
 	end
 	ev.data.u64 = fd
 	local rc = C.epoll_ctl(self.fd, C.EPOLL_CTL_ADD, fd, ev)
-	if rc < 0 then Errno:error("epoll_ctl") end
+	if rc < 0 then errors.get(rc):abort() end
 end
 
 
@@ -150,16 +152,16 @@ function Poller:poll(timeout)
 	end
 
 	local n = C.epoll_wait(self.fd, self.ev, 1, ms)
-
 	local err = ffi.errno()
 
 	C.gettimeofday(self.tv, nil)
 
 	if n >= 0 then
-		return self.ev, n
+		return nil, self.ev, n
 	end
 
-	if err ~= Errno["EINTR"] then Errno:error("epoll_wait", err) end
+	local err = errors.get(err)
+	if not err == errors.system.EINTR then err:abort() end
 
 	return self:poll(timeout)
 end
