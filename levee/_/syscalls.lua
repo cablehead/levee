@@ -135,7 +135,7 @@ end
 _.read = function(no, buf, len)
 	if not len then len = ffi.sizeof(buf) end
 	local n = C.read(no, buf, len)
-	if n >= 0 then return nil, tonumber(n) end
+	if n > 0 then return nil, tonumber(n) end
 	return errors.get(ffi.errno())
 end
 
@@ -144,8 +144,8 @@ _.reads = function(no, len)
 	len = len or 4096
 	local buf = ffi.new("char[?]", len)
 	local err, n = _.read(no, buf, len)
-	if err then return err end
-	return nil, ffi.string(buf, n)
+	if err then return end
+	return ffi.string(buf, n)
 end
 
 

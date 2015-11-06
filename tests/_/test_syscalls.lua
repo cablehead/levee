@@ -10,16 +10,14 @@ return {
 		assert(not err)
 
 		assert.same({nil, 3}, {_.write(w, "foo")})
-		assert.same({nil, "foo"}, {_.reads(r)})
+		assert.equal("foo", _.reads(r))
 
 		assert(not _.close(w))
 		assert(_.close(w))
 
 		local err = _.write(w, "foo")
 		assert(err)
-
-		local err = _.reads(r)
-		assert(err)
+		assert(not _.reads(r))
 	end,
 
 	test_open_stat_fstat = function()

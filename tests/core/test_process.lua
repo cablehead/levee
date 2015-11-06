@@ -25,7 +25,7 @@ return {
 		local child = h.process:spawn("cat", {io={STDIN=r1, STDOUT=w2}})
 
 		_.write(w1, "foo")
-		assert.same({nil, "foo"}, {_.reads(r2)})
+		assert.equal("foo", _.reads(r2))
 
 		_.close(w1)
 		child.done:recv()
