@@ -1,11 +1,12 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-
 local message = require("levee.core.message")
 local errors = require("levee.errors")
-local d = require("levee.d")
+
 local _ = require("levee._")
+local d = require("levee.d")
+local p = require("levee.p")
 
 
 --
@@ -401,8 +402,13 @@ function Chunk_mt:value()
 end
 
 
-function Chunk_mt:trim()
-	local n = self.stream:trim(self.len)
+function Chunk_mt:trim(n)
+	if n then
+		assert(n <= self.len)
+	else
+		n = self.len
+	end
+	local n = self.stream:trim(n)
 	self.len = self.len - n
 	if self.len == 0 then
 		self.done:close()
@@ -432,6 +438,11 @@ function Chunk_mt:discard()
 		self:trim()
 	end
 	return nil, n
+end
+
+
+function Chunk_mt:json()
+	return p.json.decoder():stream(self)
 end
 
 

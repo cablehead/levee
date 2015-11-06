@@ -326,4 +326,19 @@ return {
 		c.done:recv()
 		assert.equal(s:take(), x(".", 10))
 	end,
+
+	test_chunk_json = function()
+		local h = levee.Hub()
+		local err, r, w = h.io:pipe()
+
+		local json = '{"foo": "bar"}'
+		w:write(json)
+
+		local s = r:stream()
+		local c = s:chunk(#json)
+		local err, value = c:json()
+
+		assert.same(value, {foo = "bar"})
+		c.done:recv()
+	end,
 }
