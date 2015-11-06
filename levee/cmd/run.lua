@@ -1,6 +1,7 @@
 local os = require('os')
 
 local levee = require("levee")
+local _ = require("levee._")
 
 
 return {
@@ -22,14 +23,18 @@ return {
 		else
 			local path = argv:next():gsub("/$", "")
 
-			local st = levee.sys.os.stat(path)
-			if not st or not (st:is_reg() or st:is_dir()) then
-				io.stderr:write(("invalid path: %s\n"):format(path))
+			local err, st = _.stat(path)
+			if err then
+				err:exit()
+			end
+
+			if not (st:is_reg() or st:is_dir()) then
+				io.stderr:write(("path is not a file or directory: %s\n"):format(path))
 				os.exit(1)
 			end
 
 			if st:is_dir() then
-				local root = levee.sys.os.dirname(path)
+				local root = _.dirname(path)
 				if root == "" then root = "./" end
 				package.path = (
 					root .. "/?.lua;" ..
