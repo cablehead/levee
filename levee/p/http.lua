@@ -313,6 +313,7 @@ function Response_mt:tobuffer(buf)
 		local err, n = self.body.stream:read(buf:tail(), #self.body)
 		if err then return err end
 		buf:bump(n)
+		self.body.done:close()
 		return nil, buf
 	end
 
@@ -323,39 +324,20 @@ end
 
 
 function Response_mt:save(name)
-	local function _save(chunk, no)
-		while #chunk > 0 do
-			local buf, len = chunk:value()
-			if len == 0 then
-				local n, err = chunk:readin()
-				if n < 0 then return nil, err end
-			else
-				local n = C.write(no, buf, len)
-				if n < 0 then return nil, ffi.errno() end
-				chunk:trim(n)
-			end
-		end
-		return true
-	end
+	local err, no = _.open(name, C.O_WRONLY)
+	if err then return err end
 
-	local no = C.open(name, C.O_WRONLY)
-	if no < 0 then return no, ffi.errno() end
-
-	local rc, err
+	local w = self.hub.io:w(no)
 
 	if self.body then
-		rc, err = _save(self.body, no)
-
-	else
-		for chunk in self.chunks do
-			rc, err = _save(chunk, no)
-			if not rc then break end
-		end
+		local err, n = self.body:splice(w)
+		w:close()
+		return err, n
 	end
 
-	C.close(no)
-	return rc, err
+	error(false)
 end
+
 
 function Response_mt:discard()
 	if self.body then
@@ -370,14 +352,7 @@ function Response_mt:discard()
 end
 
 function Response_mt:json()
-	if self.body then
-		local ok, data = self.body:json()
-		if not ok then
-			-- TODO: is this reasonable?
-			return nil, data
-		end
-		return data
-	end
+	if self.body then return self.body:json() end
 
 	local ChunkedStream_mt = {}
 	ChunkedStream_mt.__index = ChunkedStream_mt
@@ -419,6 +394,7 @@ function Client_mt:reader(responses)
 		if err then goto __cleanup end
 
 		local res = setmetatable({
+			hub = self.hub,
 			client = self,
 			code = value[1],
 			reason = value[2],
@@ -716,6 +692,7 @@ function Server_mt:reader(requests, responses)
 		local res_sender, res_recver = self.hub:gate()
 
 		local req = setmetatable({
+			hub = self.hub,
 			serve = self,
 			method = value[1],
 			path = value[2],

@@ -434,11 +434,9 @@ return {
 		local err, buf = res:tobuffer()
 		assert.equal(buf:peek(), '{"foo": "bar"}')
 
-		if true then return end
-
 		local err, res = c:get("/")
 		local err, res = res:recv()
-		assert.equal(res:json()["foo"], "bar")
+		assert.same({res:json()}, {nil, {foo = "bar"}})
 
 		local tmp = os.tmpname()
 		local err, res = c:get("/")
@@ -449,6 +447,7 @@ return {
 
 		c:close()
 		serve:close()
+
 		assert.same(h.registered, {})
 	end,
 
