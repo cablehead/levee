@@ -18,3 +18,5 @@ int dup2(int fd1, int fd2);
 
 static const int F_OK = 0;
 int access(const char *path, int amode);
+
+void abort (void);

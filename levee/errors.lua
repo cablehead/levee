@@ -1,3 +1,4 @@
+local debug = require("debug")
 local ffi = require("ffi")
 local C = ffi.C
 
@@ -18,6 +19,17 @@ end
 
 function Error_mt:exit(code)
 	C.sp_exit(self.code, code or 1)
+end
+
+
+function Error_mt:abort()
+	local stack = debug.traceback()
+	local l1, l2, rem = stack:match("^([^\n]+)\n([^\n]+)\n(.+)$")
+	io.stderr:write(tostring(self))
+	io.stderr:write(":\n")
+	io.stderr:write(rem or stack)
+	io.stderr:write("\n")
+	C.abort()
 end
 
 
@@ -68,10 +80,6 @@ M.add = function(code, domain, name, msg)
 end
 
 
-M.TIMEOUT = M.add(10100, "levee", "TIMEOUT", "operation timed out")
-M.CLOSED = M.add(10101, "levee", "CLOSED", "channel is closed")
-
-
 local err = nil
 while true do
 	err = C.sp_error_next(err)
@@ -83,6 +91,10 @@ while true do
 	end
 	M[err.domain][err.name] = err
 end
+
+
+M.TIMEOUT = M.add(10100, "levee", "TIMEOUT", "operation timed out")
+M.CLOSED = M.add(10101, "levee", "CLOSED", "channel is closed")
 
 
 return M
