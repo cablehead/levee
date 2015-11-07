@@ -2,6 +2,8 @@ local math = require('math')
 local io = require('io')
 local os = require('os')
 
+local _ = require("levee._")
+
 --
 -- setup global variables
 
@@ -77,7 +79,7 @@ end
 assert = setmetatable({}, Assert_mt)
 
 
-function repr(x, indent)
+local function repr(x, indent)
 	indent = indent or ""
 	local s
 	if type(x) == "table" then
@@ -99,16 +101,7 @@ function repr(x, indent)
 	end
 end
 
-function dirname(str)
-	if str:match(".-/.-") then
-		local name = string.gsub(str, "(.*/)(.*)", "%1")
-		return name
-	else
-		return ''
-	end
-end
-
-function x(s, n)
+local function x(s, n)
 	ret = {}
 	for _ = 1, n do
 		table.insert(ret, s)
@@ -189,7 +182,7 @@ function Writer_mt:notfirst(...)
 	self._notfirst = true
 end
 
-function Writer(verbose)
+local function Writer(verbose)
 	local self = setmetatable({}, Writer_mt)
 	self.v = verbose
 	return self
@@ -199,7 +192,7 @@ end
 --
 --
 
-function scan(path)
+local function scan(path)
 	local command = ('find %s -type f -name "*.lua"'):format(path)
 	return io.popen(command):lines()
 end
@@ -293,7 +286,12 @@ return {
 	end,
 
 	run = function(options)
-		local path = dirname(options.path)
+		_G.repr = repr
+		_G.x = x
+		_G.Writer = Writer
+		_G.scan = scan
+
+		local path = _.path.dirname(options.path)
 		package.path = string.format(
 			'./?/init.lua;%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s',
 				path, path, path, package.path)
