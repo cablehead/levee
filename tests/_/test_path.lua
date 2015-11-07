@@ -3,25 +3,25 @@ local _ = require("levee")._
 
 return {
 	test_dirname = function()
-		assert.equal(_.dirname("/usr/bin/foo"), "/usr/bin")
-		assert.equal(_.dirname("/usr/bin/foo", 2), "/usr")
+		assert.equal(_.path.dirname("/usr/bin/foo"), "/usr/bin")
+		assert.equal(_.path.dirname("/usr/bin/foo", 2), "/usr")
 	end,
 
 	test_basename = function()
-		assert.equal(_.basename("/usr/bin/foo"), "foo")
-		assert.equal(_.basename("/usr/bin/foo", 2), "bin/foo")
+		assert.equal(_.path.basename("/usr/bin/foo"), "foo")
+		assert.equal(_.path.basename("/usr/bin/foo", 2), "bin/foo")
 	end,
 
 	test_procname = function()
-		local err, s = _.procname()
+		local err, s = _.path.procname()
 		assert(not err)
-		assert.equal(_.basename(s), "levee")
+		assert.equal(_.path.basename(s), "levee")
 	end,
 
 	test_envname = function()
 		local err, s = _.path.envname("vi")
 		assert(not err)
-		assert.equal(_.basename(s), "vi")
+		assert.equal(_.path.basename(s), "vi")
 	end,
 
 	test_match = function()

@@ -138,10 +138,10 @@ Options:
 		output_bundle(bundle, options)
 		output_main(main, options)
 
-		local err, proc = _.procname()
+		local err, proc = _.path.procname()
 		if err then err:exit() end
 
-		local root = _.dirname(_.dirname(proc))
+		local root = _.path.dirname(proc, 2)
 		local lib = options.lib or root .. "/lib/liblevee.a"
 
 		local build = {

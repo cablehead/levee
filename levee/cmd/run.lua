@@ -34,7 +34,7 @@ return {
 			end
 
 			if st:is_dir() then
-				local root = _.dirname(path)
+				local root = _.path.dirname(path)
 				if root == "" then root = "./" end
 				package.path = (
 					root .. "/?.lua;" ..
