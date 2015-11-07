@@ -13,6 +13,30 @@ local buf = ffi.cast("char *", ffi.gc(C.malloc(buflen), C.free))
 local ranges = ffi.new("SpRange16 [2]")
 local procname = false
 local procname_err, procname_val
+local cwd = ffi.string(C.getcwd(buf, buflen))
+
+
+function _.cwd(s)
+	if s then
+		s = _.join(cwd, s)
+		local rc = C.chdir(s)
+		if rc < 0 then return errors.get(ffi.errno()) end
+		cwd = s
+	end
+	return nil, cwd
+end
+
+
+function _.abs(s)
+	return _.join(cwd, s)
+end
+
+
+function _.real(s)
+	local p = C.realpath(s, buf)
+	if p == nil then return errors.get(ffi.errno()) end
+	return nil, ffi.string(p)
+end
 
 
 function _.pop(s, n)
