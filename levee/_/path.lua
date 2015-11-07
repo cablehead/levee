@@ -11,6 +11,8 @@ local _ = {}
 local buflen = C.SP_PATH_MAX * 4
 local buf = ffi.cast("char *", ffi.gc(C.malloc(buflen), C.free))
 local ranges = ffi.new("SpRange16 [2]")
+local procname = false
+local procname_err, procname_val
 
 
 function _.pop(s, n)
@@ -82,9 +84,16 @@ end
 
 
 function _.procname()
-	local n = C.sp_path_proc(buf, buflen)
-	if n < 0 then return errors.get(n) end
-	return nil, ffi.string(buf, n)
+	if not procname then
+		local n = C.sp_path_proc(buf, buflen)
+		if n < 0 then
+			procname_err = errors.get(n)
+		else
+			procname_val = ffi.string(buf, n)
+		end
+		procname = true
+	end
+	return procname_err, procname_val
 end
 
 
