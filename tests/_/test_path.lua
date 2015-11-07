@@ -34,11 +34,14 @@ return {
 		assert(_.path.match("test-abc.cpp", "test-*.[ch]pp"))
 		assert(_.path.match("test-abc.c", "{test,value}-{abc,xyz}.{c,h}"))
 		assert(_.path.match("value-xyz.h", "{test,value}-{abc,xyz}.{c,h}"))
+		assert(_.path.match("/test/value", "/tes*/value"))
 
 		assert(not _.path.match("test.c", "test.cpp"))
 		assert(not _.path.match("test.cpp", "test.{c,o}"))
 		assert(not _.path.match("test.c", "test.{cpp,o}"))
 		assert(not _.path.match("test.c", "test*"))
+		assert(not _.path.match("/test/value", "/tes*"))
+		assert(not _.path.match("/test/value", "/tes*value"))
 	end,
 
 	test_join = function()
