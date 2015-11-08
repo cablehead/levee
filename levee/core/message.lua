@@ -478,6 +478,13 @@ function Selector_mt:recv(ms)
 end
 
 
+function Selector_mt:__call()
+	local err, sender, value = self:recv()
+	if err then return end
+	return sender, value
+end
+
+
 local function Selector(hub)
 	local self = setmetatable({hub=hub, fifo=d.fifo(), }, Selector_mt)
 	return self
