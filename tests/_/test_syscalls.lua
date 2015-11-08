@@ -40,7 +40,7 @@ return {
 		assert(info:is_reg())
 		assert(not info:is_dir())
 
-		local dir = dirname(path)
+		local dir = _.path.dirname(path)
 		local err, no = _.open(dir, C.O_RDONLY, C.O_NONBLOCK)
 		assert(not err)
 		local err, info = _.stat(dir)

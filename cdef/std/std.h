@@ -19,4 +19,9 @@ int dup2(int fd1, int fd2);
 static const int F_OK = 0;
 int access(const char *path, int amode);
 
+int chdir(const char *path);
+char *getcwd(char *buf, size_t size);
+char *realpath(const char *restrict n, char *restrict r);
+
+
 void abort (void);
