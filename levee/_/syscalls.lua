@@ -170,7 +170,7 @@ _.reads = function(no, len)
 	len = len or 4096
 	local buf = ffi.new("char[?]", len)
 	local err, n = _.read(no, buf, len)
-	if err then return end
+	if err or n == 0 then return end
 	return ffi.string(buf, n)
 end
 
