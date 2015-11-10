@@ -1,25 +1,30 @@
 ## Hub.io
 
 * r(no, timeout):
-  returns a readable IO object to wrap the file descriptor `no`. if `timeout`
+  returns an `io.R` to wrap the file descriptor `no`. if `timeout`
   is supplied all operations will use that for a default timeout.
 
 * w(no, timeout):
-  returns a writeable IO object to wrap the file descriptor `no`. if `timeout`
-  is supplied all operations will use that for a default timeout.
+  returns an `io.W` to wrap the file descriptor `no`. if `timeout` is supplied
+  all operations will use that for a default timeout.
+
+* rw(no, timeout):
+  returns an `io.RW` to wrap the file descriptor `no`. if `timeout` is supplied
+  all operations will use that for a default timeout.
 
 * pipe(timeout):
-  returns `err`, `r`, `w` where `r` is a readable IO object and `w` is a
-  writeable IO object.
+  creates a file descriptor pair. returns `err`, `r`, `w` where `r` is an
+  `io.R` and `w` is an `io.W`.
 
 * open(name, ...):
   convenience to open the file `name` with the flags specified in `...`. e.g.
-  `C.O_RDWR`. returns `err`, `io` where `io` is either `r`, `w` or `rw`
-  depending on the mode specified.
+  `C.O_RDWR`. returns `err`, `io` where `io` is either an `io.R`, `io.W` or
+  `io.RW` depending on the mode specified.
+
 
 ## Objects
 
-### Readable IO
+### io.R
 
 * read(buf, size, timeout):
   reads up to `size` bytes into `buf`. it will block the current green thread
@@ -38,7 +43,7 @@
   returns a Stream Object for this file descriptor. Note, mixing direct reads
   with stream usage will result in sadness.
 
-### Writable IO
+### io.W
 
 * write(buf, size):
   writes `size` number of bytes from `buf` to the file descriptor. if `size` is
@@ -57,6 +62,11 @@
 
 * send(...):
   convenience to send multiple values to :iov(). returns `err`.
+
+### io.RW
+
+Offers all the methods of both an `io.R` and an `io.W`.
+
 
 ### Stream
 
@@ -80,6 +90,11 @@ A Stream is combination of an IO file descriptor and a buffer.
   writes `len` bytes of this stream to `buf`. if some bytes are currently
   buffered they will be copied to `buf`. if more bytes are needed they'll then
   be read directly from stream's conn. returns `err`, `n`.
+
+* readinto(buf, len, timeout):
+  convenience to read `len` bytes into a `levee.d.buffer`. ensures there's
+  sufficient space to write into the buffer. if some bytes are currently
+  buffered they will be copied to `buf`. returns `err`, `n`.
 
 * value():
   returns `buf`, `len` of the stream currently buffered
@@ -116,15 +131,9 @@ closed once the size of the chunk has been exhausted.
 * done:
   a recv-able that will `close` when the chunk is exhausted.
 
-* splice(conn):
-  splice this chunk to `conn`.
-
-* discard():
-  discard this chunk in the most memory efficient way.
-
 #### methods
 
-* readin():
+* readin(n):
   read from the stream's conn to its buf.
 
 * value():
@@ -141,6 +150,10 @@ closed once the size of the chunk has been exhausted.
 * tostring():
   copies the entire chunk into a string and marks it as done. returns `nil` if
   there is an error.
+
+* tobuffer(buf):
+  convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
+  new buffer will be created. returns `nil`, `buf` on sucess, `err` otherwise.
 
 * discard():
   consumes the entire chunk with as few resources as possible and marks it as

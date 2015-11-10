@@ -161,7 +161,7 @@ end
 _.read = function(no, buf, len)
 	if not len then len = ffi.sizeof(buf) end
 	local n = C.read(no, buf, len)
-	if n > 0 then return nil, tonumber(n) end
+	if n >= 0 then return nil, tonumber(n) end
 	return errors.get(ffi.errno())
 end
 

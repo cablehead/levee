@@ -71,7 +71,7 @@ function R_mt:read(buf, len, timeout)
 	if not err and n > 0 then return nil, n end
 	if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
 		self:close()
-		return err or errors.CLOSED
+		return errors.CLOSED
 	end
 
 	local err, sender, ev = self.r_ev:recv(timeout)
@@ -346,6 +346,15 @@ function Stream_mt:read(buf, len, timeout)
 end
 
 
+function Stream_mt:readinto(buf, len, timeout)
+	buf:ensure(len)
+	local err, n = self:read(buf:tail(), len, timeout)
+	if err then return err end
+	buf:bump(n)
+	return nil, n
+end
+
+
 function Stream_mt:trim(len)
 	return self.buf:trim(len)
 end
@@ -448,6 +457,15 @@ end
 
 function Chunk_mt:json()
 	return p.json.decoder():stream(self)
+end
+
+
+function Chunk_mt:tobuffer(buf)
+	buf = buf or d.buffer()
+	local err, n = self.stream:readinto(buf, self.len)
+	if err then return err end
+	self.done:close()
+	return nil, buf
 end
 
 
