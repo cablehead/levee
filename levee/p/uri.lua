@@ -9,7 +9,7 @@ struct LeveeURI {
 ]]
 
 
-local module = {
+local M = {
 	scheme = C.SP_URI_SCHEME,
 	user = C.SP_URI_USER,
 	password = C.SP_URI_PASSWORD,
@@ -87,5 +87,5 @@ end
 
 URI = ffi.metatype("struct LeveeURI", URI_mt)
 
-module.URI = URI
-return module
+M.URI = URI
+return M
