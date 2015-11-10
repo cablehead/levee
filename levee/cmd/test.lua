@@ -4,6 +4,79 @@ local os = require('os')
 
 local _ = require("levee._")
 
+
+--
+-- some local functions
+
+local function trim(s)
+	return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+local Source_mt = {}
+Source_mt.__index = Source_mt
+
+function Source_mt:lines(s, e)
+	local lines = self._lines
+	if not lines then
+		lines = {}
+		for l in self.path:lines() do
+			table.insert(lines, l)
+		end
+		self._lines = lines
+	end
+	s = math.max(1, s or 1)
+	e = math.min(#lines, e or #lines)
+	return function()
+		if s <= e then
+			local i = s
+			s = s + 1
+			return i, lines[i]
+		end
+	end
+end
+
+function Source_mt:line(no)
+	local no, s = self:lines(no, no + 1)()
+	return s
+end
+
+local function Source(path)
+	return setmetatable({path = io.open(_.path.abs(path))}, Source_mt)
+end
+
+local function traceback(n, m)
+	local trace = {}
+
+	local level = 1
+
+	while true do
+		local info = debug.getinfo(level, "Sl")
+		if not info then break end
+
+		if info.what == "Lua" then
+			table.insert(trace, info)
+		end
+		level = level + 1
+	end
+
+	local s= {}
+	-- for i = #trace, 1, -1 do
+	for i = #trace - 3, 1, -1 do
+		local info = trace[i]
+		if _.path.basename(info.short_src) == "test.lua" then break end
+		table.insert(s, tostring(info.short_src))
+		table.insert(s, ": ")
+		table.insert(s, tostring(info.currentline))
+		table.insert(s, "\n")
+		table.insert(s, "  --> "..
+			trim(Source(info.short_src):line(info.currentline)))
+		table.insert(s, "\n")
+		table.insert(s, "\n")
+	end
+	return table.concat(s)
+end
+
+
 --
 -- setup global variables
 
@@ -20,7 +93,7 @@ end
 
 function Assert_mt.equal(want, got)
 	if want ~= got then
-		error(("%s ~= %s"):format(tostring(want), tostring(got)))
+		error(("%s ~= %s"):format(repr(want), repr(got)))
 	end
 end
 
@@ -77,7 +150,6 @@ function Assert_mt.is_nil(got)
 end
 
 assert = setmetatable({}, Assert_mt)
-
 
 local function repr(x, indent)
 	indent = indent or ""
@@ -229,10 +301,11 @@ local function run_suite(options, suite)
 			success, extra = xpcall(M[name],
 				function(err)
 					options.w(
-						txtred..' FAIL'..txtrst..'\n'..
+						txtred..' FAIL'..txtrst..'\n\n'..
 						'-----\n'..
-						debug.traceback()..'\n'..
-						err..'\n')
+						traceback()..
+						err:match(":%d+: (.*)")
+						..'\n-----\n')
 					options.stats.FAIL = options.stats.FAIL + 1
 				end)
 		end
