@@ -30,7 +30,7 @@ end
 function BloomScale_mt:put_hash(hash)
 	if not C.sp_bloom_can_hold(self[1], 1) then
 		local cnt = self[1].count * (1 + self[1].fpp)
-		local new = Bloom(cnt * 8, self[1].fpp, self[1].seed)
+		local new = Bloom(cnt * 8, self[1].fpp)
 		table.insert(self, 1, new)
 	end
 	C.sp_bloom_put_hash(self[1], hash)
@@ -70,8 +70,8 @@ function BloomScale_mt:copy()
 end
 
 
-local function BloomScale(hint, fpp, seed)
-	return setmetatable({Bloom(hint, fpp, seed)}, BloomScale_mt)
+local function BloomScale(hint, fpp)
+	return setmetatable({Bloom(hint, fpp)}, BloomScale_mt)
 end
 
 

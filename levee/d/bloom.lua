@@ -22,7 +22,7 @@ end
 
 -- TODO: support more types
 function Bloom_mt:hash(val, len)
-	return C.sp_bloom_hash(self, val, len or #val)
+	return C.sp_bloom_hash(val, len or #val)
 end
 
 
@@ -53,16 +53,16 @@ end
 
 
 function Bloom_mt:copy()
-	return ffi.gc(C.sp_bloom_copy(self), C.sp_bloom_destroy)
+	return ffi.gc(C.sp_bloom_copy(self), C.sp_bloom_free)
 end
 
 
 ffi.metatype("SpBloom", Bloom_mt)
 
 
-local function Bloom(hint, fpp, seed)
-	local self = C.sp_bloom_create(hint or 0, fpp or 0.01, seed or bloom_seed)
-	return ffi.gc(self, C.sp_bloom_destroy)
+local function Bloom(hint, fpp)
+	local self = C.sp_bloom_new(hint or 0, fpp or 0.01)
+	return ffi.gc(self, C.sp_bloom_free)
 end
 
 
