@@ -1,12 +1,11 @@
 local ffi = require("ffi")
 local C = ffi.C
 
-local Buffer = require("levee.buffer")
-
 local sockaddr_in = ffi.typeof("struct sockaddr_in")
 
-
 return {
+	skipif = function() return true end,
+
 	test_core = function()
 		local h = require("levee").Hub()
 
