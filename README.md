@@ -1,23 +1,59 @@
-# levee
+# Levee
 
-Network tool.
+Levee is a tool to succinctly and quickly create high performance network
+appliances.
 
-## Compile
+## Getting setup
 
-### Debug build
+First, you will need a few dependencies:
 
-```bash
-cmake -H. -Bbuild/debug -DCMAKE_BUILD_TYPE=Debug
-# or cmake -H. -Bbuild/debug -DCMAKE_BUILD_TYPE=Debug -G Ninja
-cmake --build build/debug
-./build/debug/levee examples/chunked.lua
-```
-
-### Release build
+On Mac:
 
 ```bash
-cmake -H. -Bbuild/release -DCMAKE_BUILD_TYPE=Release
-# or cmake -H. -Bbuild/release -DCMAKE_BUILD_TYPE=Release -G Ninja
-cmake --build build/release
-./build/release/levee examples/chunked.lua
+brew install ragel
 ```
+
+On Debian / Ubuntu:
+
+```bash
+apt-get install ragel
+```
+
+Next, install Levee:
+
+```bash
+git clone git@github.com:imgix/levee.git
+cd levee
+cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
+cd build
+make
+make install
+```
+
+By default Levee will be installed to `/usr/local`. You can also set a custom
+install directory:
+
+```bash
+make DESTDIR=/tmp/foo install
+```
+
+Make sure the installed location is in your `PATH`:
+
+```bash
+export PATH=$PATH:/usr/local/bin
+```
+
+And we should be all set to go:
+
+```bash
+imgix:~ andy$ levee
+Usage: levee <command> ...
+
+Available commands are:
+        run
+        build
+        bundle
+        test
+        version
+```
+
