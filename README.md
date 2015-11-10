@@ -45,7 +45,7 @@ export PATH=$PATH:/usr/local/bin
 
 And we should be all set to go:
 
-```bash
+```
 imgix:~ andy$ levee
 Usage: levee <command> ...
 
