@@ -262,6 +262,105 @@ end
 
 
 --
+-- test coverage
+
+local Coverage_mt = {}
+Coverage_mt.__index = Coverage_mt
+
+function Coverage_mt:ignore(path)
+	if not self.on then return end
+	self._ignore[path] = 1
+end
+
+function Coverage_mt:stop()
+	if not self.on then return end
+
+	debug.sethook()
+
+	local ignore = {}
+	for k, v in pairs(self._ignore) do
+		ignore[_.path.abs(k)] = 1
+	end
+
+	local seen = {}
+	for i, v in ipairs(self._hit) do
+		local src, line = unpack(v)
+		local path = _.path.abs(src)
+		if not ignore[path] then
+			if not seen[path] then seen[path] = {} end
+			seen[path][line] = (seen[path][line] or 0) + 1
+		end
+	end
+
+	local agg = {}
+	local sorted = {}
+	local longest = 0
+	for k, v in pairs(seen) do
+		local err, cwd = _.path.cwd()
+		if k:sub(1, #cwd) == cwd then
+			k = k:sub(#cwd+2, #k)
+		end
+
+		longest = math.max(#k, longest)
+
+		table.insert(sorted, k)
+
+		local count = 0
+		for __ in pairs(v) do count = count + 1 end
+		local total = 0
+		for line in io.open(k):lines() do
+			if line ~= "" then
+				total = total + 1
+			end
+		end
+		agg[k] = {count, total}
+	end
+
+	longest = longest + 5
+
+	table.sort(sorted)
+
+	local fmt = "%-"..longest.."s %5s %5s %6s"
+	local header = (fmt:format("Name", "Stmts", "Miss", "Cover"))
+	local prefix = "-------] Coverage ["
+
+	print()
+	print(prefix .. x("-", #header - #prefix))
+	print(header)
+	print(x("-", #header))
+
+	local ttotal, tcount = 0, 0
+	for i, k in ipairs(sorted) do
+		local count, total = unpack(agg[k])
+		ttotal = ttotal + total
+		tcount = tcount + count
+		print(fmt:format(
+			k, total, total-count, ("%5d%%"):format((count/total)*100)))
+	end
+	print(x("-", #header))
+	print(fmt:format(
+		"TOTAL",
+		ttotal,
+		ttotal-tcount,
+		("%5d%%"):format((tcount/ttotal)*100)))
+end
+
+local function Coverage(on)
+	local self = setmetatable({on=on}, Coverage_mt)
+	if on then
+		self._hit = {}
+		self._ignore = {}
+		debug.sethook(function(event, line)
+			local info = debug.getinfo(2)
+			if info.short_src:sub(1, 9) == "[builtin:" then return end
+			table.insert(self._hit, {info.short_src, line})
+		end, "l")
+	end
+	return self
+end
+
+
+--
 --
 
 local function scan(path)
@@ -327,7 +426,7 @@ end
 
 return {
 	usage = function()
-		return "Usage: levee test [-v] [-x] [-k <match>] <path>"
+		return "Usage: levee test [-v] [-x] [-k <match>] [--cov] <path>"
 	end,
 
 	parse = function(argv)
@@ -339,6 +438,7 @@ return {
 			if opt == "v" then options.verbose = 1
 			elseif opt == "x" then options.exitfirst = 1
 			elseif opt == "k" then options.match = argv:next()
+			elseif opt == "cov" then options.cov = 1
 			elseif opt == nil then
 				if options.path then
 					io.stderr:write("path already supplied\n")
@@ -361,8 +461,8 @@ return {
 	run = function(options)
 		_G.repr = repr
 		_G.x = x
-		_G.Writer = Writer
-		_G.scan = scan
+
+		local cov = Coverage(options.cov)
 
 		local path = _.path.dirname(options.path)
 		package.path = string.format(
@@ -373,6 +473,7 @@ return {
 		options.stats = setmetatable({}, {__index = function() return 0 end})
 
 		for suite in scan(options.path) do
+			cov:ignore(suite)
 			run_suite(options, suite)
 			if options.exitfirst and options.stats.FAIL > 0 then break end
 		end
@@ -383,6 +484,7 @@ return {
 		end
 		io.write('\n')
 
+		cov:stop()
 		return options.stats.FAIL
 	end,
 }
