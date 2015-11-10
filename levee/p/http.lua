@@ -4,6 +4,7 @@ local C = ffi.C
 local errors = require("levee.errors")
 local _ = require("levee._")
 local d = require("levee.d")
+local json = require("levee.p.json")
 
 
 -- TODO
@@ -297,8 +298,8 @@ function Response_mt:tostring()
 
 	local bits = {}
 	for chunk in self.chunks do
-		local s, err = chunk:tostring()
-		if not s then return s, err end
+		local s = chunk:tostring()
+		if s == nil then return end
 		table.insert(bits, s)
 	end
 	return table.concat(bits)
@@ -306,20 +307,16 @@ end
 
 
 function Response_mt:tobuffer(buf)
-	buf = buf or d.buffer()
-
 	if self.body then
-		buf:ensure(#self.body)
-		local err, n = self.body.stream:read(buf:tail(), #self.body)
-		if err then return err end
-		buf:bump(n)
-		self.body.done:close()
-		return nil, buf
+		return self.body:tobuffer(buf)
 	end
 
+	local err, buf
 	for chunk in self.chunks do
-		assert(false)
+		err, buf = chunk:tobuffer(buf)
+		if err then return err end
 	end
+	return nil, buf
 end
 
 
@@ -335,7 +332,14 @@ function Response_mt:save(name)
 		return err, n
 	end
 
-	error(false)
+	local total = 0
+	for chunk in self.chunks do
+		local err, n = chunk:splice(w)
+		if err then w:close(); return err end
+		total = total + n
+	end
+	w:close()
+	return nil, n
 end
 
 
@@ -344,28 +348,34 @@ function Response_mt:discard()
 		return self.body:discard()
 	end
 
+	local total = 0
 	for chunk in self.chunks do
-		local rc, err = chunk:discard()
-		if not rc then return rc, err end
+		local err, n = chunk:discard()
+		if err then return err end
+		total = total + n
 	end
-	return true
+	return nil, total
 end
+
 
 function Response_mt:json()
 	if self.body then return self.body:json() end
 
+	-- TODO: i think this is something we can generalize
 	local ChunkedStream_mt = {}
 	ChunkedStream_mt.__index = ChunkedStream_mt
 
 	function ChunkedStream_mt:readin()
-		if self.chunk.buf.len < self.chunk.len then
+		if self.chunk.stream.buf.len < self.chunk.len then
 			-- we haven't read in all of this chunk yet
 			return self.chunk:readin()
 		end
 		-- must need the next chunk
 		self.chunk.done:close()
-		self.chunk = self.chunks:recv()
-		return self.chunk.len
+		local err
+		err, self.chunk = self.chunks:recv()
+		if err then return err end
+		return self.chunk:readin()
 	end
 
 	function ChunkedStream_mt:value()
@@ -376,13 +386,12 @@ function Response_mt:json()
 		return self.chunk:trim(n)
 	end
 
-	local stream = setmetatable(
-		{chunks = self.chunks, chunk = self.chunks:recv()}, ChunkedStream_mt)
-
-	local parser = json.decoder()
-	local ok, data = parser:stream_consume(stream)
-	if not ok then return nil, data end
-	return data
+	local stream = setmetatable({chunks = self.chunks}, ChunkedStream_mt)
+	local err
+	err, stream.chunk = self.chunks:recv()
+	if err then return err end
+	local decoder = json.decoder()
+	return decoder:stream(stream)
 end
 
 

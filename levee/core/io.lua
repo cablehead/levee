@@ -464,6 +464,7 @@ function Chunk_mt:tobuffer(buf)
 	buf = buf or d.buffer()
 	local err, n = self.stream:readinto(buf, self.len)
 	if err then return err end
+	self.len = 0
 	self.done:close()
 	return nil, buf
 end

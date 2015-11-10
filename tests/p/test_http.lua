@@ -447,7 +447,6 @@ return {
 
 		c:close()
 		serve:close()
-
 		assert.same(h.registered, {})
 	end,
 
@@ -456,9 +455,10 @@ return {
 
 		local h = levee.Hub()
 
-		local serve = h.http:listen()
+		local err, serve = h.http:listen()
+		local err, addr = serve:addr()
 		h:spawn(function()
-			local s = serve:recv()
+			local err, s = serve:recv()
 			for req in s do
 				req.response:send({levee.HTTPStatus(200), {}, nil})
 				req.response:send('{"foo": "')
@@ -467,22 +467,28 @@ return {
 			end
 		end)
 
-		local c = h.http:connect(serve:addr():port())
+		local err, c = h.http:connect(addr:port())
 
-		local res = c:get("/"):recv()
-		assert.equal(res:discard(), true)
+		local err, res = c:get("/")
+		local err, res = res:recv()
+		assert.same({res:discard()}, {nil, 14})
 
-		local res = c:get("/"):recv()
+		local err, res = c:get("/")
+		local err, res = res:recv()
 		assert.equal(res:tostring(), '{"foo": "bar"}')
 
-		local res = c:get("/"):recv()
-		assert.equal(res:tobuffer():peek_s(), '{"foo": "bar"}')
+		local err, res = c:get("/")
+		local err, res = res:recv()
+		local err, buf = res:tobuffer()
+		assert.equal(buf:peek(), '{"foo": "bar"}')
 
-		local res = c:get("/"):recv()
-		assert.equal(res:json()["foo"], "bar")
+		local err, res = c:get("/")
+		local err, res = res:recv()
+		assert.same({res:json()}, {nil, {foo = "bar"}})
 
 		local tmp = os.tmpname()
-		local res = c:get("/"):recv()
+		local err, res = c:get("/")
+		local err, res = res:recv()
 		res:save(tmp)
 		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
 		os.remove(tmp)
@@ -490,6 +496,7 @@ return {
 		c:close()
 		serve:close()
 		assert.same(h.registered, {})
+		if true then return end
 	end,
 
 	test_chunk_spanning = function()
