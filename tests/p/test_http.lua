@@ -317,7 +317,7 @@ return {
 					for req in conn do
 						req.response:send({levee.HTTPStatus(200), {}, 10000})
 						for i = 1, 10 do
-							req.conn:write(x(".", 1000))
+							req.conn:write(("."):rep(1000))
 							h:continue()
 						end
 						req.response:close()

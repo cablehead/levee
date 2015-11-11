@@ -57,7 +57,7 @@ return {
 		assert.equal(buf:take(3), "foo")
 
 		-- write eagain
-		local want = x(".", 100000)
+		local want = ("."):rep(100000)
 		local check
 		h:spawn(function() check = {w:write(want)} end)
 
@@ -142,7 +142,7 @@ return {
 		local keep = {}
 		local want = {}
 		for i = 1, 12 do
-			local s = x(tostring(i), 10000+i)
+			local s = tostring(i):rep(10000+i)
 			iov:write(s)
 			table.insert(keep, s)
 			table.insert(want, s)
@@ -179,13 +179,13 @@ return {
 
 		h:spawn(function()
 			for i = 1, 1000 do
-				local s = x(tostring(i), i)
+				local s = tostring(i):rep(i)
 				table.insert(want, s)
 				iov:send(s)
 			end
 
 			-- test if items are added to the queue while we are mid-write
-			local s = x(".", 791532)
+			local s = ("."):rep(791532)
 			table.insert(want, s)
 			iov:send(s)
 			h:continue()
@@ -285,16 +285,16 @@ return {
 		local s = r:stream()
 		local buf = levee.d.buffer(4096)
 
-		w:write(x(".", 10))
+		w:write(("."):rep(10))
 		s:readin()
-		w:write(x(".", 20))
+		w:write(("."):rep(20))
 
 		assert.same({s:read(buf:tail(), 20)}, {nil, 20})
 		buf:bump(20)
-		assert.equal(buf:take(), x(".", 20))
+		assert.equal(buf:take(), ("."):rep(20))
 
 		s:readin()
-		assert.equal(s:take(), x(".", 10))
+		assert.equal(s:take(), ("."):rep(10))
 	end,
 
 	test_stream_readinto = function()
@@ -305,15 +305,15 @@ return {
 		local s = r:stream()
 		local buf = levee.d.buffer(4096)
 
-		w:write(x(".", 10))
+		w:write(("."):rep(10))
 		s:readin()
-		w:write(x(".", 20))
+		w:write(("."):rep(20))
 
 		assert.same({s:readinto(buf, 20)}, {nil, 20})
-		assert.equal(buf:take(), x(".", 20))
+		assert.equal(buf:take(), ("."):rep(20))
 
 		s:readin()
-		assert.equal(s:take(), x(".", 10))
+		assert.equal(s:take(), ("."):rep(10))
 	end,
 
 	test_chunk_core = function()
@@ -325,7 +325,7 @@ return {
 		local c = s:chunk(10)
 		assert.equal(#c, 10)
 
-		h:spawn(function() w:write(x(".", 15)) end)
+		h:spawn(function() w:write(("."):rep(15)) end)
 		assert.equal(c:tostring(), "..........")
 		assert.equal(c.done:recv(), levee.errors.CLOSED)
 
@@ -340,16 +340,16 @@ return {
 		local err, r, w = h.io:pipe()
 
 		local s = r:stream()
-		w:write(x(".", 10))
+		w:write(("."):rep(10))
 		s:readin()
-		w:write(x(".", 20))
+		w:write(("."):rep(20))
 
 		local c = s:chunk(20)
 		local err, buf = c:tobuffer()
-		assert.equal(buf:take(), x(".", 20))
+		assert.equal(buf:take(), ("."):rep(20))
 		c.done:recv()
 		s:readin(1)
-		assert.equal(s:take(), x(".", 10))
+		assert.equal(s:take(), ("."):rep(10))
 	end,
 
 	test_chunk_splice = function()
@@ -359,15 +359,15 @@ return {
 		local err, r2, w2 = h.io:pipe()
 
 		local s = r:stream()
-		w:write(x(".", 10))
+		w:write(("."):rep(10))
 		s:readin()
-		w:write(x(".", 20))
+		w:write(("."):rep(20))
 
 		local c = s:chunk(20)
 		assert.same({c:splice(w2)}, {nil, 20})
 		c.done:recv()
-		assert.equal(r2:reads(), x(".", 20))
-		assert.equal(s:take(), x(".", 10))
+		assert.equal(r2:reads(), ("."):rep(20))
+		assert.equal(s:take(), ("."):rep(10))
 	end,
 
 	test_chunk_discard = function()
@@ -376,14 +376,14 @@ return {
 		local err, r, w = h.io:pipe()
 
 		local s = r:stream()
-		w:write(x(".", 10))
+		w:write(("."):rep(10))
 		s:readin()
-		w:write(x(".", 20))
+		w:write(("."):rep(20))
 
 		local c = s:chunk(20)
 		assert.same({c:discard()}, {nil, 20})
 		c.done:recv()
-		assert.equal(s:take(), x(".", 10))
+		assert.equal(s:take(), ("."):rep(10))
 	end,
 
 	test_chunk_json = function()

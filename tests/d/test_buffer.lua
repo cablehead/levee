@@ -6,19 +6,11 @@ local d = require("levee").d
 
 return {
 	test_core = function()
-		function x(s, n)
-			ret = ""
-			for _ = 1, n do
-				ret = ret .. s
-			end
-			return ret
-		end
-
 		local buf = d.buffer(4096)
 		assert.equal(#buf, 0)
 		assert.equal(buf:peek(), "")
 
-		local s = x(".", 1024)
+		local s = ("."):rep(1024)
 
 		for i = 1, 10 do
 			local size = i * 1024
@@ -28,14 +20,14 @@ return {
 			buf:bump(#s)
 
 			assert.equal(#buf, size)
-			assert.equal(buf:peek(), x(".", size))
+			assert.equal(buf:peek(), ("."):rep(size))
 		end
 
-		assert.equal(buf:peek(10), x(".", 10))
+		assert.equal(buf:peek(10), ("."):rep(10))
 
 		buf:trim(5120)
 		assert.equal(#buf, 5120)
-		assert.equal(buf:peek(), x(".", 5120))
+		assert.equal(buf:peek(), ("."):rep(5120))
 
 		buf:trim()
 		assert.equal(#buf, 0)

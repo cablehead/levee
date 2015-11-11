@@ -173,14 +173,6 @@ local function repr(x, indent)
 	end
 end
 
-local function x(s, n)
-	ret = {}
-	for _ = 1, n do
-		table.insert(ret, s)
-	end
-	return table.concat(ret)
-end
-
 
 --
 -- colors
@@ -325,9 +317,9 @@ function Coverage_mt:stop()
 	local prefix = "-------] Coverage ["
 
 	print()
-	print(prefix .. x("-", #header - #prefix))
+	print(prefix .. ("-"):rep(#header - #prefix))
 	print(header)
-	print(x("-", #header))
+	print(("-"):rep(#header))
 
 	local ttotal, tcount = 0, 0
 	for i, k in ipairs(sorted) do
@@ -337,7 +329,7 @@ function Coverage_mt:stop()
 		print(fmt:format(
 			k, total, total-count, ("%5d%%"):format((count/total)*100)))
 	end
-	print(x("-", #header))
+	print(("-"):rep(#header))
 	print(fmt:format(
 		"TOTAL",
 		ttotal,
@@ -460,15 +452,13 @@ return {
 
 	run = function(options)
 		_G.repr = repr
-		_G.x = x
-
-		local cov = Coverage(options.cov)
 
 		local path = _.path.dirname(options.path)
 		package.path = string.format(
 			'./?/init.lua;%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s',
 				path, path, path, package.path)
 
+		local cov = Coverage(options.cov)
 		options.w = Writer(options.verbose)
 		options.stats = setmetatable({}, {__index = function() return 0 end})
 
