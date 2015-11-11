@@ -27,20 +27,29 @@
 ### io.R
 
 * read(buf, size):
-  reads up to `size` bytes into `buf`. it will block the current green thread
+  reads *up* to `size` bytes into `buf`. it will block the current green thread
   until some bytes are available unless `timeout` is reached. returns `err`,
   `n` where `n` is the number of bytes read.
 
-* readinto(buf):
-  convenience to read into a `levee.d.buffer`. ensures there's sufficient space
-  to write into the buffer. returns `err`, `n`.
-
 * reads(size):
-  convenience to read and return a lua string up to `size` bytes. `size`
+  convenience to read and return a lua string *up* to `size` bytes. `size`
   defaults to 4096. returns `nil` or a string.
 
+* readn(buf, n):
+  reads exactly `n` bytes into `buf`. returns `err`, `n`.
+
+* readinto(buf, [n]):
+  convenience to read into a `levee.d.Buffer`. ensures there's sufficient space
+  to write into the buffer. if `n` is `nil`, a single read will be attempted,
+  otherwise exactly `n` bytes will be read. returns `err`, `n` where `n` is the
+  actual number of bytes that were read.
+
+* settimeout(timeout):
+  sets the timeout for operations on this object to `timeout` and returns
+  `self`.
+
 * stream():
-  returns a Stream Object for this file descriptor. Note, mixing direct reads
+  returns an `io.Stream` for this file descriptor. Note, mixing direct reads
   with stream usage will result in sadness.
 
 ### io.W
@@ -80,38 +89,49 @@ A Stream is combination of an IO file descriptor and a buffer.
 
 #### methods
 
-* readin(n):
-  read from the stream's conn to its buf. if `n` is the call will block the
-  current green thread until the next successful read. otherwise this call will
-  block until *at least* `n` bytes are available in the `buf` if there are
+* readin([n]):
+  read from the stream's conn to its buf. if `n` is `nil` the call will block
+  until the current green thread until the next successful read. otherwise this
+  call will block until `n` bytes are available in the `buf` if there are
   already `n` bytes available, it returns immediately. returns `err`, `n`.
 
 * read(buf, len):
-  writes `len` bytes of this stream to `buf`. if some bytes are currently
-  buffered they will be copied to `buf`. if more bytes are needed they'll then
-  be read directly from stream's conn. returns `err`, `n`.
+  reads *up* to `size` bytes into `buf`.  if some bytes are currently they'll
+  be moved to `buf` and the call will return immediately.  buffered they will
+  be copied to `buf`.  otherwise a read will made directly from the stream's
+  conn to `buf` returns `err`, `n`, where `n` is the number of bytes actually
+  transferred.
 
-* readinto(buf, len):
-  convenience to read `len` bytes into a `levee.d.buffer`. ensures there's
-  sufficient space to write into the buffer. if some bytes are currently
-  buffered they will be copied to `buf`. returns `err`, `n`.
+* readn(buf, n):
+  transfers exactly `n` bytes into `buf` from a combination of currently
+  buffered bytes and the underlying connection. returns `err`, `n`.
+
+* readinto(buf, [n]):
+  convenience to read into a `levee.d.Buffer`. ensures there's sufficient space
+  to write into the buffer. if `n` is `nil`, a single `:read` will be made,
+  which will either move bytes from our current buffer, or make a blocking read
+  on the stream's underlying connection. otherwise, the call will block until
+  `n` bytes are transferred to `buf`.  returns `err`, `n` where `n` is the
+  actual number of bytes that were transferred.
 
 * value():
-  returns `buf`, `len` of the stream currently buffered
+  returns `buf`, `len` of the stream's underlying buffer.
 
-* trim(len):
-  trims this stream's buf by len. if len is nil then trims the entire buf.
+* trim([n]):
+  trims this stream's buffer by `n`. if `n` is `nil` then trims the entire
+  buffer. returns `n` which is the actual number of bytes trimmed.
 
-* take(n):
-  blocks until `n` bytes are buffered, and returns them as a lua string, or
-  `nil` if there was an error.
+* take([n]):
+  takes `n` bytes from the stream's underlying buffer. if `n` is not `nil` this
+  will block until `n` bytes are buffered. returns returns lua string, or `nil`
+  if there was an error.
 
 * json():
-  decodes the stream using the json decoder and returns a lua table for the
-  decoded json.
+  decodes the stream using a json decoder and returns `err`, `value` where
+  `value` is a lua table for the decoded json.
 
 * chunk(n):
-  create a Chunk object from this stream that's `n` bytes.
+  create a `io.Chunk` from this stream that's `n` bytes.
 
 
 ### Chunk
@@ -133,14 +153,14 @@ closed once the size of the chunk has been exhausted.
 
 #### methods
 
-* readin(n):
-  read from the stream's conn to its buf.
+* readin([n]):
+  pass through to the underlying `io.Stream:readin`
 
 * value():
   returns buf, len of the stream currently buffered
 
-* trim(len):
-  trims the stream's buf by len. if len is nil then trims the entire buf. the
+* trim([n]):
+  trims the stream's buf by `n`. if `n` is nil then trims the entire buf. the
   chunk's len will be reduced by the actual amount trimmed. if len drops to 0
   the chunk will be marked as done.
 
@@ -152,7 +172,7 @@ closed once the size of the chunk has been exhausted.
   there is an error.
 
 * tobuffer(buf):
-	convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
+  convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
   new buffer will be created. returns `nil`, `buf` on success, `err` otherwise.
 
 * discard():
