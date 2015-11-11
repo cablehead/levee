@@ -370,6 +370,32 @@ return {
 		assert.equal(s:take(), ("."):rep(10))
 	end,
 
+	test_chunk_splice_big = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+		local err, r2, w2 = h.io:pipe()
+
+		local pre = ("."):rep(10)
+		local val = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"):rep(512)
+		local crc = C.sp_crc32c(0ULL, pre, #pre)
+		crc = C.sp_crc32c(crc, val, #val - 10)
+
+		local s = r:stream()
+		w:write(pre)
+		s:readin()
+		h:spawn(function() w:write(val) end)
+
+		local c = s:chunk(64*512)
+		assert.same({c:splice(w2)}, {nil, 64*512})
+		c.done:recv()
+
+		local buf = levee.d.buffer()
+		r2:stream():readinto(buf, 64*512)
+		assert.equal(C.sp_crc32c(0ULL, buf:value()), crc)
+		assert.equal(s:take(10), "23456789+/")
+	end,
+
 	test_chunk_discard = function()
 		local h = levee.Hub()
 
