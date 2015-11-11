@@ -26,12 +26,12 @@
 
 ### io.R
 
-* read(buf, size, timeout):
+* read(buf, size):
   reads up to `size` bytes into `buf`. it will block the current green thread
   until some bytes are available unless `timeout` is reached. returns `err`,
   `n` where `n` is the number of bytes read.
 
-* readinto(buf, timeout):
+* readinto(buf):
   convenience to read into a `levee.d.buffer`. ensures there's sufficient space
   to write into the buffer. returns `err`, `n`.
 
@@ -86,12 +86,12 @@ A Stream is combination of an IO file descriptor and a buffer.
   block until *at least* `n` bytes are available in the `buf` if there are
   already `n` bytes available, it returns immediately. returns `err`, `n`.
 
-* read(buf, len, timeout):
+* read(buf, len):
   writes `len` bytes of this stream to `buf`. if some bytes are currently
   buffered they will be copied to `buf`. if more bytes are needed they'll then
   be read directly from stream's conn. returns `err`, `n`.
 
-* readinto(buf, len, timeout):
+* readinto(buf, len):
   convenience to read `len` bytes into a `levee.d.buffer`. ensures there's
   sufficient space to write into the buffer. if some bytes are currently
   buffered they will be copied to `buf`. returns `err`, `n`.
@@ -152,8 +152,8 @@ closed once the size of the chunk has been exhausted.
   there is an error.
 
 * tobuffer(buf):
-  convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
-  new buffer will be created. returns `nil`, `buf` on sucess, `err` otherwise.
+	convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
+  new buffer will be created. returns `nil`, `buf` on success, `err` otherwise.
 
 * discard():
   consumes the entire chunk with as few resources as possible and marks it as
