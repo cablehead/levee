@@ -102,6 +102,9 @@ local Endpoint = ffi.metatype("struct LeveeEndpoint", Endpoint_mt)
 local _ = {}
 
 
+_.pagesize = C.getpagesize()
+
+
 _.open_modes = {
 	["r"]   = C.O_RDONLY,
 	["r+"]  = C.O_RDWR,
@@ -172,6 +175,19 @@ _.reads = function(no, len)
 	local err, n = _.read(no, buf, len)
 	if err or n == 0 then return end
 	return ffi.string(buf, n)
+end
+
+
+if ffi.os:lower() == "linux" then
+	_.splice = function(from, to, len, more)
+		local flags = bit.bor(C.SPLICE_F_MOVE, C.SPLICE_F_NONBLOCK)
+		if more then
+			flags = bit.bor(flags, C.SPLICE_F_MORE)
+		end
+		local n = C.splice(from, nil, to, nil, len, flags)
+		if n >= 0 then return nil, tonumber(n) end
+		return errors.get(ffi.errno())
+	end
 end
 
 

@@ -1,4 +1,8 @@
+typedef long long loff_t;
+
 int fcntl(int fd, int cmd, ... /* arg */);
+ssize_t splice(int fd_in, loff_t *off_in, int fd_out,
+                      loff_t *off_out, size_t len, unsigned int flags);
 
 static const int F_DUPFD = 0; /* Duplicate file descriptor.  */
 static const int F_GETFD = 1; /* Get file descriptor flags.  */
@@ -20,3 +24,8 @@ static const int O_NDELAY = O_NONBLOCK;
 static const int O_SYNC =     04010000;
 static const int O_FSYNC =      O_SYNC;
 static const int O_ASYNC =      020000;
+
+static const int SPLICE_F_MOVE = 1;
+static const int SPLICE_F_NONBLOCK = 2;
+static const int SPLICE_F_MORE = 4;
+static const int SPLICE_F_GIFT = 8;

@@ -26,6 +26,10 @@ function Iovec_mt:write(buf, len)
 		len = #buf
 	end
 
+	if len == 0 then
+		return nil, 0
+	end
+
 	if type(buf) == "string" then
 		buf = ffi.cast("char*", buf)
 	end
@@ -78,6 +82,28 @@ function R_mt:read(buf, len, timeout)
 	if err then return err end
 	if ev < 0 then self.r_error = true end
 	return self:read(buf, len, timeout)
+end
+
+
+if type(_.splice) == "function" then
+	function R_mt:_splice(to, len, timeout)
+		if self.closed then return errors.CLOSED end
+
+		timeout = timeout or self.timeout
+
+		local err, n = _.splice(self.no, to, len)
+
+		if not err and n > 0 then return nil, n end
+		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
+			self:close()
+			return err or errors.CLOSED
+		end
+
+		local err, sender, ev = self.r_ev:recv(timeout)
+		if err then return err end
+		if ev < 0 then self.r_error = true end
+		return self:_splice(to, len, timeout)
+	end
 end
 
 
@@ -431,7 +457,7 @@ function Chunk_mt:trim(n)
 end
 
 
-function Chunk_mt:splice(conn)
+function Chunk_mt:splice_copy(conn)
 	local n = self.len
 	while self.len > 0 do
 		local err = self:readin(1)
@@ -441,6 +467,55 @@ function Chunk_mt:splice(conn)
 		self:trim()
 	end
 	return nil, n
+end
+
+
+if type(_.splice) == "function" then
+	local splice_min = 4 * _.pagesize
+
+	function Chunk_mt:splice(conn)
+		local len = self.len
+		local buf, buflen = self:value()
+		if len-buflen < splice_min then
+			return self:splice_copy(conn)
+		end
+
+		-- transfer any pending bytes from the buffer
+		local err, bn = conn:write(buf, buflen)
+		if err then return err end
+		self:trim(buflen) -- TODO: is this correct?
+
+		local err, r, w = self.hub.io:pipe()
+		if err then
+			-- pipe failed so fallback to copy
+			local err, slen = self:splice_copy(conn)
+			if not err then
+				-- add the amount transferred from the buffer
+				slen = slen + bn
+			end
+			return err, slen
+		end
+
+		local fd = self.stream.conn.no
+		local remain = len - bn
+
+		while remain > 0 do
+			local err, rn = self.stream.conn:_splice(w.no, remain)
+			if err then return err end
+			while rn > 0 do
+				local err, wn = r:_splice(conn.no, remain)
+				if err then return err end
+				rn = rn - wn
+				remain = remain - wn
+			end
+		end
+
+		self.len = 0
+		self.done:close()
+		return nil, len
+	end
+else
+	Chunk_mt.splice = Chunk_mt.splice_copy
 end
 
 
