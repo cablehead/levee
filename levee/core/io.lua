@@ -65,10 +65,8 @@ local R_mt = {}
 R_mt.__index = R_mt
 
 
-function R_mt:read(buf, len, timeout)
+function R_mt:read(buf, len)
 	if self.closed then return errors.CLOSED end
-
-	timeout = timeout or self.timeout
 
 	local err, n = _.read(self.no, buf, len)
 
@@ -78,10 +76,10 @@ function R_mt:read(buf, len, timeout)
 		return errors.CLOSED
 	end
 
-	local err, sender, ev = self.r_ev:recv(timeout)
+	local err, sender, ev = self.r_ev:recv(self.timeout)
 	if err then return err end
 	if ev < 0 then self.r_error = true end
-	return self:read(buf, len, timeout)
+	return self:read(buf, len)
 end
 
 
@@ -107,11 +105,11 @@ if type(_.splice) == "function" then
 end
 
 
-function R_mt:readinto(buf, timeout)
+function R_mt:readinto(buf)
 	-- ensure we have *some* space to read into
 	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
 	local ptr, len = buf:tail()
-	local err, n = self:read(ptr, len, timeout)
+	local err, n = self:read(ptr, len, self.timeout)
 	if err then return err end
 	if n > 0 then buf:bump(n) end
 	return err, n
@@ -353,7 +351,7 @@ function Stream_mt:readin(n)
 end
 
 
-function Stream_mt:read(buf, len, timeout)
+function Stream_mt:read(buf, len)
 	local togo = len
 
 	if #self.buf > 0 then
@@ -363,7 +361,7 @@ function Stream_mt:read(buf, len, timeout)
 	end
 
 	while togo > 0 do
-		local err, n = self.conn:read(buf + (len -togo), togo, timeout)
+		local err, n = self.conn:read(buf + (len -togo), togo)
 		if err then return err end
 		togo = togo - n
 	end
@@ -372,9 +370,9 @@ function Stream_mt:read(buf, len, timeout)
 end
 
 
-function Stream_mt:readinto(buf, len, timeout)
+function Stream_mt:readinto(buf, len)
 	buf:ensure(len)
-	local err, n = self:read(buf:tail(), len, timeout)
+	local err, n = self:read(buf:tail(), len)
 	if err then return err end
 	buf:bump(n)
 	return nil, n
