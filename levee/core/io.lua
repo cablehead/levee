@@ -84,10 +84,8 @@ end
 
 
 if type(_.splice) == "function" then
-	function R_mt:_splice(to, len, timeout)
+	function R_mt:_splice(to, len)
 		if self.closed then return errors.CLOSED end
-
-		timeout = timeout or self.timeout
 
 		local err, n = _.splice(self.no, to, len)
 
@@ -97,10 +95,10 @@ if type(_.splice) == "function" then
 			return err or errors.CLOSED
 		end
 
-		local err, sender, ev = self.r_ev:recv(timeout)
+		local err, sender, ev = self.r_ev:recv(self.timeout)
 		if err then return err end
 		if ev < 0 then self.r_error = true end
-		return self:_splice(to, len, timeout)
+		return self:_splice(to, len)
 	end
 end
 
@@ -109,7 +107,7 @@ function R_mt:readinto(buf)
 	-- ensure we have *some* space to read into
 	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
 	local ptr, len = buf:tail()
-	local err, n = self:read(ptr, len, self.timeout)
+	local err, n = self:read(ptr, len)
 	if err then return err end
 	if n > 0 then buf:bump(n) end
 	return err, n
