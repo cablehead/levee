@@ -96,11 +96,10 @@ A Stream is combination of an IO file descriptor and a buffer.
   already `n` bytes available, it returns immediately. returns `err`, `n`.
 
 * read(buf, len):
-  reads *up* to `size` bytes into `buf`.  if some bytes are currently they'll
-  be moved to `buf` and the call will return immediately.  buffered they will
-  be copied to `buf`.  otherwise a read will made directly from the stream's
-  conn to `buf` returns `err`, `n`, where `n` is the number of bytes actually
-  transferred.
+  reads *up* to `size` bytes into `buf`. if some bytes are currently they'll be
+  moved to `buf` and the call will return immediately. otherwise a read will
+  made directly from the stream's conn to `buf` returns `err`, `n`, where `n`
+  is the number of bytes actually transferred.
 
 * readn(buf, n):
   transfers exactly `n` bytes into `buf` from a combination of currently
