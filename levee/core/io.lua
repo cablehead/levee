@@ -372,17 +372,20 @@ end
 
 function Stream_mt:read(buf, len)
 	local n = self.buf:move(buf, len)
-	local err, c = self.conn:read(buf + n, len - n)
+	if n > 0 then return nil, n end
+	local err, n = self.conn:read(buf + n, len - n)
 	if err then return err end
-	return nil, n + c
+	return nil, n
 end
 
 
 function Stream_mt:readn(buf, len)
 	local n = self.buf:move(buf, len)
-	local err, c = self.conn:readn(buf + n, len - n)
-	if err then return err end
-	return nil, n + c
+	if n < len then
+		local err = self.conn:readn(buf + n, len - n)
+		if err then return err end
+	end
+	return nil, len
 end
 
 
