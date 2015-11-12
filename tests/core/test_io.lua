@@ -308,16 +308,49 @@ return {
 		local s = r:stream()
 		local buf = levee.d.buffer(4096)
 
+		-- read more than available
+		w:write(("."):rep(10))
+		s:readin()
+		w:write(("."):rep(5))
+		assert.same({s:read(buf:tail(), 20)}, {nil, 15})
+		buf:bump(15)
+		assert.equal(buf:take(), ("."):rep(15))
+
+		-- read less than available
 		w:write(("."):rep(10))
 		s:readin()
 		w:write(("."):rep(20))
-
 		assert.same({s:read(buf:tail(), 20)}, {nil, 20})
 		buf:bump(20)
 		assert.equal(buf:take(), ("."):rep(20))
 
 		s:readin()
 		assert.equal(s:take(), ("."):rep(10))
+	end,
+
+	test_stream_readn = function()
+		local h = levee.Hub()
+
+		local err, r, w = h.io:pipe()
+
+		local s = r:stream()
+		local buf = levee.d.buffer(4096)
+
+		w:write(("."):rep(10))
+		s:readin()
+		w:write(("."):rep(5))
+
+		local check
+		h:spawn(function() check = {s:readn(buf:tail(), 20)} end)
+		assert.equal(check, nil)
+
+		w:write(("."):rep(10))
+		assert.same(check, {nil, 20})
+		buf:bump(20)
+		assert.equal(buf:take(), ("."):rep(20))
+
+		s:readin()
+		assert.equal(s:take(), ("."):rep(5))
 	end,
 
 	test_stream_readinto = function()

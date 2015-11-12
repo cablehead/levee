@@ -371,21 +371,18 @@ end
 
 
 function Stream_mt:read(buf, len)
-	local togo = len
+	local n = self.buf:move(buf, len)
+	local err, c = self.conn:read(buf + n, len - n)
+	if err then return err end
+	return nil, n + c
+end
 
-	if #self.buf > 0 then
-		local n = self.buf:copy(buf, togo)
-		self.buf:trim(n)
-		togo = togo - n
-	end
 
-	while togo > 0 do
-		local err, n = self.conn:read(buf + (len -togo), togo)
-		if err then return err end
-		togo = togo - n
-	end
-
-	return nil, len
+function Stream_mt:readn(buf, len)
+	local n = self.buf:move(buf, len)
+	local err, c = self.conn:readn(buf + n, len - n)
+	if err then return err end
+	return nil, n + c
 end
 
 

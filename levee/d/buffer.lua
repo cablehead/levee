@@ -142,8 +142,16 @@ end
 
 function Buffer_mt:copy(tgt, n)
 	local buf, len = self:value()
+	if len == 0 then return 0 end
 	if n > len then n = len end
 	C.memcpy(tgt, buf, n)
+	return n
+end
+
+
+function Buffer_mt:move(tgt, n)
+	local n = self:copy(tgt, n)
+	if n > 0 then self:trim(n) end
 	return n
 end
 
