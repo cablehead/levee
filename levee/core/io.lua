@@ -83,6 +83,20 @@ function R_mt:read(buf, len)
 end
 
 
+function R_mt:readn(buf, n)
+	if self.closed then return errors.CLOSED end
+
+	local togo = n
+	while togo > 0 do
+		local err, c = self:read(buf + (n - togo), togo)
+		if err then self:close(); return err end
+		togo = togo - c
+	end
+
+	return nil, n
+end
+
+
 if type(_.splice) == "function" then
 	function R_mt:_splice(to, len)
 		if self.closed then return errors.CLOSED end
@@ -103,14 +117,21 @@ if type(_.splice) == "function" then
 end
 
 
-function R_mt:readinto(buf)
-	-- ensure we have *some* space to read into
-	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
-	local ptr, len = buf:tail()
-	local err, n = self:read(ptr, len)
+function R_mt:readinto(buf, n)
+	local err
+
+	if n then
+		buf:ensure(n)
+		err, n = self:readn(buf:tail(), n)
+	else
+		-- ensure we have *some* space to read into
+		buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
+		err, n = self:read(buf:tail())
+	end
+
 	if err then return err end
 	if n > 0 then buf:bump(n) end
-	return err, n
+	return nil, n
 end
 
 

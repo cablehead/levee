@@ -101,18 +101,47 @@ return {
 		assert.same(h.registered, {})
 	end,
 
-	test_readinto = function()
+	test_readn = function()
 		local h = levee.Hub()
-
 		local err, r, w = h.io:pipe()
-
 		local buf = levee.d.buffer(4096)
 
+		local check
+		h:spawn(function()
+			local err, n = r:readn(buf:tail(), 6)
+			assert(not err)
+			buf:bump(n)
+			check = buf:take()
+		end)
+
+		assert(not check)
+		w:write("foo")
+		assert(not check)
+		w:write("bar123")
+		assert.equal(check, "foobar")
+		assert.equal(r:reads(), "123")
+	end,
+
+	test_readinto = function()
+		local h = levee.Hub()
+		local err, r, w = h.io:pipe()
+		local buf = levee.d.buffer(4096)
+
+		-- nil n
 		w:write("foo")
 		local err, n = r:readinto(buf)
 		assert(not err)
 		assert.equal(n, 3)
 		assert.equal(buf:take(), "foo")
+
+		-- non nil n
+		w:write("foo")
+		local check
+		h:spawn(function() check = {r:readinto(buf, 6)} end)
+		assert.equal(check, nil)
+		w:write("bar123")
+		assert.same(check, {nil, 6})
+		assert.equal(r:reads(), "123")
 
 		w:close()
 		local err = r:readinto(buf)
