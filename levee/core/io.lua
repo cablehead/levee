@@ -89,7 +89,7 @@ function R_mt:readn(buf, n)
 	local togo = n
 	while togo > 0 do
 		local err, c = self:read(buf + (n - togo), togo)
-		if err then self:close(); return err end
+		if err then return err end
 		togo = togo - c
 	end
 
@@ -118,20 +118,20 @@ end
 
 
 function R_mt:readinto(buf, n)
-	local err
-
 	if n then
 		buf:ensure(n)
-		err, n = self:readn(buf:tail(), n)
 	else
 		-- ensure we have *some* space to read into
 		buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
-		err, n = self:read(buf:tail())
 	end
 
+	local err, c = self:read(buf:tail())
 	if err then return err end
-	if n > 0 then buf:bump(n) end
-	return nil, n
+	buf:bump(c)
+
+	if not n or c >= n then return end
+
+	return self:readinto(buf, n - c)
 end
 
 

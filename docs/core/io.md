@@ -41,8 +41,7 @@
 * readinto(buf, [n]):
   convenience to read into a `levee.d.Buffer`. ensures there's sufficient space
   to write into the buffer. if `n` is `nil`, a single read will be attempted,
-  otherwise exactly `n` bytes will be read. returns `err`, `n` where `n` is the
-  actual number of bytes that were read.
+  otherwise exactly `n` bytes will be read. returns `err`.
 
 * settimeout(timeout):
   sets the timeout for operations on this object to `timeout` and returns
@@ -110,8 +109,7 @@ A Stream is combination of an IO file descriptor and a buffer.
   to write into the buffer. if `n` is `nil`, a single `:read` will be made,
   which will either move bytes from our current buffer, or make a blocking read
   on the stream's underlying connection. otherwise, the call will block until
-  `n` bytes are transferred to `buf`.  returns `err`, `n` where `n` is the
-  actual number of bytes that were transferred.
+  `n` bytes are transferred to `buf`.  returns `err`.
 
 * value():
   returns `buf`, `len` of the stream's underlying buffer.

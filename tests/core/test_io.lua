@@ -129,19 +129,16 @@ return {
 
 		-- nil n
 		w:write("foo")
-		local err, n = r:readinto(buf)
+		local err = r:readinto(buf)
 		assert(not err)
-		assert.equal(n, 3)
 		assert.equal(buf:take(), "foo")
 
 		-- non nil n
 		w:write("foo")
-		local check
-		h:spawn(function() check = {r:readinto(buf, 6)} end)
-		assert.equal(check, nil)
+		h:spawn(function() r:readinto(buf, 6) end)
+		assert.equal(#buf, 3)
 		w:write("bar123")
-		assert.same(check, {nil, 6})
-		assert.equal(r:reads(), "123")
+		assert.equal(#buf, 9)
 
 		w:close()
 		local err = r:readinto(buf)
@@ -279,15 +276,12 @@ return {
 		local s = r:stream()
 
 		w:write("foo")
-		assert.same({s:readin()}, {nil, 3})
+		s:readin()
+		assert.equal(#s.buf, 3)
 
 		w:write("foo")
-		local buf, n = s:value()
-		assert.equal(n, 3)
-
-		assert.same({s:readin()}, {nil, 3})
-		local buf, n = s:value()
-		assert.equal(n, 6)
+		s:readin()
+		assert.equal(#s.buf, 6)
 
 		h:spawn(function() s:readin(9) end)
 		w:write("fo")
@@ -300,7 +294,7 @@ return {
 
 		assert.equal(s:trim(), 9)
 		w:close()
-		assert.same({s:readin(1)}, {nil, 1})
+		s:readin(1)
 		assert.equal(s:take(1), 'o')
 		assert.same({s:readin(1)}, {levee.errors.CLOSED})
 		assert.equal(s:take(1), nil)
