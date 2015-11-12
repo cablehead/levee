@@ -51,13 +51,16 @@ service. Put the following code in a file called `dtsrv.lua`
 
 ```lua
 local levee = require('levee')
+local _ = levee._
+
+
 local h = levee.Hub()
 
-local serve = h.tcp:listen(4000)
+local err, serve = h.tcp:listen(4000)
 
 for conn in serve do
     h:spawn(function()
-        conn:write(tostring(levee.time.localdate()).."\n")
+        conn:write(tostring(_.time.localdate()).."\n")
         conn:close()
     end)
 end
