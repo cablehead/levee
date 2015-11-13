@@ -374,10 +374,11 @@ local function collect(options, M, names, tests, prefix)
 
 		elseif type(value) == "function" then
 			if name:sub(0, 5) == "test_" then
+				name = prefix..name
 				if options.match and not string.find(name, options.match) then
 				else
-					table.insert(names, prefix..name)
-					tests[prefix..name] = value
+					table.insert(names, name)
+					tests[name] = value
 				end
 			end
 		end
