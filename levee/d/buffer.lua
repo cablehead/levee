@@ -50,6 +50,11 @@ end
 
 
 function Buffer_mt:ensure(hint)
+	if not hint then
+		-- ensure we have *some* space to read into
+		hint = self.cap / 2 < 65536ULL and self.cap / 2 or 65536ULL
+	end
+
 	local cap = self.sav + self.len + hint
 
 	if cap <= self.cap then

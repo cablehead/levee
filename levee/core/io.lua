@@ -83,17 +83,19 @@ function R_mt:read(buf, len)
 end
 
 
-function R_mt:readn(buf, n)
+function R_mt:readn(buf, n, len)
 	if self.closed then return errors.CLOSED end
 
-	local togo = n
-	while togo > 0 do
-		local err, c = self:read(buf + (n - togo), togo)
+	len = len or n
+	local read = 0
+
+	while read < n do
+		local err, c = self:read(buf + read, len - read)
 		if err then return err end
-		togo = togo - c
+		read = read + c
 	end
 
-	return nil, n
+	return nil, read
 end
 
 
@@ -118,20 +120,22 @@ end
 
 
 function R_mt:readinto(buf, n)
+	local err, read
+
 	if n then
-		buf:ensure(n)
+		local needed = n - #buf
+		if needed <= 0 then return end
+		buf:ensure(needed)
+		local ptr, len = buf:tail()
+		err, read = self:readn(ptr, needed, len)
+
 	else
-		-- ensure we have *some* space to read into
-		buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
+		buf:ensure()
+		err, read = self:read(buf:tail())
 	end
 
-	local err, c = self:read(buf:tail())
 	if err then return err end
-	buf:bump(c)
-
-	if not n or c >= n then return end
-
-	return self:readinto(buf, n - c)
+	buf:bump(read)
 end
 
 
@@ -321,6 +325,7 @@ RW_mt.__index = RW_mt
 
 
 RW_mt.read = R_mt.read
+RW_mt.readn = R_mt.readn
 RW_mt.reads = R_mt.reads
 RW_mt.readinto = R_mt.readinto
 RW_mt.stream = R_mt.stream
@@ -357,16 +362,7 @@ end
 
 
 function Stream_mt:readin(n)
-	if not n then
-		return self.conn:readinto(self.buf)
-	end
-
-	while #self.buf < n do
-		local err, n = self.conn:readinto(self.buf)
-		if err then return err end
-	end
-
-	return nil, n
+	return self.conn:readinto(self.buf, n)
 end
 
 
@@ -379,22 +375,36 @@ function Stream_mt:read(buf, len)
 end
 
 
-function Stream_mt:readn(buf, len)
-	local n = self.buf:move(buf, len)
-	if n < len then
-		local err = self.conn:readn(buf + n, len - n)
+function Stream_mt:readn(buf, n, len)
+	local read = self.buf:move(buf, n)
+
+	if read < n then
+		local err, more = self.conn:readn(buf + read, n - read, len)
 		if err then return err end
+		read = read + more
 	end
-	return nil, len
+
+	return nil, read
 end
 
 
-function Stream_mt:readinto(buf, len)
-	buf:ensure(len)
-	local err, n = self:read(buf:tail(), len)
+function Stream_mt:readinto(buf, n)
+	local err, read
+
+	if n then
+		local needed = n - #buf
+		if needed <= 0 then return end
+		buf:ensure(needed)
+		local ptr, len = buf:tail()
+		err, read = self:readn(ptr, needed)
+
+	else
+		buf:ensure()
+		err, read = self:read(buf:tail())
+	end
+
 	if err then return err end
-	buf:bump(n)
-	return nil, n
+	buf:bump(read)
 end
 
 
@@ -554,7 +564,7 @@ end
 
 function Chunk_mt:tobuffer(buf)
 	buf = buf or d.buffer()
-	local err, n = self.stream:readinto(buf, self.len)
+	local err = self.stream:readinto(buf, self.len + #buf)
 	if err then return err end
 	self.len = 0
 	self.done:close()

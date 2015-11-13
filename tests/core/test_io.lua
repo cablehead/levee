@@ -106,6 +106,7 @@ return {
 		local err, r, w = h.io:pipe()
 		local buf = levee.d.buffer(4096)
 
+		-- nil len
 		local check
 		h:spawn(function()
 			local err, n = r:readn(buf:tail(), 6)
@@ -120,6 +121,22 @@ return {
 		w:write("bar123")
 		assert.equal(check, "foobar")
 		assert.equal(r:reads(), "123")
+
+		-- non nil len
+		local check
+		h:spawn(function()
+			local err, n = r:readn(buf:tail(), 6, 8)
+			assert(not err)
+			buf:bump(n)
+			check = buf:take()
+		end)
+
+		assert(not check)
+		w:write("foo")
+		assert(not check)
+		w:write("bar123")
+		assert.equal(check, "foobar12")
+		assert.equal(r:reads(), "3")
 	end,
 
 	test_readinto = function()
@@ -136,7 +153,7 @@ return {
 		-- non nil n
 		w:write("foo")
 		h:spawn(function() r:readinto(buf, 6) end)
-		assert.equal(#buf, 3)
+		assert.equal(#buf, 0)
 		w:write("bar123")
 		assert.equal(#buf, 9)
 
@@ -227,7 +244,7 @@ return {
 
 		local buf = levee.d.buffer(4096)
 		while true do
-			local err, n = r:readinto(buf)
+			local err = r:readinto(buf)
 			if err then break end
 		end
 
@@ -285,7 +302,7 @@ return {
 
 		h:spawn(function() s:readin(9) end)
 		w:write("fo")
-		assert.equal(#s.buf, 8)
+		assert.equal(#s.buf, 6)
 		w:write("o")
 		assert.equal(#s.buf, 9)
 
@@ -358,7 +375,6 @@ return {
 	end,
 
 	test_stream_readinto = function()
-		do return "SKIP" end
 		local h = levee.Hub()
 
 		local err, r, w = h.io:pipe()
@@ -370,7 +386,7 @@ return {
 		s:readin()
 		w:write(("."):rep(20))
 
-		assert.same({s:readinto(buf, 20)}, {nil, 20})
+		s:readinto(buf, 20)
 		assert.equal(buf:take(), ("."):rep(20))
 
 		s:readin()
@@ -396,7 +412,6 @@ return {
 	end,
 
 	test_chunk_tobuffer = function()
-		do return "SKIP" end
 		local h = levee.Hub()
 
 		local err, r, w = h.io:pipe()
