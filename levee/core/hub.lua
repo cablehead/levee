@@ -68,6 +68,15 @@ function Hub_mt:value(value)
 end
 
 
+function Hub_mt:flag(value)
+	local sender = message.Flag(self, value)
+	local recver = message.Recver(self)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
+end
+
+
 function Hub_mt:gate()
 	local sender = message.Gate(self)
 	local recver = message.Recver(self)

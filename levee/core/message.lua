@@ -206,6 +206,41 @@ end
 
 
 --
+-- Flag
+
+local Flag_mt = {}
+Flag_mt.__index = Flag_mt
+
+
+function Flag_mt:send(value)
+	if self.closed then return errors.CLOSED end
+	local err, ok = self.recver:_give(nil, self, value)
+	if not ok then self.value = value end
+end
+
+
+function Flag_mt:_take(err)
+	if self.closed then return errors.CLOSED end
+	if not self.value then return end
+	local value = self.value
+	self.value = nil
+	return nil, value
+end
+
+
+function Flag_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.recver:_give(errors.CLOSED, self)
+end
+
+
+local function Flag(hub, value)
+	return setmetatable({hub=hub, value=value}, Flag_mt)
+end
+
+
+--
 -- Gate
 
 local Gate_mt = {}
@@ -504,8 +539,8 @@ end
 return {
 	Sender = Sender,
 	Recver = Recver,
-
 	Value = Value,
+	Flag = Flag,
 	Gate = Gate,
 	Queue = Queue,
 	Stalk = Stalk,

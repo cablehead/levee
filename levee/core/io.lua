@@ -634,6 +634,7 @@ end
 
 
 IO_mt.iovec = Iovec
+IO_mt.R_mt = R_mt
 
 
 return function(hub)
