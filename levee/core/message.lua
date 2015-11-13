@@ -149,7 +149,7 @@ end
 function Recver_mt:redirect(target)
 	if self.closed then return errors.CLOSED end
 	assert(not self.co)
-	target:_link(self.sender)
+	target:_link(self.sender, self)
 	self.sender:_link(target)
 	self.sender = nil
 	self.closed = true
@@ -441,7 +441,8 @@ local Selector_mt = {}
 Selector_mt.__index = Selector_mt
 
 
-function Selector_mt:_link(sender)
+function Selector_mt:_link(sender, recver)
+	self.senders[sender] = recver
 end
 
 
@@ -465,16 +466,20 @@ end
 function Selector_mt:recv(ms)
 	assert(not self.co)
 
+	local err, sender, value
+
 	if #self.fifo > 0 then
-		local sender = self.fifo:pop()
-		local err, value = sender:_take()
-		return err, sender, value
+		sender = self.fifo:pop()
+		err, value = sender:_take()
+	else
+		self.co = coroutine.running()
+		err, sender, value = self.hub:pause(ms)
+		self.co = nil
 	end
 
-	self.co = coroutine.running()
-	local err, sender, value = self.hub:pause(ms)
-	self.co = nil
-	return err, sender, value
+	local recver = self.senders[sender]
+	if err and recver then self.senders[sender] = nil end
+	return err, recver, value
 end
 
 
@@ -486,7 +491,10 @@ end
 
 
 local function Selector(hub)
-	local self = setmetatable({hub=hub, fifo=d.Fifo(), }, Selector_mt)
+	local self = setmetatable({
+		hub=hub,
+		fifo=d.Fifo(),
+		senders={}, }, Selector_mt)
 	return self
 end
 

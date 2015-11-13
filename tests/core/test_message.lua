@@ -434,31 +434,31 @@ return {
 		r1:redirect(s)
 		r2:redirect(s)
 
-		assert.same({s:recv()}, {nil, s1, "0"})
+		assert.same({s:recv()}, {nil, r1, "0"})
 
 		-- send and then recv
 		h:spawn(function() s1:send("1") end)
-		assert.same({s:recv()}, {nil, s1, "1"})
+		assert.same({s:recv()}, {nil, r1, "1"})
 
 		-- recv and then send
 		local check
 		h:spawn(function() check = {s:recv()} end)
 		s2:send("2")
-		assert.same(check, {nil, s2, "2"})
+		assert.same(check, {nil, r2, "2"})
 
 		-- 2x pending
 		h:spawn(function() s2:send("2") end)
 		h:spawn(function() s1:send("1") end)
-		assert.same({s:recv()}, {nil, s2, "2"})
-		assert.same({s:recv()}, {nil, s1, "1"})
+		assert.same({s:recv()}, {nil, r2, "2"})
+		assert.same({s:recv()}, {nil, r1, "1"})
 
 		-- test timeout
 		assert.equal(s:recv(10), levee.errors.TIMEOUT)
 		h:spawn_later(10, function() s1:send("1") end)
-		assert.same({s:recv(20)}, {nil, s1, "1"})
+		assert.same({s:recv(20)}, {nil, r1, "1"})
 
 		-- test sender close
 		h:spawn(function() s1:close() end)
-		assert.same({s:recv()}, {levee.errors.CLOSED, s1})
+		assert.same({s:recv()}, {levee.errors.CLOSED, r1})
 	end,
 }
