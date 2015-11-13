@@ -151,6 +151,7 @@ return {
 		producer:redirect(consumer)
 		assert.same(check, {})
 		h:continue()
+		h:continue()
 		assert.same(check, {1})
 		h:continue()
 		assert.same(check, {1, 2})
@@ -214,6 +215,7 @@ return {
 		h:spawn(function() got = {recver:recv()} end)
 		h:continue()
 		assert.equal(sent, 2)
+		h:continue()
 		assert.same(got, {nil, 2})
 
 		got = {recver:recv()}

@@ -2,6 +2,10 @@ local errors = require("levee.errors")
 local d = require("levee.d")
 
 
+local UNBUFFERED = 1
+local BUFFERED = 2
+
+
 --
 -- Pair
 
@@ -44,25 +48,28 @@ function Sender_mt:send(value)
 
 	if self.closed then return errors.CLOSED end
 
-	local err, ok = self.recver:_give(nil, self, value)
+	local err, continued = self.recver:_give(nil, self, value)
 
 	if err == errors.CLOSED then
 		self.closed = true
 		return err
 	end
 
-	if ok then return end
+	if continued then
+		if continued == UNBUFFERED then self.hub:continue() end
+		return
+	end
 
 	self.value = value
 	self.co = coroutine.running()
-	local err, sender, ok = self.hub:pause()
+	local err, sender, continued = self.hub:pause()
 
 	if err == errors.CLOSED then
 		self.closed = true
 		return err
 	end
 
-	if ok then return end
+	if continued then return end
 
 	return self:send(value)
 end
@@ -93,7 +100,9 @@ end
 function Sender_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
-	self.recver:_give(errors.CLOSED, self)
+
+	local err, continued = self.recver:_give(errors.CLOSED, self)
+	if continued == UNBUFFERED then self.hub:continue() end
 end
 
 
@@ -134,8 +143,8 @@ function Recver_mt:_give(err, sender, value)
 
 	local co = self.co
 	self.co = nil
-	self.hub:switch_to(co, err, sender, value)
-	return nil, true
+	self.hub:resume(co, err, sender, value)
+	return nil, UNBUFFERED
 end
 
 
@@ -183,7 +192,8 @@ Value_mt.__index = Value_mt
 function Value_mt:send(value)
 	if self.closed then return errors.CLOSED end
 	self.value = value
-	self.recver:_give(nil, self, value)
+	local err, continued = self.recver:_give(nil, self, value)
+	if continued == UNBUFFERED then self.hub:continue() end
 end
 
 
@@ -196,7 +206,8 @@ end
 function Value_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
-	self.recver:_give(errors.CLOSED, self)
+	local err, continued = self.recver:_give(errors.CLOSED, self)
+	if continued == UNBUFFERED then self.hub:continue() end
 end
 
 
@@ -214,8 +225,8 @@ Flag_mt.__index = Flag_mt
 
 function Flag_mt:send(value)
 	if self.closed then return errors.CLOSED end
-	local err, ok = self.recver:_give(nil, self, value)
-	if not ok then self.value = value end
+	local err, continued = self.recver:_give(nil, self, value)
+	if not continued then self.value = value end
 end
 
 
@@ -252,27 +263,24 @@ function Gate_mt:send(value)
 
 	if self.closed then return errors.CLOSED end
 
-	self.miss = nil
-	local err, ok = self.recver:_give(nil, self, value)
-	-- we handed off to a recver, and they recv'd again before our _give returned
-	if ok and self.miss then return end
+	local err, continued = self.recver:_give(nil, self, value)
 
 	if err == errors.CLOSED then
 		self.closed = true
 		return err
 	end
 
-	if not ok then self.value = value end
+	if not continued then self.value = value end
 
 	self.co = coroutine.running()
-	local err, sender, ok = self.hub:pause()
+	local err, sender, continued = self.hub:pause()
 
 	if err == errors.CLOSED then
 		self.closed = true
 		return err
 	end
 
-	if ok then return end
+	if continued then return end
 
 	return self:send(value)
 end
@@ -282,10 +290,7 @@ function Gate_mt:_take(err)
 	if self.closed then return errors.CLOSED end
 
 	-- there's no sender at all, block
-	if not self.co then
-		self.miss = true  -- mark miss incase sender is mid-give
-		return
-	end
+	if not self.co then return end
 
 	-- there's a sender with a value waiting. take the value, but leave the
 	-- sender blocked.
@@ -304,7 +309,8 @@ end
 function Gate_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
-	self.recver:_give(errors.CLOSED, self)
+	local err, continued = self.recver:_give(errors.CLOSED, self)
+	if continued == UNBUFFERED then self.hub:continue() end
 end
 
 
@@ -335,13 +341,13 @@ function Queue_mt:_give(err, sender, value)
 		if self.size and #self.fifo >= self.size then return end
 		self.fifo:push({err, sender, value})
 		self.empty:send()
-		return nil, true
+		return nil, BUFFERED
 	end
 
 	local co = self.co
 	self.co = nil
 	self.hub:resume(co, err, sender, value)
-	return nil, true
+	return nil, BUFFERED
 end
 
 
@@ -411,7 +417,7 @@ function Stalk_mt:_give(err, sender, value)
 		self.hub:resume(co, nil, sender, true)
 	end
 
-	return nil, true
+	return nil, BUFFERED
 end
 
 
@@ -493,8 +499,8 @@ function Selector_mt:_give(err, sender, value)
 
 	local co = self.co
 	self.co = nil
-	self.hub:switch_to(co, err, sender, value)
-	return nil, true
+	self.hub:resume(co, err, sender, value)
+	return nil, UNBUFFERED
 end
 
 
