@@ -13,8 +13,8 @@
   all operations will use that for a default timeout.
 
 * pipe(timeout):
-  creates a file descriptor pair. returns `err`, `r`, `w` where `r` is an
-  `io.R` and `w` is an `io.W`.
+  creates a file descriptor pair. returns `r`, `w` where `r` is an `io.R` and
+  `w` is an `io.W`.
 
 * open(name, ...):
   convenience to open the file `name` with the flags specified in `...`. e.g.

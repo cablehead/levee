@@ -117,7 +117,7 @@ return {
 			"Hello World!\n"
 
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local stream = r:stream()
 		w:write(request)
 

@@ -20,7 +20,7 @@ return {
 
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local s = r:stream()
 
 		local want = "foo"

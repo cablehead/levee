@@ -6,8 +6,7 @@ local _ = require("levee")._
 
 return {
 	test_pipe_read_write = function()
-		local err, r, w = _.pipe()
-		assert(not err)
+		local r, w = _.pipe()
 
 		assert.same({nil, 3}, {_.write(w, "foo")})
 		assert.equal("foo", _.reads(r))

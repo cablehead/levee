@@ -8,8 +8,7 @@ return {
 	test_close_writer = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		local err, n = w:write("foo")
 		assert(not err)
@@ -31,8 +30,7 @@ return {
 	test_close_reader = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		r:close()
 		-- continue is required to flush the close
@@ -45,8 +43,7 @@ return {
 	test_eagain = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		-- read eagain
 		local buf = levee.d.buffer(100000)
@@ -73,7 +70,7 @@ return {
 
 	test_timeout = function()
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe(20)
+		local r, w = h.io:pipe(20)
 
 		local buf = levee.d.buffer(4096)
 		local got = r:read(buf:tail())
@@ -83,8 +80,7 @@ return {
 	test_last_read = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		w:write("foo")
 		w:close()
@@ -103,7 +99,7 @@ return {
 
 	test_readn = function()
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local buf = levee.d.buffer(4096)
 
 		-- nil len
@@ -141,7 +137,7 @@ return {
 
 	test_readinto = function()
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local buf = levee.d.buffer(4096)
 
 		-- nil n
@@ -166,7 +162,7 @@ return {
 	test_reads = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		w:write("foo")
 		assert.equal(r:reads(), "foo")
 		w:close()
@@ -177,8 +173,7 @@ return {
 	test_writev = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 		local iov = h.io.iovec(32)
 
 		-- to prevent gc
@@ -215,7 +210,7 @@ return {
 	test_iov = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local err, iov = w:iov()
 
 		local want = {}
@@ -255,7 +250,7 @@ return {
 	test_send = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		w:send("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 		assert.equal(r:reads(10), "1234567890")
 
@@ -289,7 +284,7 @@ return {
 	test_stream_core = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local s = r:stream()
 
 		w:write("foo")
@@ -320,7 +315,7 @@ return {
 	test_stream_read = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		local buf = levee.d.buffer(4096)
@@ -352,7 +347,7 @@ return {
 	test_stream_readn = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		local buf = levee.d.buffer(4096)
@@ -377,7 +372,7 @@ return {
 	test_stream_readinto = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		local buf = levee.d.buffer(4096)
@@ -396,7 +391,7 @@ return {
 	test_chunk_core = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local s = r:stream()
 
 		local c = s:chunk(10)
@@ -414,7 +409,7 @@ return {
 	test_chunk_tobuffer = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		w:write(("."):rep(10))
@@ -432,8 +427,8 @@ return {
 	test_chunk_splice = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		local err, r2, w2 = h.io:pipe()
+		local r, w = h.io:pipe()
+		local r2, w2 = h.io:pipe()
 
 		local s = r:stream()
 		w:write(("."):rep(10))
@@ -450,8 +445,8 @@ return {
 	test_chunk_splice_big = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		local err, r2, w2 = h.io:pipe()
+		local r, w = h.io:pipe()
+		local r2, w2 = h.io:pipe()
 
 		local pre = ("."):rep(10)
 		local val = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"):rep(512)
@@ -476,7 +471,7 @@ return {
 	test_chunk_discard = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		w:write(("."):rep(10))
@@ -491,7 +486,7 @@ return {
 
 	test_chunk_json = function()
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local json = '{"foo": "bar"}'
 		w:write(json)

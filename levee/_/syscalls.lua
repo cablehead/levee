@@ -141,9 +141,9 @@ end
 _.pipe = function()
 	local fds = ffi.new("int[2]")
 	if C.pipe(fds) == 0 then
-		return nil, fds[0], fds[1]
+		return fds[0], fds[1]
 	end
-	return errors.get(ffi.errno())
+	errors.get(ffi.errno()):abort()
 end
 
 

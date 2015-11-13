@@ -100,7 +100,7 @@ return {
 	test_register = function()
 		local h = levee.Hub()
 
-		local err, r, w = _.pipe()
+		local r, w = _.pipe()
 
 		local r_ev = h:register(r, true)
 		local pass, w_ev = h:register(w, false, true)

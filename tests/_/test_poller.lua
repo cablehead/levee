@@ -3,7 +3,7 @@ local _ = require("levee")._
 
 return {
 	test_core = function()
-		local err, r, w = _.pipe()
+		local r, w = _.pipe()
 		local poller = _.poller()
 
 		poller:register(r, true)

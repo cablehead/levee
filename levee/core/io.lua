@@ -512,16 +512,7 @@ if type(_.splice) == "function" then
 		if err then return err end
 		self:trim(buflen) -- TODO: is this correct?
 
-		local err, r, w = self.hub.io:pipe()
-		if err then
-			-- pipe failed so fallback to copy
-			local err, slen = self:splice_copy(conn)
-			if not err then
-				-- add the amount transferred from the buffer
-				slen = slen + bn
-			end
-			return err, slen
-		end
+		local r, w = self.hub.io:pipe()
 
 		local fd = self.stream.conn.no
 		local remain = len - bn
@@ -620,11 +611,10 @@ end
 
 
 function IO_mt:pipe(timeout)
-	local err, r, w = _.pipe()
-	if err then return err end
+	local r, w = _.pipe()
 	_.fcntl_nonblock(r)
 	_.fcntl_nonblock(w)
-	return nil, self:r(r, timeout), self:w(w, timeout)
+	return self:r(r, timeout), self:w(w, timeout)
 end
 
 
