@@ -188,6 +188,16 @@ if ffi.os:lower() == "linux" then
 		if n >= 0 then return nil, tonumber(n) end
 		return errors.get(ffi.errno())
 	end
+
+	_.tee = function(from, to, len, more)
+		local flags = bit.bor(C.SPLICE_F_MOVE, C.SPLICE_F_NONBLOCK)
+		if more then
+			flags = bit.bor(flags, C.SPLICE_F_MORE)
+		end
+		local n = C.tee(from, to, len, flags)
+		if n >= 0 then return nil, tonumber(n) end
+		return errors.get(ffi.errno())
+	end
 end
 
 

@@ -3,6 +3,7 @@ typedef long long loff_t;
 int fcntl(int fd, int cmd, ... /* arg */);
 ssize_t splice(int fd_in, loff_t *off_in, int fd_out,
                       loff_t *off_out, size_t len, unsigned int flags);
+ssize_t tee(int fd_in, int fd_out, size_t len, unsigned int flags);
 
 static const int F_DUPFD = 0; /* Duplicate file descriptor.  */
 static const int F_GETFD = 1; /* Get file descriptor flags.  */

@@ -384,14 +384,19 @@ return {
 		local s = r:stream()
 		w:write(pre)
 		s:readin()
-		h:spawn(function() w:write(val) end)
+		h:spawn(function()
+			w:write(val)
+			w:write(val)
+			w:write(val)
+			w:write(val)
+		end)
 
-		local c = s:chunk(64*512)
-		assert.same({c:splice(w2)}, {nil, 64*512})
+		local c = s:chunk(64*512*4)
+		assert.same({c:splice(w2)}, {nil, 64*512*4})
 		c.done:recv()
 
 		local buf = levee.d.buffer()
-		r2:stream():readinto(buf, 64*512)
+		r2:stream():readinto(buf, 64*512*4)
 		assert.equal(C.sp_crc32c(0ULL, buf:value()), crc)
 		assert.equal(s:take(10), "23456789+/")
 	end,

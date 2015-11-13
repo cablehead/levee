@@ -89,7 +89,7 @@ if type(_.splice) == "function" then
 
 		timeout = timeout or self.timeout
 
-		local err, n = _.splice(self.no, to, len)
+		local err, n = _.splice(self.no, to.no, len)
 
 		if not err and n > 0 then return nil, n end
 		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
@@ -101,6 +101,23 @@ if type(_.splice) == "function" then
 		if err then return err end
 		if ev < 0 then self.r_error = true end
 		return self:_splice(to, len, timeout)
+	end
+
+	function R_mt:_tee(to, len)
+		if self.closed then return errors.CLOSED end
+
+		local err, n = _.tee(self.no, to.no, len)
+
+		if not err and n > 0 then return nil, n end
+		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
+			self:close()
+			return err or errors.CLOSED
+		end
+
+		local err, sender, ev = self.r_ev:recv(self.timeout)
+		if err then return err end
+		if ev < 0 then self.r_error = true end
+		return self:_tee(to, len)
 	end
 end
 
@@ -468,6 +485,36 @@ function Chunk_mt:splice_copy(conn)
 end
 
 
+local function chunk_tee(sender, ...)
+end
+
+
+function Chunk_mt:tee_copy(...)
+	local n = self.len
+	local conns = {...}
+	local cb
+	if type(conns[#conns]) == "function" then
+		cb = table.remove(conns)
+	end
+	while self.len > 0 do
+		local err = self:readin(1)
+		if err then return err end
+		local val, len = self:value()
+		for i,conn in ipairs(conns) do
+			local err, n = conn:write(val, len)
+			if err then return err end
+		end
+		if cb then
+			local sub = Chunk(self.stream, len)
+			cb(sub)
+			sub.done:recv()
+		end
+		self:trim()
+	end
+	return nil, n
+end
+
+
 if type(_.splice) == "function" then
 	local splice_min = 4 * _.pagesize
 
@@ -481,27 +528,19 @@ if type(_.splice) == "function" then
 		-- transfer any pending bytes from the buffer
 		local err, bn = conn:write(buf, buflen)
 		if err then return err end
-		self:trim(buflen) -- TODO: is this correct?
+		self:trim(buflen)
 
 		local err, r, w = self.hub.io:pipe()
-		if err then
-			-- pipe failed so fallback to copy
-			local err, slen = self:splice_copy(conn)
-			if not err then
-				-- add the amount transferred from the buffer
-				slen = slen + bn
-			end
-			return err, slen
-		end
+		if err then return err end
 
 		local fd = self.stream.conn.no
 		local remain = len - bn
 
 		while remain > 0 do
-			local err, rn = self.stream.conn:_splice(w.no, remain)
+			local err, rn = self.stream.conn:_splice(w, remain)
 			if err then return err end
 			while rn > 0 do
-				local err, wn = r:_splice(conn.no, remain)
+				local err, wn = r:_splice(conn, remain)
 				if err then return err end
 				rn = rn - wn
 				remain = remain - wn
@@ -512,8 +551,117 @@ if type(_.splice) == "function" then
 		self.done:close()
 		return nil, len
 	end
+
+
+	local function tee_writer(h, r, w, len)
+		local sender, recver = h:pipe()
+		h:spawn(function()
+			while len > 0 do
+				local err, n = r:_tee(w, len)
+				if err then break end
+				len = len - n
+				sender:send(n)
+			end
+			sender:close()
+		end)
+		return recver
+	end
+
+
+	function Chunk_mt:tee(...)
+		local len = self.len
+		local buf, buflen = self:value()
+		if len-buflen < splice_min then
+			return self:tee_copy(...)
+		end
+
+		local err, r, w = self.hub.io:pipe()
+		if err then return err end
+
+		-- transfer pending bytes from the buffer to the pipe
+		local err = w:write(buf, buflen)
+		if err then return err end
+		self:trim(buflen)
+
+		self.hub:spawn(function()
+			local remain = len
+			while remain > 0 do
+				local err, n = self.stream.conn:_splice(w, remain)
+				if err then break end
+				remain = remain - n
+			end
+			w:close()
+		end)
+
+		local fd = self.stream.conn.no
+		local conns = {...}
+		local last = table.remove(conns)
+		local teers = {}
+		local sel = self.hub:selector()
+		local sender, recver
+		if type(last) == "function" then
+			sender, recver = self.hub:pipe()
+			self.hub:spawn(function() last(recver) end)
+		end
+
+		for i, conn in ipairs(conns) do
+			local teer = tee_writer(self.hub, r, conn, len)
+			teers[teer.sender] = 0
+			teer:redirect(sel)
+		end
+
+		local done = 0
+		while done < len do
+			print("selctor:recv()")
+			local err, teer, n = sel:recv()
+			print("more", err)
+			if err then
+				if teers[teer] < len then
+					w:close()
+					return err
+				else
+					teers[teer] = nil
+				end
+			end
+
+			teers[teer] = teers[teer] + n
+			local min = teers[teer]
+			for k,v in pairs(teers) do
+				print("min", v)
+				min = math.min(min, v)
+			end
+			if min > done then
+				local diff = min - done
+				local sub = Chunk(r:stream(), diff)
+				sub.tee = function() error("nope") end -- TODO
+				sub.splice = function(conn)
+					assert(sub == self)
+					local err, n = r:_splice(conn, diff)
+					self.len = 0
+					self.done:close()
+					return err, n
+				end
+
+				if sender then
+					sender:send(sub)
+					sub.done:recv()
+				else
+					sub:splice(last)
+				end
+
+				done = min
+			end
+			print("done", done)
+		end
+
+		self.len = 0
+		self.done:close()
+		if sender then sender:close() end
+		return nil, len
+	end
 else
 	Chunk_mt.splice = Chunk_mt.splice_copy
+	Chunk_mt.tee = Chunk_mt.tee_copy
 end
 
 
