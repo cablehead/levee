@@ -440,7 +440,7 @@ end
 function Stream(conn)
 	local self = setmetatable({}, Stream_mt)
 	self.conn = conn
-	self.buf = d.buffer(4096)
+	self.buf = d.Buffer(4096)
 	return self
 end
 
@@ -554,7 +554,7 @@ end
 
 
 function Chunk_mt:tobuffer(buf)
-	buf = buf or d.buffer()
+	buf = buf or d.Buffer()
 	local err = self.stream:readinto(buf, self.len + #buf)
 	if err then return err end
 	self.len = 0

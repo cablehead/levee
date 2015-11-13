@@ -173,7 +173,7 @@ closed once the size of the chunk has been exhausted.
   there is an error.
 
 * tobuffer(buf):
-  convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
+  convenience to read the entire chunk into a `levee.d.Buffer`. if `buf` nil a
   new buffer will be created. returns `nil`, `buf` on success, `err` otherwise.
 
 * discard():

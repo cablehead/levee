@@ -270,8 +270,8 @@ end
 local function Hub()
 	local self = setmetatable({}, Hub_mt)
 
-	self.ready = d.fifo()
-	self.scheduled = d.heap()
+	self.ready = d.Fifo()
+	self.scheduled = d.Heap()
 
 	self.registered = {}
 	self.poller = _.poller()

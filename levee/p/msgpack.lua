@@ -67,7 +67,7 @@ end
 
 local function encode(data, buf)
 	if not buf then
-		buf = d.buffer(4096)
+		buf = d.Buffer(4096)
 	else
 		-- TODO: this will continue to grow the buffer as needed. it'd be nice to
 		-- instead yield out 4k bufs so they can be put on the wire immediately

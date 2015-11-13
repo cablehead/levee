@@ -6,7 +6,7 @@ local d = require("levee").d
 
 return {
 	test_core = function()
-		local buf = d.buffer(4096)
+		local buf = d.Buffer(4096)
 		assert.equal(#buf, 0)
 		assert.equal(buf:peek(), "")
 
@@ -35,16 +35,16 @@ return {
 	end,
 
 	test_copy = function()
-		local buf = d.buffer(4096)
+		local buf = d.Buffer(4096)
 		local s = "012345678901234567890123456789"
 		buf:push(s)
-		local tgt = d.buffer(4096)
+		local tgt = d.Buffer(4096)
 		tgt:bump(buf:copy(tgt:tail()))
 		assert.equal(tgt:peek(), s)
 	end,
 
 	test_save = function()
-		local buf = d.buffer(8192)
+		local buf = d.Buffer(8192)
 		buf:push("012345678901234567890123456789")
 
 		buf:trim(10)

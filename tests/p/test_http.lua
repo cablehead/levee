@@ -160,7 +160,7 @@ return {
 
 		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local err = c:readinto(buf)
 		assert(#buf > 0)
 

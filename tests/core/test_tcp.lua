@@ -4,7 +4,7 @@ return {
 
 		local h = levee.Hub()
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		local err, serve = h.tcp:listen(nil, nil, 20)
 		local err, addr = serve:addr()

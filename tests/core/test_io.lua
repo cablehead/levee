@@ -14,7 +14,7 @@ return {
 		assert(not err)
 		assert.equal(n, 3)
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local err, n = r:read(buf:tail())
 		assert(not err)
 		assert.equal(n, 3)
@@ -46,7 +46,7 @@ return {
 		local r, w = h.io:pipe()
 
 		-- read eagain
-		local buf = levee.d.buffer(100000)
+		local buf = levee.d.Buffer(100000)
 		h:spawn(function() err, n = r:read(buf:tail()); buf:bump(n) end)
 		local err, n = w:write("foo")
 		assert(not err)
@@ -72,7 +72,7 @@ return {
 		local h = levee.Hub()
 		local r, w = h.io:pipe(20)
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local got = r:read(buf:tail())
 		assert.equal(got, levee.errors.TIMEOUT)
 	end,
@@ -85,7 +85,7 @@ return {
 		w:write("foo")
 		w:close()
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local err, n = r:read(buf:tail())
 		assert(not err)
 		assert.equal(n, 3)
@@ -100,7 +100,7 @@ return {
 	test_readn = function()
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		-- nil len
 		local check
@@ -138,7 +138,7 @@ return {
 	test_readinto = function()
 		local h = levee.Hub()
 		local r, w = h.io:pipe()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		-- nil n
 		w:write("foo")
@@ -237,7 +237,7 @@ return {
 			want = table.concat(want)
 		end)
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		while true do
 			local err = r:readinto(buf)
 			if err then break end
@@ -318,7 +318,7 @@ return {
 		local r, w = h.io:pipe()
 
 		local s = r:stream()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		-- read buffered
 		w:write(("."):rep(10))
@@ -350,7 +350,7 @@ return {
 		local r, w = h.io:pipe()
 
 		local s = r:stream()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		w:write(("."):rep(10))
 		s:readin()
@@ -375,7 +375,7 @@ return {
 		local r, w = h.io:pipe()
 
 		local s = r:stream()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		w:write(("."):rep(10))
 		s:readin()
@@ -462,7 +462,7 @@ return {
 		assert.same({c:splice(w2)}, {nil, 64*512})
 		c.done:recv()
 
-		local buf = levee.d.buffer()
+		local buf = levee.d.Buffer()
 		r2:stream():readinto(buf, 64*512)
 		assert.equal(C.sp_crc32c(0ULL, buf:value()), crc)
 		assert.equal(s:take(10), "23456789+/")

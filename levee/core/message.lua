@@ -343,7 +343,7 @@ local function Queue(hub, size)
 	return setmetatable({
 		hub = hub,
 		size = size,
-		fifo = d.fifo(),
+		fifo = d.Fifo(),
 		empty = Pair(hub:value(true)), }, Queue_mt)
 end
 
@@ -429,7 +429,7 @@ local function Stalk(hub, size)
 	return setmetatable({
 		hub = hub,
 		size = size,
-		fifo = d.fifo(),
+		fifo = d.Fifo(),
 		empty = Pair(hub:value(true)), }, Stalk_mt)
 end
 
@@ -486,7 +486,7 @@ end
 
 
 local function Selector(hub)
-	local self = setmetatable({hub=hub, fifo=d.fifo(), }, Selector_mt)
+	local self = setmetatable({hub=hub, fifo=d.Fifo(), }, Selector_mt)
 	return self
 end
 
