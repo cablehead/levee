@@ -13,8 +13,8 @@
   all operations will use that for a default timeout.
 
 * pipe(timeout):
-  creates a file descriptor pair. returns `err`, `r`, `w` where `r` is an
-  `io.R` and `w` is an `io.W`.
+  creates a file descriptor pair. returns `r`, `w` where `r` is an `io.R` and
+  `w` is an `io.W`.
 
 * open(name, ...):
   convenience to open the file `name` with the flags specified in `...`. e.g.
@@ -26,23 +26,26 @@
 
 ### io.R
 
-* read(buf, size):
-  reads *up* to `size` bytes into `buf`. it will block the current green thread
+* read(buf, len):
+  reads *up* to `len` bytes into `buf`. it will block the current green thread
   until some bytes are available unless `timeout` is reached. returns `err`,
   `n` where `n` is the number of bytes read.
 
-* reads(size):
-  convenience to read and return a lua string *up* to `size` bytes. `size`
-  defaults to 4096. returns `nil` or a string.
-
-* readn(buf, n):
-  reads exactly `n` bytes into `buf`. returns `err`, `n`.
+* readn(buf, n, [len]):
+  blocks until `n` bytes are read into `buf`. if an optional `len` is provided
+  then potentially more bytes will be read up to `len`. returns `err`, `n`
+  where `n` is the actual number of bytes read.
 
 * readinto(buf, [n]):
   convenience to read into a `levee.d.Buffer`. ensures there's sufficient space
   to write into the buffer. if `n` is `nil`, a single read will be attempted,
-  otherwise exactly `n` bytes will be read. returns `err`, `n` where `n` is the
-  actual number of bytes that were read.
+  otherwise exactly the call will block until *at least* `n` bytes are
+  buffered.
+
+* reads(len):
+  convenience to read and return a lua string *up* to `len` bytes. `len`
+  defaults to 4096. returns `nil` or a string. This is usually on used in
+  testing.
 
 * settimeout(timeout):
   sets the timeout for operations on this object to `timeout` and returns
@@ -93,14 +96,13 @@ A Stream is combination of an IO file descriptor and a buffer.
   read from the stream's conn to its buf. if `n` is `nil` the call will block
   until the current green thread until the next successful read. otherwise this
   call will block until `n` bytes are available in the `buf` if there are
-  already `n` bytes available, it returns immediately. returns `err`, `n`.
+  already `n` bytes available, it returns immediately. returns `err`
 
 * read(buf, len):
-  reads *up* to `size` bytes into `buf`.  if some bytes are currently they'll
-  be moved to `buf` and the call will return immediately.  buffered they will
-  be copied to `buf`.  otherwise a read will made directly from the stream's
-  conn to `buf` returns `err`, `n`, where `n` is the number of bytes actually
-  transferred.
+  reads *up* to `size` bytes into `buf`. if some bytes are currently they'll be
+  moved to `buf` and the call will return immediately. otherwise a read will
+  made directly from the stream's conn to `buf` returns `err`, `n`, where `n`
+  is the number of bytes actually transferred.
 
 * readn(buf, n):
   transfers exactly `n` bytes into `buf` from a combination of currently
@@ -111,8 +113,7 @@ A Stream is combination of an IO file descriptor and a buffer.
   to write into the buffer. if `n` is `nil`, a single `:read` will be made,
   which will either move bytes from our current buffer, or make a blocking read
   on the stream's underlying connection. otherwise, the call will block until
-  `n` bytes are transferred to `buf`.  returns `err`, `n` where `n` is the
-  actual number of bytes that were transferred.
+  *exactly* `n` bytes are transferred to `buf`. returns `err`.
 
 * value():
   returns `buf`, `len` of the stream's underlying buffer.
@@ -172,7 +173,7 @@ closed once the size of the chunk has been exhausted.
   there is an error.
 
 * tobuffer(buf):
-  convenience to read the entire chunk into a `levee.d.buffer`. if `buf` nil a
+  convenience to read the entire chunk into a `levee.d.Buffer`. if `buf` nil a
   new buffer will be created. returns `nil`, `buf` on success, `err` otherwise.
 
 * discard():

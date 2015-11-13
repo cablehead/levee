@@ -84,13 +84,11 @@ function M_mt:spawn(name, options)
 	local out_r, out_w
 
 	if not io.STDIN then
-		err, in_r, in_w = _.pipe()
-		assert(not err)
+		in_r, in_w = _.pipe()
 	end
 
 	if not io.STDOUT then
-		err, out_r, out_w = _.pipe()
-		assert(not err)
+		out_r, out_w = _.pipe()
 	end
 
 	local pid = C.fork()

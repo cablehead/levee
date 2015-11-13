@@ -129,6 +129,7 @@ end
 function Assert_mt.same(want, got)
 	if type(want) == "table" and type(got) == "table" then
 		if not deepcompare(want, got, true) then
+			print("herp")
 			error(("values differ:\n\n%s\n\n%s\n"):format(repr(want), repr(got)))
 		end
 		return true
@@ -151,14 +152,18 @@ end
 
 assert = setmetatable({}, Assert_mt)
 
-local function repr(x, indent)
+local function repr(x, indent, seen)
+	seen = seen or {}
+
 	indent = indent or ""
 	local s
 	if type(x) == "table" then
+		if seen[x] then return tostring(x) end
+		seen[x] = 1
 		s = "{\n"
 		local i, v = next(x)
 		while i do
-			s = s .. indent .. "    " .. repr(i) .. " = " .. repr(v, indent.."    ")
+			s = s .. indent .. "    " .. repr(i, nil, seen) .. " = " .. repr(v, indent.."    ", seen)
 			i, v = next(x, i)
 			if i then s = s .. ",\n" end
 

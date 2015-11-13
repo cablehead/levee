@@ -5,7 +5,7 @@ local d = require("levee").d
 
 return {
 	test_peek = function()
-		local h = d.heap()
+		local h = d.Heap()
 		local val, prio
 
 		prio, val = h:peek()
@@ -24,7 +24,7 @@ return {
 	end,
 
 	test_push_pop = function()
-		local h = d.heap()
+		local h = d.Heap()
 		math.randomseed(0)
 		for i=1,10 do
 			local pri = math.random(1000)
@@ -39,7 +39,7 @@ return {
 	end,
 
 	test_update_remove = function()
-		local h = d.heap()
+		local h = d.Heap()
 
 		local item1 = h:push(80, "1")
 		local item2 = h:push(70, "2")
@@ -63,7 +63,7 @@ return {
 			freed = true
 			ffi.C.free(val)
 		end)
-		local h = d.heap()
+		local h = d.Heap()
 		h:push(1, val)
 		h:push(2, val)
 		val = nil
@@ -81,7 +81,7 @@ return {
 			freed = true
 			ffi.C.free(val)
 		end)
-		local h = d.heap()
+		local h = d.Heap()
 		h:push(1, val)
 		h:push(2, val)
 		val = nil
@@ -93,7 +93,7 @@ return {
 	end,
 
 	test_dense = function()
-		local h = d.heap()
+		local h = d.Heap()
 
 		h:push(80, "1")
 		h:push(70, "2")

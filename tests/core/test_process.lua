@@ -19,8 +19,8 @@ return {
 	test_to_fd = function()
 		local h = levee.Hub()
 
-		local err, r1, w1 = _.pipe()
-		local err, r2, w2 = _.pipe()
+		local r1, w1 = _.pipe()
+		local r2, w2 = _.pipe()
 
 		local child = h.process:spawn("cat", {io={STDIN=r1, STDOUT=w2}})
 

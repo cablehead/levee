@@ -23,17 +23,17 @@ imgix:~ andy$ levee run -e "
 local h = require('levee').Hub()
 
 h:spawn(function()
-	while true do
-			print('tick')
-			h:sleep(1000)
-	end
+  while true do
+    print('tick')
+    h:sleep(1000)
+  end
 end)
 
 h:sleep(500)
 
 while true do
-	print('tock')
-	h:sleep(1000)
+  print('tock')
+  h:sleep(1000)
 end
 "
 tick
@@ -51,15 +51,22 @@ service. Put the following code in a file called `dtsrv.lua`
 
 ```lua
 local levee = require('levee')
+local _ = levee._
+
+
 local h = levee.Hub()
 
-local serve = h.tcp:listen(4000)
+local err, serve = h.tcp:listen(4000)
 
 for conn in serve do
-    h:spawn(function()
-        conn:write(tostring(levee.time.localdate()).."\n")
-        conn:close()
-    end)
+  h:spawn(function()
+    while true do
+      local err = conn:write(tostring(_.time.localdate()).."\n")
+      if err then break end
+      h:sleep(1000)
+    end
+    conn:close()
+  end)
 end
 ```
 
@@ -74,6 +81,9 @@ Then in another window:
 ```bash
 imgix:~ andy$ nc localhost 4000
 Thu, 27 Aug 2015 18:14:37 GMT
+Thu, 27 Aug 2015 18:14:38 GMT
+Thu, 27 Aug 2015 18:14:39 GMT
+...
 ```
 
 ## Levee projects
@@ -113,6 +123,9 @@ Again, in another window:
 ```bash
 imgix:~ andy$ nc localhost 4000
 Thu, 27 Aug 2015 18:53:57 GMT
+Thu, 27 Aug 2015 18:53:58 GMT
+Thu, 27 Aug 2015 18:53:59 GMT
+...
 ```
 
 ## The `test` command
@@ -134,9 +147,9 @@ Edit `dtsrv/foo.lua`:
 
 ```lua
 return {
-    add = function(a, b)
-        return a + b
-    end,
+  add = function(a, b)
+    return a + b
+  end,
 }
 ```
 
@@ -144,10 +157,10 @@ And add this to `test/test_foo.lua`:
 
 ```lua
 return {
-    test_add = function()
-        local foo = require("dtsrv.foo")
-        assert.equal(foo.add(2, 3), 5)
-    end,
+  test_add = function()
+    local foo = require("dtsrv.foo")
+    assert.equal(foo.add(2, 3), 5)
+  end,
 }
 ```
 
@@ -204,4 +217,7 @@ And in that other window:
 ```bash
 imgix:~ andy$ nc localhost 4000
 Thu, 27 Aug 2015 18:53:57 GMT
+Thu, 27 Aug 2015 18:53:58 GMT
+Thu, 27 Aug 2015 18:53:59 GMT
+...
 ```

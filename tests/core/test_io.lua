@@ -8,14 +8,13 @@ return {
 	test_close_writer = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		local err, n = w:write("foo")
 		assert(not err)
 		assert.equal(n, 3)
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local err, n = r:read(buf:tail())
 		assert(not err)
 		assert.equal(n, 3)
@@ -31,8 +30,7 @@ return {
 	test_close_reader = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		r:close()
 		-- continue is required to flush the close
@@ -45,11 +43,10 @@ return {
 	test_eagain = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		-- read eagain
-		local buf = levee.d.buffer(100000)
+		local buf = levee.d.Buffer(100000)
 		h:spawn(function() err, n = r:read(buf:tail()); buf:bump(n) end)
 		local err, n = w:write("foo")
 		assert(not err)
@@ -73,9 +70,9 @@ return {
 
 	test_timeout = function()
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe(20)
+		local r, w = h.io:pipe(20)
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local got = r:read(buf:tail())
 		assert.equal(got, levee.errors.TIMEOUT)
 	end,
@@ -83,13 +80,12 @@ return {
 	test_last_read = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 
 		w:write("foo")
 		w:close()
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		local err, n = r:read(buf:tail())
 		assert(not err)
 		assert.equal(n, 3)
@@ -101,18 +97,61 @@ return {
 		assert.same(h.registered, {})
 	end,
 
+	test_readn = function()
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local buf = levee.d.Buffer(4096)
+
+		-- nil len
+		local check
+		h:spawn(function()
+			local err, n = r:readn(buf:tail(), 6)
+			assert(not err)
+			buf:bump(n)
+			check = buf:take()
+		end)
+
+		assert(not check)
+		w:write("foo")
+		assert(not check)
+		w:write("bar123")
+		assert.equal(check, "foobar")
+		assert.equal(r:reads(), "123")
+
+		-- non nil len
+		local check
+		h:spawn(function()
+			local err, n = r:readn(buf:tail(), 6, 8)
+			assert(not err)
+			buf:bump(n)
+			check = buf:take()
+		end)
+
+		assert(not check)
+		w:write("foo")
+		assert(not check)
+		w:write("bar123")
+		assert.equal(check, "foobar12")
+		assert.equal(r:reads(), "3")
+	end,
+
 	test_readinto = function()
 		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local buf = levee.d.Buffer(4096)
 
-		local err, r, w = h.io:pipe()
-
-		local buf = levee.d.buffer(4096)
-
+		-- nil n
 		w:write("foo")
-		local err, n = r:readinto(buf)
+		local err = r:readinto(buf)
 		assert(not err)
-		assert.equal(n, 3)
 		assert.equal(buf:take(), "foo")
+
+		-- non nil n
+		w:write("foo")
+		h:spawn(function() r:readinto(buf, 6) end)
+		assert.equal(#buf, 0)
+		w:write("bar123")
+		assert.equal(#buf, 9)
 
 		w:close()
 		local err = r:readinto(buf)
@@ -123,7 +162,7 @@ return {
 	test_reads = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		w:write("foo")
 		assert.equal(r:reads(), "foo")
 		w:close()
@@ -134,8 +173,7 @@ return {
 	test_writev = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		assert(not err)
+		local r, w = h.io:pipe()
 		local iov = h.io.iovec(32)
 
 		-- to prevent gc
@@ -172,7 +210,7 @@ return {
 	test_iov = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local err, iov = w:iov()
 
 		local want = {}
@@ -199,9 +237,9 @@ return {
 			want = table.concat(want)
 		end)
 
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 		while true do
-			local err, n = r:readinto(buf)
+			local err = r:readinto(buf)
 			if err then break end
 		end
 
@@ -212,7 +250,7 @@ return {
 	test_send = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		w:send("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 		assert.equal(r:reads(10), "1234567890")
 
@@ -246,23 +284,20 @@ return {
 	test_stream_core = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local s = r:stream()
 
 		w:write("foo")
-		assert.same({s:readin()}, {nil, 3})
+		s:readin()
+		assert.equal(#s.buf, 3)
 
 		w:write("foo")
-		local buf, n = s:value()
-		assert.equal(n, 3)
-
-		assert.same({s:readin()}, {nil, 3})
-		local buf, n = s:value()
-		assert.equal(n, 6)
+		s:readin()
+		assert.equal(#s.buf, 6)
 
 		h:spawn(function() s:readin(9) end)
 		w:write("fo")
-		assert.equal(#s.buf, 8)
+		assert.equal(#s.buf, 6)
 		w:write("o")
 		assert.equal(#s.buf, 9)
 
@@ -271,7 +306,7 @@ return {
 
 		assert.equal(s:trim(), 9)
 		w:close()
-		assert.same({s:readin(1)}, {nil, 1})
+		s:readin(1)
 		assert.equal(s:take(1), 'o')
 		assert.same({s:readin(1)}, {levee.errors.CLOSED})
 		assert.equal(s:take(1), nil)
@@ -280,36 +315,73 @@ return {
 	test_stream_read = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
+
+		-- read buffered
+		w:write(("."):rep(10))
+		s:readin()
+		w:write(("."):rep(5))
+		assert.same({s:read(buf:tail(), 20)}, {nil, 10})
+		buf:bump(10)
+		assert.equal(buf:take(), ("."):rep(10))
+
+		-- read more than available
+		assert.same({s:read(buf:tail(), 5)}, {nil, 5})
+		buf:bump(5)
+		assert.equal(buf:take(), ("."):rep(5))
+
+		-- read less than available
+		w:write(("."):rep(20))
+		assert.same({s:read(buf:tail(), 10)}, {nil, 10})
+		buf:bump(10)
+		assert.equal(buf:take(), ("."):rep(10))
+
+		-- check remainder is still available
+		s:readin()
+		assert.equal(s:take(), ("."):rep(10))
+	end,
+
+	test_stream_readn = function()
+		local h = levee.Hub()
+
+		local r, w = h.io:pipe()
+
+		local s = r:stream()
+		local buf = levee.d.Buffer(4096)
 
 		w:write(("."):rep(10))
 		s:readin()
-		w:write(("."):rep(20))
+		w:write(("."):rep(5))
 
-		assert.same({s:read(buf:tail(), 20)}, {nil, 20})
+		local check
+		h:spawn(function() check = {s:readn(buf:tail(), 20)} end)
+		assert.equal(check, nil)
+
+		w:write(("."):rep(10))
+		assert.same(check, {nil, 20})
 		buf:bump(20)
 		assert.equal(buf:take(), ("."):rep(20))
 
 		s:readin()
-		assert.equal(s:take(), ("."):rep(10))
+		assert.equal(s:take(), ("."):rep(5))
 	end,
 
 	test_stream_readinto = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
-		local buf = levee.d.buffer(4096)
+		local buf = levee.d.Buffer(4096)
 
 		w:write(("."):rep(10))
 		s:readin()
 		w:write(("."):rep(20))
 
-		assert.same({s:readinto(buf, 20)}, {nil, 20})
+		s:readinto(buf, 20)
 		assert.equal(buf:take(), ("."):rep(20))
 
 		s:readin()
@@ -319,7 +391,7 @@ return {
 	test_chunk_core = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local s = r:stream()
 
 		local c = s:chunk(10)
@@ -337,7 +409,7 @@ return {
 	test_chunk_tobuffer = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		w:write(("."):rep(10))
@@ -355,8 +427,8 @@ return {
 	test_chunk_splice = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		local err, r2, w2 = h.io:pipe()
+		local r, w = h.io:pipe()
+		local r2, w2 = h.io:pipe()
 
 		local s = r:stream()
 		w:write(("."):rep(10))
@@ -373,8 +445,8 @@ return {
 	test_chunk_splice_big = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
-		local err, r2, w2 = h.io:pipe()
+		local r, w = h.io:pipe()
+		local r2, w2 = h.io:pipe()
 
 		local pre = ("."):rep(10)
 		local val = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"):rep(512)
@@ -395,7 +467,7 @@ return {
 		assert.same({c:splice(w2)}, {nil, 64*512*4})
 		c.done:recv()
 
-		local buf = levee.d.buffer()
+		local buf = levee.d.Buffer()
 		r2:stream():readinto(buf, 64*512*4)
 		assert.equal(C.sp_crc32c(0ULL, buf:value()), crc)
 		assert.equal(s:take(10), "23456789+/")
@@ -404,7 +476,7 @@ return {
 	test_chunk_discard = function()
 		local h = levee.Hub()
 
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local s = r:stream()
 		w:write(("."):rep(10))
@@ -419,7 +491,7 @@ return {
 
 	test_chunk_json = function()
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 
 		local json = '{"foo": "bar"}'
 		w:write(json)
@@ -430,5 +502,58 @@ return {
 
 		assert.same(value, {foo = "bar"})
 		c.done:recv()
+	end,
+
+	test_shared_ev = function()
+		local h = levee.Hub()
+		local io = require("levee.core.io")(h)
+		local r, w = h.io:pipe()
+
+		local Teed_R_mt = {}
+		Teed_R_mt.__index = Teed_R_mt
+
+		function Teed_R_mt:clone()
+			local c = setmetatable({}, io.R_mt)
+			c.hub = self.r.hub
+			c.no = self.r.no
+			c.timeout = self.r.timeout
+			local sender, recver = h:flag()
+			self.evs[sender] = 1
+			c.ev = recver
+			return c
+		end
+
+		local function Teed_R(r)
+			local self = setmetatable({}, Teed_R_mt)
+			self.r = r
+			self.evs = {}
+
+			h:spawn(function()
+				while true do
+					local err, sender, value = self.r.r_ev:recv()
+					for ev, v in pairs(self.evs) do
+						ev:send(value)
+					end
+				end
+			end)
+
+			return self
+		end
+
+		print()
+		print()
+
+		local teed_r = Teed_R(r)
+		local p1 = teed_r:clone()
+		local p2 = teed_r:clone()
+
+		h:spawn_later(500, function() w:write("hi") end)
+		h:spawn_later(1000, function() w:write("hi") end)
+
+		print(p1.ev:recv())
+		print(p2.ev:recv())
+
+		print(p1.ev:recv())
+		print(p2.ev:recv())
 	end,
 }

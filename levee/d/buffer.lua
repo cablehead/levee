@@ -50,6 +50,11 @@ end
 
 
 function Buffer_mt:ensure(hint)
+	if not hint then
+		-- ensure we have *some* space to read into
+		hint = self.cap / 2 < 65536ULL and self.cap / 2 or 65536ULL
+	end
+
 	local cap = self.sav + self.len + hint
 
 	if cap <= self.cap then
@@ -142,8 +147,16 @@ end
 
 function Buffer_mt:copy(tgt, n)
 	local buf, len = self:value()
+	if len == 0 then return 0 end
 	if n > len then n = len end
 	C.memcpy(tgt, buf, n)
+	return n
+end
+
+
+function Buffer_mt:move(tgt, n)
+	local n = self:copy(tgt, n)
+	if n > 0 then self:trim(n) end
 	return n
 end
 

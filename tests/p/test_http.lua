@@ -117,7 +117,7 @@ return {
 			"Hello World!\n"
 
 		local h = levee.Hub()
-		local err, r, w = h.io:pipe()
+		local r, w = h.io:pipe()
 		local stream = r:stream()
 		w:write(request)
 
@@ -160,9 +160,9 @@ return {
 
 		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
-		local buf = levee.d.buffer(4096)
-		local err, n = c:readinto(buf)
-		assert(n > 0)
+		local buf = levee.d.Buffer(4096)
+		local err = c:readinto(buf)
+		assert(#buf > 0)
 
 		s:close()
 		serve:close()

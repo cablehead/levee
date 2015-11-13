@@ -83,13 +83,27 @@ function R_mt:read(buf, len)
 end
 
 
+function R_mt:readn(buf, n, len)
+	if self.closed then return errors.CLOSED end
+
+	len = len or n
+	local read = 0
+
+	while read < n do
+		local err, c = self:read(buf + read, len - read)
+		if err then return err end
+		read = read + c
+	end
+
+	return nil, read
+end
+
+
 if type(_.splice) == "function" then
-	function R_mt:_splice(to, len, timeout)
+	function R_mt:_splice(to, len)
 		if self.closed then return errors.CLOSED end
 
-		timeout = timeout or self.timeout
-
-		local err, n = _.splice(self.no, to.no, len)
+		local err, n = _.splice(self.no, to, len)
 
 		if not err and n > 0 then return nil, n end
 		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
@@ -97,10 +111,10 @@ if type(_.splice) == "function" then
 			return err or errors.CLOSED
 		end
 
-		local err, sender, ev = self.r_ev:recv(timeout)
+		local err, sender, ev = self.r_ev:recv(self.timeout)
 		if err then return err end
 		if ev < 0 then self.r_error = true end
-		return self:_splice(to, len, timeout)
+		return self:_splice(to, len)
 	end
 
 	function R_mt:_tee(to, len)
@@ -122,14 +136,23 @@ if type(_.splice) == "function" then
 end
 
 
-function R_mt:readinto(buf)
-	-- ensure we have *some* space to read into
-	buf:ensure(buf.cap / 2 < 65536ULL and buf.cap / 2 or 65536ULL)
-	local ptr, len = buf:tail()
-	local err, n = self:read(ptr, len, self.timeout)
+function R_mt:readinto(buf, n)
+	local err, read
+
+	if n then
+		local needed = n - #buf
+		if needed <= 0 then return end
+		buf:ensure(needed)
+		local ptr, len = buf:tail()
+		err, read = self:readn(ptr, needed, len)
+
+	else
+		buf:ensure()
+		err, read = self:read(buf:tail())
+	end
+
 	if err then return err end
-	if n > 0 then buf:bump(n) end
-	return err, n
+	buf:bump(read)
 end
 
 
@@ -319,6 +342,7 @@ RW_mt.__index = RW_mt
 
 
 RW_mt.read = R_mt.read
+RW_mt.readn = R_mt.readn
 RW_mt.reads = R_mt.reads
 RW_mt.readinto = R_mt.readinto
 RW_mt.stream = R_mt.stream
@@ -355,44 +379,49 @@ end
 
 
 function Stream_mt:readin(n)
-	if not n then
-		return self.conn:readinto(self.buf)
-	end
-
-	while #self.buf < n do
-		local err, n = self.conn:readinto(self.buf)
-		if err then return err end
-	end
-
-	return nil, n
+	return self.conn:readinto(self.buf, n)
 end
 
 
 function Stream_mt:read(buf, len)
-	local togo = len
-
-	if #self.buf > 0 then
-		local n = self.buf:copy(buf, togo)
-		self.buf:trim(n)
-		togo = togo - n
-	end
-
-	while togo > 0 do
-		local err, n = self.conn:read(buf + (len -togo), togo)
-		if err then return err end
-		togo = togo - n
-	end
-
-	return nil, len
+	local n = self.buf:move(buf, len)
+	if n > 0 then return nil, n end
+	local err, n = self.conn:read(buf + n, len - n)
+	if err then return err end
+	return nil, n
 end
 
 
-function Stream_mt:readinto(buf, len)
-	buf:ensure(len)
-	local err, n = self:read(buf:tail(), len)
+function Stream_mt:readn(buf, n, len)
+	local read = self.buf:move(buf, n)
+
+	if read < n then
+		local err, more = self.conn:readn(buf + read, n - read, len)
+		if err then return err end
+		read = read + more
+	end
+
+	return nil, read
+end
+
+
+function Stream_mt:readinto(buf, n)
+	local err, read
+
+	if n then
+		local needed = n - #buf
+		if needed <= 0 then return end
+		buf:ensure(needed)
+		local ptr, len = buf:tail()
+		err, read = self:readn(ptr, needed)
+
+	else
+		buf:ensure()
+		err, read = self:read(buf:tail())
+	end
+
 	if err then return err end
-	buf:bump(n)
-	return nil, n
+	buf:bump(read)
 end
 
 
@@ -428,7 +457,7 @@ end
 function Stream(conn)
 	local self = setmetatable({}, Stream_mt)
 	self.conn = conn
-	self.buf = d.buffer(4096)
+	self.buf = d.Buffer(4096)
 	return self
 end
 
@@ -530,8 +559,7 @@ if type(_.splice) == "function" then
 		if err then return err end
 		self:trim(buflen)
 
-		local err, r, w = self.hub.io:pipe()
-		if err then return err end
+		local r, w = self.hub.io:pipe()
 
 		local fd = self.stream.conn.no
 		local remain = len - bn
@@ -682,8 +710,8 @@ end
 
 
 function Chunk_mt:tobuffer(buf)
-	buf = buf or d.buffer()
-	local err, n = self.stream:readinto(buf, self.len)
+	buf = buf or d.Buffer()
+	local err = self.stream:readinto(buf, self.len + #buf)
 	if err then return err end
 	self.len = 0
 	self.done:close()
@@ -739,11 +767,10 @@ end
 
 
 function IO_mt:pipe(timeout)
-	local err, r, w = _.pipe()
-	if err then return err end
+	local r, w = _.pipe()
 	_.fcntl_nonblock(r)
 	_.fcntl_nonblock(w)
-	return nil, self:r(r, timeout), self:w(w, timeout)
+	return self:r(r, timeout), self:w(w, timeout)
 end
 
 
@@ -763,6 +790,7 @@ end
 
 
 IO_mt.iovec = Iovec
+IO_mt.R_mt = R_mt
 
 
 return function(hub)

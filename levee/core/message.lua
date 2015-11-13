@@ -149,7 +149,7 @@ end
 function Recver_mt:redirect(target)
 	if self.closed then return errors.CLOSED end
 	assert(not self.co)
-	target:_link(self.sender)
+	target:_link(self.sender, self)
 	self.sender:_link(target)
 	self.sender = nil
 	self.closed = true
@@ -202,6 +202,41 @@ end
 
 local function Value(hub, value)
 	return setmetatable({hub=hub, value=value}, Value_mt)
+end
+
+
+--
+-- Flag
+
+local Flag_mt = {}
+Flag_mt.__index = Flag_mt
+
+
+function Flag_mt:send(value)
+	if self.closed then return errors.CLOSED end
+	local err, ok = self.recver:_give(nil, self, value)
+	if not ok then self.value = value end
+end
+
+
+function Flag_mt:_take(err)
+	if self.closed then return errors.CLOSED end
+	if not self.value then return end
+	local value = self.value
+	self.value = nil
+	return nil, value
+end
+
+
+function Flag_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.recver:_give(errors.CLOSED, self)
+end
+
+
+local function Flag(hub, value)
+	return setmetatable({hub=hub, value=value}, Flag_mt)
 end
 
 
@@ -343,7 +378,7 @@ local function Queue(hub, size)
 	return setmetatable({
 		hub = hub,
 		size = size,
-		fifo = d.fifo(),
+		fifo = d.Fifo(),
 		empty = Pair(hub:value(true)), }, Queue_mt)
 end
 
@@ -429,7 +464,7 @@ local function Stalk(hub, size)
 	return setmetatable({
 		hub = hub,
 		size = size,
-		fifo = d.fifo(),
+		fifo = d.Fifo(),
 		empty = Pair(hub:value(true)), }, Stalk_mt)
 end
 
@@ -441,7 +476,8 @@ local Selector_mt = {}
 Selector_mt.__index = Selector_mt
 
 
-function Selector_mt:_link(sender)
+function Selector_mt:_link(sender, recver)
+	self.senders[sender] = recver
 end
 
 
@@ -465,16 +501,20 @@ end
 function Selector_mt:recv(ms)
 	assert(not self.co)
 
+	local err, sender, value
+
 	if #self.fifo > 0 then
-		local sender = self.fifo:pop()
-		local err, value = sender:_take()
-		return err, sender, value
+		sender = self.fifo:pop()
+		err, value = sender:_take()
+	else
+		self.co = coroutine.running()
+		err, sender, value = self.hub:pause(ms)
+		self.co = nil
 	end
 
-	self.co = coroutine.running()
-	local err, sender, value = self.hub:pause(ms)
-	self.co = nil
-	return err, sender, value
+	local recver = self.senders[sender]
+	if err and recver then self.senders[sender] = nil end
+	return err, recver, value
 end
 
 
@@ -486,7 +526,10 @@ end
 
 
 local function Selector(hub)
-	local self = setmetatable({hub=hub, fifo=d.fifo(), }, Selector_mt)
+	local self = setmetatable({
+		hub=hub,
+		fifo=d.Fifo(),
+		senders={}, }, Selector_mt)
 	return self
 end
 
@@ -496,8 +539,8 @@ end
 return {
 	Sender = Sender,
 	Recver = Recver,
-
 	Value = Value,
+	Flag = Flag,
 	Gate = Gate,
 	Queue = Queue,
 	Stalk = Stalk,

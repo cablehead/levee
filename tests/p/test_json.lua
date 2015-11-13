@@ -36,7 +36,7 @@ return {
 
 	test_stream = function()
 		-- stream stub
-		local buf = d.buffer(4096)
+		local buf = d.Buffer(4096)
 
 		local stream = {
 			segments = {
