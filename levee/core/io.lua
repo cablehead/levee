@@ -99,43 +99,6 @@ function R_mt:readn(buf, n, len)
 end
 
 
-if type(_.splice) == "function" then
-	function R_mt:_splice(to, len)
-		if self.closed then return errors.CLOSED end
-
-		local err, n = _.splice(self.no, to, len)
-
-		if not err and n > 0 then return nil, n end
-		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
-			self:close()
-			return err or errors.CLOSED
-		end
-
-		local err, sender, ev = self.r_ev:recv(self.timeout)
-		if err then return err end
-		if ev < 0 then self.r_error = true end
-		return self:_splice(to, len)
-	end
-
-	function R_mt:_tee(to, len)
-		if self.closed then return errors.CLOSED end
-
-		local err, n = _.tee(self.no, to.no, len)
-
-		if not err and n > 0 then return nil, n end
-		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
-			self:close()
-			return err or errors.CLOSED
-		end
-
-		local err, sender, ev = self.r_ev:recv(self.timeout)
-		if err then return err end
-		if ev < 0 then self.r_error = true end
-		return self:_tee(to, len)
-	end
-end
-
-
 function R_mt:readinto(buf, n)
 	local err, read
 
@@ -162,6 +125,46 @@ function R_mt:reads(len)
 	local err, n = self:read(buf, len)
 	if err then return end
 	return ffi.string(buf, n)
+end
+
+
+if _.splice then
+	function R_mt:_splice(to, len)
+		if self.closed then return errors.CLOSED end
+
+		local err, n = _.splice(self.no, to.no, len)
+
+		if not err and n > 0 then return nil, n end
+		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
+			self:close()
+			return errors.CLOSED
+		end
+
+		local err, sender, ev = self.r_ev:recv(self.timeout)
+		if err then return err end
+		if ev < 0 then self.r_error = true end
+		return self:_splice(to, len)
+	end
+end
+
+
+if _.tee then
+	function R_mt:_tee(to, len)
+		if self.closed then return errors.CLOSED end
+
+		local err, n = _.tee(self.no, to.no, len)
+
+		if not err and n > 0 then return nil, n end
+		if (err and not err.is_system_EAGAIN) or self.r_error or n == 0 then
+			self:close()
+			return errors.CLOSED
+		end
+
+		local err, sender, ev = self.r_ev:recv(self.timeout)
+		if err then return err end
+		if ev < 0 then self.r_error = true end
+		return self:_tee(to, len)
+	end
 end
 
 
@@ -501,8 +504,46 @@ function Chunk_mt:trim(n)
 end
 
 
-function Chunk_mt:splice_copy(conn)
+function Chunk_mt:discard()
 	local n = self.len
+	while self.len > 0 do
+		local err = self:readin(1)
+		if err then return err end
+		self:trim()
+	end
+	return nil, n
+end
+
+
+function Chunk_mt:json()
+	return p.json.decoder():stream(self)
+end
+
+
+function Chunk_mt:tobuffer(buf)
+	buf = buf or d.Buffer()
+	local err = self.stream:readinto(buf, self.len + #buf)
+	if err then return err end
+	self.len = 0
+	self.done:close()
+	return nil, buf
+end
+
+
+function Chunk_mt:tostring()
+	local s = self.stream:take(self.len)
+	self.len = 0
+	self.done:close()
+	return s
+end
+
+
+--
+-- Splice
+
+function Chunk_mt:_splice(conn)
+	local n = self.len
+
 	while self.len > 0 do
 		local err = self:readin(1)
 		if err then return err end
@@ -510,41 +551,12 @@ function Chunk_mt:splice_copy(conn)
 		if err then return err end
 		self:trim()
 	end
+
 	return nil, n
 end
 
 
-local function chunk_tee(sender, ...)
-end
-
-
-function Chunk_mt:tee_copy(...)
-	local n = self.len
-	local conns = {...}
-	local cb
-	if type(conns[#conns]) == "function" then
-		cb = table.remove(conns)
-	end
-	while self.len > 0 do
-		local err = self:readin(1)
-		if err then return err end
-		local val, len = self:value()
-		for i,conn in ipairs(conns) do
-			local err, n = conn:write(val, len)
-			if err then return err end
-		end
-		if cb then
-			local sub = Chunk(self.stream, len)
-			cb(sub)
-			sub.done:recv()
-		end
-		self:trim()
-	end
-	return nil, n
-end
-
-
-if type(_.splice) == "function" then
+function Chunk_mt:_splice_0copy(conn)
 	local splice_min = 4 * _.pagesize
 
 	function Chunk_mt:splice(conn)
@@ -579,6 +591,50 @@ if type(_.splice) == "function" then
 		self.done:close()
 		return nil, len
 	end
+end
+
+
+if _.splice then
+	Chunk_mt.splice = Chunk_mt._splice_0copy
+else
+	Chunk_mt.splice = Chunk_mt._splice
+end
+
+
+--
+-- Tee
+
+local function chunk_tee(sender, ...)
+end
+
+
+function Chunk_mt:tee_copy(...)
+	local n = self.len
+	local conns = {...}
+	local cb
+	if type(conns[#conns]) == "function" then
+		cb = table.remove(conns)
+	end
+	while self.len > 0 do
+		local err = self:readin(1)
+		if err then return err end
+		local val, len = self:value()
+		for i,conn in ipairs(conns) do
+			local err, n = conn:write(val, len)
+			if err then return err end
+		end
+		if cb then
+			local sub = Chunk(self.stream, len)
+			cb(sub)
+			sub.done:recv()
+		end
+		self:trim()
+	end
+	return nil, n
+end
+
+
+if type(_.splice) == "function" then
 
 
 	local function tee_writer(h, r, w, len)
@@ -690,40 +746,6 @@ if type(_.splice) == "function" then
 else
 	Chunk_mt.splice = Chunk_mt.splice_copy
 	Chunk_mt.tee = Chunk_mt.tee_copy
-end
-
-
-function Chunk_mt:discard()
-	local n = self.len
-	while self.len > 0 do
-		local err = self:readin(1)
-		if err then return err end
-		self:trim()
-	end
-	return nil, n
-end
-
-
-function Chunk_mt:json()
-	return p.json.decoder():stream(self)
-end
-
-
-function Chunk_mt:tobuffer(buf)
-	buf = buf or d.Buffer()
-	local err = self.stream:readinto(buf, self.len + #buf)
-	if err then return err end
-	self.len = 0
-	self.done:close()
-	return nil, buf
-end
-
-
-function Chunk_mt:tostring()
-	local s = self.stream:take(self.len)
-	self.len = 0
-	self.done:close()
-	return s
 end
 
 
