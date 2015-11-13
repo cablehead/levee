@@ -396,12 +396,11 @@ local function run_suite(options, suite)
 		else
 			success, extra = xpcall(M[name],
 				function(err)
+					local trace = ("\n-----\n%s%s\n-----\n"):format(
+						traceback(), err:match(":%d+: (.*)"))
 					options.w(
-						txtred..' FAIL'..txtrst..'\n\n'..
-						'-----\n'..
-						traceback()..
-						err:match(":%d+: (.*)")
-						..'\n-----\n')
+						txtred..' FAIL'..txtrst..'\n'.. trace,
+						'F'..trace)
 					options.stats.FAIL = options.stats.FAIL + 1
 				end)
 		end
