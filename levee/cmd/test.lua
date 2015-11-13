@@ -366,27 +366,40 @@ local function scan(path)
 end
 
 
+local function collect(options, M, names, tests, prefix)
+	prefix = prefix or ""
+	for name, value in pairs(M) do
+		if type(value) == "table" then
+			collect(options, value, names, tests, prefix..name..".")
+
+		elseif type(value) == "function" then
+			if name:sub(0, 5) == "test_" then
+				if options.match and not string.find(name, options.match) then
+				else
+					table.insert(names, prefix..name)
+					tests[prefix..name] = value
+				end
+			end
+		end
+	end
+end
+
+
 local function run_suite(options, suite)
 	local M = assert(loadfile(suite))()
 	local SKIP = (M.skipif or function() end)()
 
-	local to_run = {}
-	for name in pairs(M) do
-		if name:sub(0, 5) == "test_" then
-			if options.match and not string.find(name, options.match) then
-			else
-				table.insert(to_run, name)
-			end
-		end
-	end
+	local names = {}
+	local tests = {}
+	collect(options, M, names, tests)
 
-	if #to_run > 0 then
-		table.sort(to_run)
+	if #names > 0 then
+		table.sort(names)
 		options.w:notfirst("\n")
 		options.w(txtblu..suite..txtrst..'\n')
 	end
 
-	for i, name in ipairs(to_run) do
+	for i, name in ipairs(names) do
 		local pattern = "    %-40s "
 		options.w(pattern:format(name))
 
@@ -394,7 +407,7 @@ local function run_suite(options, suite)
 		if SKIP then
 			success, extra = true, "SKIP"
 		else
-			success, extra = xpcall(M[name],
+			success, extra = xpcall(tests[name],
 				function(err)
 					local trace = ("\n-----\n%s%s\n-----\n"):format(
 						traceback(), err:match(":%d+: (.*)"))
