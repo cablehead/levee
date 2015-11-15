@@ -4,7 +4,7 @@ local C = ffi.C
 local levee = require("levee")
 
 
-local CHARS64 = \
+local CHARS64 =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 
@@ -481,38 +481,60 @@ return {
 			assert.same({c:splice(w2)}, {nil, 20})
 			c.done:recv()
 			assert.equal(r2:reads(), ("."):rep(20))
+
 			assert.equal(s:take(), ("."):rep(10))
 		end,
 
 		test_big = function()
-			local h = levee.Hub()
-
-			local r, w = h.io:pipe()
-			local r2, w2 = h.io:pipe()
-
 			local pre = ("."):rep(10)
 			local val = CHARS64:rep(512)
 			local crc = C.sp_crc32c(0ULL, pre, #pre)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val)
 			crc = C.sp_crc32c(crc, val, #val - 10)
+			local N = 64 * 512 * 4
 
-			local s = r:stream()
-			w:write(pre)
-			s:readin()
+			local h = levee.Hub()
+
+			local p1 = {}
+			p1.r, p1.w = h.io:pipe()
+			p1.s = p1.r:stream()
+
+			local p2 = {}
+			p2.r, p2.w = h.io:pipe()
+			p2.s = p2.r:stream()
+
+			-- setup thread to drain p2
+			local drained = (function()
+				local sender, recver = h:pipe()
+				h:spawn(function()
+					p2.s:readin(N)
+					sender:close()
+				end)
+				return recver
+			end)()
+
+			-- buffer a few bytes ahead of splice
+			p1.w:write(pre)
+			p1.s:readin()
+
+			-- write main payload
 			h:spawn(function()
-				w:write(val)
-				w:write(val)
-				w:write(val)
-				w:write(val)
+				p1.w:write(val)
+				p1.w:write(val)
+				p1.w:write(val)
+				p1.w:write(val)
 			end)
 
-			local c = s:chunk(64*512*4)
-			assert.same({c:splice(w2)}, {nil, 64*512*4})
-			c.done:recv()
+			p1.c = p1.s:chunk(N)
+			assert.same({p1.c:splice(p2.w)}, {nil, N})
+			p1.c.done:recv()
+			drained:recv()
+			assert.equal(#p2.s.buf, N)
 
-			local buf = levee.d.Buffer()
-			r2:stream():readinto(buf, 64*512*4)
-			assert.equal(C.sp_crc32c(0ULL, buf:value()), crc)
-			assert.equal(s:take(10), "23456789+/")
+			assert.equal(C.sp_crc32c(0ULL, p2.s:value()), crc)
+			assert.equal(p1.s:take(10), "23456789+/")
 		end,
 	},
 

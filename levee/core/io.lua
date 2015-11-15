@@ -557,40 +557,40 @@ end
 
 
 function Chunk_mt:_splice_0copy(conn)
-	local splice_min = 4 * _.pagesize
+	local len = self.len
 
-	function Chunk_mt:splice(conn)
-		local len = self.len
-		local buf, buflen = self:value()
-		if len-buflen < splice_min then
-			return self:splice_copy(conn)
-		end
-
-		-- transfer any pending bytes from the buffer
-		local err, bn = conn:write(buf, buflen)
-		if err then return err end
-		self:trim(buflen)
-
-		local r, w = self.hub.io:pipe()
-
-		local fd = self.stream.conn.no
-		local remain = len - bn
-
-		while remain > 0 do
-			local err, rn = self.stream.conn:_splice(w, remain)
-			if err then return err end
-			while rn > 0 do
-				local err, wn = r:_splice(conn, remain)
-				if err then return err end
-				rn = rn - wn
-				remain = remain - wn
-			end
-		end
-
-		self.len = 0
-		self.done:close()
-		return nil, len
+	local buf, buflen = self:value()
+	if self.len - buflen < 4 * _.pagesize then
+		return self:_splice(conn)
 	end
+
+	local remain = self.len
+
+	-- transfer any pending bytes from the buffer
+	if buflen > 0 then
+		local err = conn:write(buf, buflen)
+		if err then return err end
+		self:trim()
+		remain = remain - buflen
+	end
+
+	local r, w = self.hub.io:pipe()
+
+	while remain > 0 do
+		local err, rn = self.stream.conn:_splice(w, remain)
+		if err then return err end
+
+		while rn > 0 do
+			local err, wn = r:_splice(conn, remain)
+			if err then return err end
+			rn = rn - wn
+			remain = remain - wn
+		end
+	end
+
+	self.len = 0
+	self.done:close()
+	return nil, len
 end
 
 
