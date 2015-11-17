@@ -796,18 +796,32 @@ function IO_mt:pipe(timeout)
 end
 
 
+local function EVStub()
+	return {
+		recv = function() return 1 end
+	}
+end
+
+
 function IO_mt:open(name, ...)
 	local err, no, mode = _.open(name, ...)
 
 	if bit.band(C.O_WRONLY, mode) > 0 then
-		return nil, self:w(no)
+		local m = setmetatable({hub = self.hub, no = no}, W_mt)
+		m.w_ev = EVStub()
+		return nil, m
 	end
 
 	if bit.band(C.O_RDWR, mode) > 0 then
-		return nil, self:rw(no)
+		local m = setmetatable({hub = self.hub, no = no}, RW_mt)
+		m.r_ev = EVStub()
+		m.w_ev = EVStub()
+		return nil, m
 	end
 
-	return nil, self:r(no)
+	local m = setmetatable({hub = self.hub, no = no}, R_mt)
+	m.r_ev = EVStub()
+	return nil, m
 end
 
 
