@@ -624,6 +624,139 @@ return {
 
 			assert.same(h.registered, {})
 		end,
+
+		test_big_spawned = function()
+			local pre = ("."):rep(10)
+			local val = CHARS64:rep(512)
+			local crc = C.sp_crc32c(0ULL, pre, #pre)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val - 10)
+			local N = 64 * 512 * 4
+
+			local h = levee.Hub()
+
+			local source = {}
+			source.r, source.w = h.io:pipe()
+			source.s = source.r:stream()
+
+			local function teer()
+				local t = {}
+				t.r, t.w = h.io:pipe()
+				t.s = t.r:stream()
+				h:spawn(function()
+					while true do
+						if t.s:readin() then break end
+					end
+				end)
+				return t
+			end
+
+			local t1 = teer()
+			local t2 = teer()
+
+			-- buffer some bytes
+			source.w:write(("."):rep(10))
+			source.s:readin()
+
+			-- main writer
+			h:spawn(function()
+				source.w:write(val)
+				source.w:write(val)
+				source.w:write(val)
+				source.w:write(val)
+			end)
+
+			source.c = source.s:chunk(N)
+			local check
+			assert.same(
+				{source.c:tee(t1.w, t2.w, function(chunks)
+					local err
+					for chunk in chunks do
+						err, check = chunk:tobuffer(check)
+					end
+				end)},
+				{nil, N})
+
+			assert.equal(C.sp_crc32c(0ULL, t1.s:value()), crc)
+			assert.equal(C.sp_crc32c(0ULL, t2.s:value()), crc)
+			assert.equal(C.sp_crc32c(0ULL, check:value()), crc)
+			assert.equal(source.s:take(10), "23456789+/")
+
+			source.r:close()
+			source.w:close()
+			t1.r:close()
+			t1.w:close()
+			t2.r:close()
+			t2.w:close()
+
+			assert.same(h.registered, {})
+		end,
+
+		test_big_splice = function()
+			local pre = ("."):rep(10)
+			local val = CHARS64:rep(512)
+			local crc = C.sp_crc32c(0ULL, pre, #pre)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val)
+			crc = C.sp_crc32c(crc, val, #val - 10)
+			local N = 64 * 512 * 4
+
+			local h = levee.Hub()
+
+			local source = {}
+			source.r, source.w = h.io:pipe()
+			source.s = source.r:stream()
+
+			local function teer()
+				local t = {}
+				t.r, t.w = h.io:pipe()
+				t.s = t.r:stream()
+				h:spawn(function()
+					while true do
+						if t.s:readin() then break end
+					end
+				end)
+				return t
+			end
+
+			local t1 = teer()
+			local t2 = teer()
+			local t3 = teer()
+
+			-- buffer some bytes
+			source.w:write(("."):rep(10))
+			source.s:readin()
+
+			-- main writer
+			h:spawn(function()
+				source.w:write(val)
+				source.w:write(val)
+				source.w:write(val)
+				source.w:write(val)
+			end)
+
+			source.c = source.s:chunk(N)
+			assert.same({source.c:tee(t1.w, t2.w, t3.w)}, {nil, N})
+
+			assert.equal(C.sp_crc32c(0ULL, t1.s:value()), crc)
+			assert.equal(C.sp_crc32c(0ULL, t2.s:value()), crc)
+			assert.equal(C.sp_crc32c(0ULL, t3.s:value()), crc)
+			assert.equal(source.s:take(10), "23456789+/")
+
+			source.r:close()
+			source.w:close()
+			t1.r:close()
+			t1.w:close()
+			t2.r:close()
+			t2.w:close()
+			t3.r:close()
+			t3.w:close()
+
+			assert.same(h.registered, {})
+		end,
 	},
 
 	--[[
