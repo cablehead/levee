@@ -9,7 +9,7 @@ local CHARS64 =
 
 
 return {
-	rw = {
+	core = {
 		test_close_writer = function()
 			local h = levee.Hub()
 
