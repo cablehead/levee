@@ -151,7 +151,7 @@ function Poller:poll(timeout)
 		end
 	end
 
-	local n = C.epoll_wait(self.fd, self.ev, 1, ms)
+	local n = C.epoll_wait(self.fd, self.ev, C.EV_POLL_OUT_MAX, ms)
 	local err = ffi.errno()
 
 	C.gettimeofday(self.tv, nil)

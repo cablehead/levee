@@ -56,7 +56,6 @@ return {
 			local err, n = w:write("foo")
 			assert(not err)
 			assert.equal(n, 3)
-			h:continue()
 			assert.equal(buf:take(3), "foo")
 
 			-- write eagain
