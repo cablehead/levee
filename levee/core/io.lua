@@ -647,10 +647,7 @@ function Chunk_mt:tee_copy(...)
 	return nil, n
 end
 
-
-if type(_.splice) == "function" then
-
-
+--[[
 	local function tee_writer(h, r, w, len)
 		local sender, recver = h:pipe()
 		h:spawn(function()
@@ -757,10 +754,7 @@ if type(_.splice) == "function" then
 		if sender then sender:close() end
 		return nil, len
 	end
-else
-	Chunk_mt.splice = Chunk_mt.splice_copy
-	Chunk_mt.tee = Chunk_mt.tee_copy
-end
+--]]
 
 
 function Chunk(stream, len)
