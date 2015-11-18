@@ -618,30 +618,43 @@ end
 --
 -- Tee
 
-function Chunk_mt:_tee(...)
+local function TeedChunk(stream, len)
+	local self = Chunk(stream, len)
+	self.splice = nil
+	self.tee = nil
+	return self
+end
+
+
+function Chunk_mt:tee(...)
 	local n = self.len
-	local conns = {...}
-	local cb
-	if type(conns[#conns]) == "function" then
-		cb = table.remove(conns)
-	end
+
+	local targets = {...}
+	local last = table.remove(targets)
+
+	local sender, recver = self.hub:pipe()
+	self.hub:spawn(function() last(recver) end)
+
 	while self.len > 0 do
 		local err = self:readin(1)
-		if err then return err end
-		local val, len = self:value()
-		for i,conn in ipairs(conns) do
-			local err, n = conn:write(val, len)
-			if err then return err end
+		if err then sender:close(); return err end
+
+		local buf, len = self:value()
+
+		for i = 1, #targets do
+			local err = targets[i]:write(buf, len)
+			if err then sender:close(); return err end
 		end
-		if cb then
-			local sub = Chunk(self.stream, len)
-			cb(sub)
-			sub.done:recv()
-		end
-		self:trim()
+
+		local chunk = TeedChunk(self.stream, len)
+		sender:send(chunk)
+		chunk.done:recv()
+		self.len = self.len - len
 	end
+
 	return nil, n
 end
+
 
 --[[
 	local function tee_writer(h, r, w, len)

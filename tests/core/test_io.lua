@@ -540,8 +540,50 @@ return {
 	},
 
 	tee = {
+		test_small_spawn = function()
+			local h = levee.Hub()
 
+			local source = {}
+			source.r, source.w = h.io:pipe()
+			source.s = source.r:stream()
 
+			local t1 = {}
+			t1.r, t1.w = h.io:pipe()
+			local t2 = {}
+			t2.r, t2.w = h.io:pipe()
+
+			-- buffer some bytes
+			source.w:write(("."):rep(10))
+			source.s:readin()
+
+			source.w:write(("."):rep(20))
+
+			source.c = source.s:chunk(20)
+			local check = ""
+
+			assert.same(
+				{source.c:tee(t1.w, t2.w, function(chunks)
+					for chunk in chunks do
+						check = check .. chunk:tostring()
+					end
+				end)},
+				{nil, 20})
+
+			assert.same(t1.r:reads(), ("."):rep(20))
+			assert.same(t2.r:reads(), ("."):rep(20))
+			assert.same(check, ("."):rep(20))
+
+			assert.equal(source.s:take(), ("."):rep(10))
+
+			source.r:close()
+			source.w:close()
+			t1.r:close()
+			t1.w:close()
+			t2.r:close()
+			t2.w:close()
+
+			assert.same(h.registered, {})
+		end,
 	},
 
 	--[[
