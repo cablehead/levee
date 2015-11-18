@@ -540,6 +540,12 @@ return {
 		end,
 	},
 
+	tee = {
+
+
+	},
+
+	--[[
 	test_shared_ev = function()
 		local h = levee.Hub()
 		local io = require("levee.core.io")(h)
@@ -592,4 +598,5 @@ return {
 		print(p1.ev:recv())
 		print(p2.ev:recv())
 	end,
+	--]]
 }

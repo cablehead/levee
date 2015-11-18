@@ -618,11 +618,7 @@ end
 --
 -- Tee
 
-local function chunk_tee(sender, ...)
-end
-
-
-function Chunk_mt:tee_copy(...)
+function Chunk_mt:_tee(...)
 	local n = self.len
 	local conns = {...}
 	local cb
