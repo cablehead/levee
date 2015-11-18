@@ -627,32 +627,46 @@ end
 
 
 function Chunk_mt:tee(...)
-	local n = self.len
-
 	local targets = {...}
-	local last = table.remove(targets)
+	local err
+	local spawned
+	local total = self.len
 
-	local sender, recver = self.hub:pipe()
-	self.hub:spawn(function() last(recver) end)
+	if type(targets[#targets]) == "function" then
+		local f = table.remove(targets)
+		spawned = (function()
+			local sender, recver = self.hub:pipe()
+			self.hub:spawn(function() f(recver) end)
+			return sender
+		end)()
+	end
 
 	while self.len > 0 do
-		local err = self:readin(1)
-		if err then sender:close(); return err end
+		err = self:readin(1)
+		if err then goto done end
 
 		local buf, len = self:value()
 
 		for i = 1, #targets do
-			local err = targets[i]:write(buf, len)
-			if err then sender:close(); return err end
+			err = targets[i]:write(buf, len)
+			if err then goto done end
 		end
 
-		local chunk = TeedChunk(self.stream, len)
-		sender:send(chunk)
-		chunk.done:recv()
-		self.len = self.len - len
+		if spawned then
+			local chunk = TeedChunk(self.stream, len)
+			spawned:send(chunk)
+			chunk.done:recv()
+			assert(chunk.len == 0)
+			self.len = self.len - len
+		else
+			self:trim()
+		end
 	end
 
-	return nil, n
+	::done::
+	if spawned then spawned:close() end
+	if err then return err end
+	return nil, total
 end
 
 
