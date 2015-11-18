@@ -510,6 +510,7 @@ return {
 			local drained = (function()
 				local sender, recver = h:pipe()
 				h:spawn(function()
+					h:sleep(100)   -- add a pause so the splice's write side fills up
 					p2.s:readin(N)
 					sender:close()
 				end)

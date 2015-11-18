@@ -556,37 +556,51 @@ function Chunk_mt:_splice(conn)
 end
 
 
-function Chunk_mt:_splice_0copy(conn)
+function Chunk_mt:_splice_0copy(target)
 	local len = self.len
 
 	local buf, buflen = self:value()
 	if self.len - buflen < 4 * _.pagesize then
-		return self:_splice(conn)
+		return self:_splice(target)
 	end
 
 	local remain = self.len
 
 	-- transfer any pending bytes from the buffer
 	if buflen > 0 then
-		local err = conn:write(buf, buflen)
+		local err = target:write(buf, buflen)
 		if err then return err end
 		self:trim()
 		remain = remain - buflen
 	end
 
 	local r, w = self.hub.io:pipe()
+	local source = self.stream.conn
+
+	-- wire splice r, w pairs ev's together
+	w.w_ev.set = function(self, ...)
+		source.r_ev:set(...)
+	end
+
+	local target_w_ev_set = target.w_ev.set  -- save target's w_ev
+	target.w_ev.set = function(self, ...)
+		r.r_ev:set(...)
+	end
 
 	while remain > 0 do
-		local err, rn = self.stream.conn:_splice(w, remain)
+		local err, rn = source:_splice(w, remain)
 		if err then return err end
 
 		while rn > 0 do
-			local err, wn = r:_splice(conn, remain)
+			local err, wn = r:_splice(target, remain)
 			if err then return err end
 			rn = rn - wn
 			remain = remain - wn
 		end
 	end
+
+	-- restore target's w_ev
+	target.w_ev.set = target_w_ev_set
 
 	self.len = 0
 	self.done:close()
