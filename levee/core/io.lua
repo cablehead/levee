@@ -577,7 +577,7 @@ function Chunk_mt:_splice_0copy(target)
 	local r, w = self.hub.io:pipe()
 	local source = self.stream.conn
 
-	-- wire splice r, w pairs ev's together
+	-- wire splice r, w pairs' evs together
 	w.w_ev.set = function(self, ...)
 		source.r_ev:set(...)
 	end
