@@ -805,7 +805,6 @@ function Chunk_mt:_tee_0copy(...)
 			end
 
 			if min > done then
-				assert(not spawned)
 				local chunk = Chunk(r_last:stream(), min - done)
 				chunk.tee = nil
 				chunk.splice = function(self, target)
@@ -820,8 +819,15 @@ function Chunk_mt:_tee_0copy(...)
 					return nil, total
 				end
 
-				local err = chunk:splice(last)
-				if err then return err end
+				if spawned then
+					spawned:send(chunk)
+					chunk.done:recv()
+					assert(chunk.len == 0)
+				else
+					local err = chunk:splice(last)
+					if err then return err end
+				end
+
 				done = min
 			end
 		end
