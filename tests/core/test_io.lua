@@ -536,6 +536,13 @@ return {
 
 			assert.equal(C.sp_crc32c(0ULL, p2.s:value()), crc)
 			assert.equal(p1.s:take(10), "23456789+/")
+
+			p1.r:close()
+			p1.w:close()
+			p2.r:close()
+			p2.w:close()
+
+			assert.same(h.registered, {})
 		end,
 	},
 
@@ -740,6 +747,7 @@ return {
 
 			source.c = source.s:chunk(N)
 			assert.same({source.c:tee(t1.w, t2.w, t3.w)}, {nil, N})
+			h:continue()
 
 			assert.equal(C.sp_crc32c(0ULL, t1.s:value()), crc)
 			assert.equal(C.sp_crc32c(0ULL, t2.s:value()), crc)
@@ -758,59 +766,4 @@ return {
 			assert.same(h.registered, {})
 		end,
 	},
-
-	--[[
-	test_shared_ev = function()
-		local h = levee.Hub()
-		local io = require("levee.core.io")(h)
-		local r, w = h.io:pipe()
-
-		local Teed_R_mt = {}
-		Teed_R_mt.__index = Teed_R_mt
-
-		function Teed_R_mt:clone()
-			local c = setmetatable({}, io.R_mt)
-			c.hub = self.r.hub
-			c.no = self.r.no
-			c.timeout = self.r.timeout
-			local sender, recver = h:flag()
-			self.evs[sender] = 1
-			c.ev = recver
-			return c
-		end
-
-		local function Teed_R(r)
-			local self = setmetatable({}, Teed_R_mt)
-			self.r = r
-			self.evs = {}
-
-			h:spawn(function()
-				while true do
-					local err, sender, value = self.r.r_ev:recv()
-					for ev, v in pairs(self.evs) do
-						ev:send(value)
-					end
-				end
-			end)
-
-			return self
-		end
-
-		print()
-		print()
-
-		local teed_r = Teed_R(r)
-		local p1 = teed_r:clone()
-		local p2 = teed_r:clone()
-
-		h:spawn_later(500, function() w:write("hi") end)
-		h:spawn_later(1000, function() w:write("hi") end)
-
-		print(p1.ev:recv())
-		print(p2.ev:recv())
-
-		print(p1.ev:recv())
-		print(p2.ev:recv())
-	end,
-	--]]
 }

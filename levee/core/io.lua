@@ -9,6 +9,9 @@ local d = require("levee.d")
 local p = require("levee.p")
 
 
+local MIN_SPLICE_SIZE = 4 * _.pagesize
+
+
 --
 -- Iovec
 
@@ -160,7 +163,7 @@ if _.tee then
 			return errors.CLOSED
 		end
 
-		local err, sender, ev = self.r_ev:recv(self.timeout)
+		local err, ev = self.t_ev:recv(self.timeout)
 		if err then return err end
 		if ev < 0 then self.r_error = true end
 		return self:_tee(to, len)
@@ -560,7 +563,7 @@ function Chunk_mt:_splice_0copy(target)
 	local len = self.len
 
 	local buf, buflen = self:value()
-	if self.len - buflen < 4 * _.pagesize then
+	if self.len - buflen < MIN_SPLICE_SIZE then
 		return self:_splice(target)
 	end
 
@@ -602,6 +605,9 @@ function Chunk_mt:_splice_0copy(target)
 	-- restore target's w_ev
 	target.w_ev.set = target_w_ev_set
 
+	r:close()
+	w:close()
+
 	self.len = 0
 	self.done:close()
 	return nil, len
@@ -618,17 +624,32 @@ end
 --
 -- Tee
 
-local function TeedChunk(stream, len)
-	local self = Chunk(stream, len)
-	self.splice = nil
-	self.tee = nil
-	return self
+
+function Chunk_mt:_tee_once(spawned, ...)
+	local targets = {...}
+
+	local buf, len = self:value()
+
+	for i = 1, #targets do
+		local err = targets[i]:write(buf, len)
+		if err then return err end
+	end
+
+	if spawned then
+		local chunk = Chunk(self.stream, len)
+		chunk.tee = nil
+		spawned:send(chunk)
+		chunk.done:recv()
+		assert(chunk.len == 0)
+		self.len = self.len - len
+	else
+		self:trim()
+	end
 end
 
 
-function Chunk_mt:tee(...)
+function Chunk_mt:_tee(...)
 	local targets = {...}
-	local err
 	local spawned
 	local total = self.len
 
@@ -642,142 +663,182 @@ function Chunk_mt:tee(...)
 	end
 
 	while self.len > 0 do
-		err = self:readin(1)
-		if err then goto done end
-
-		local buf, len = self:value()
-
-		for i = 1, #targets do
-			err = targets[i]:write(buf, len)
-			if err then goto done end
-		end
-
-		if spawned then
-			local chunk = TeedChunk(self.stream, len)
-			spawned:send(chunk)
-			chunk.done:recv()
-			assert(chunk.len == 0)
-			self.len = self.len - len
-		else
-			self:trim()
-		end
+		local err = self:readin(1)
+		if err then break end
+		local err = self:_tee_once(spawned, unpack(targets))
+		if err then break end
 	end
 
-	::done::
 	if spawned then spawned:close() end
 	if err then return err end
 	return nil, total
 end
 
 
---[[
-	local function tee_writer(h, r, w, len)
-		local sender, recver = h:pipe()
-		h:spawn(function()
-			while len > 0 do
-				local err, n = r:_tee(w, len)
-				if err then break end
-				len = len - n
-				sender:send(n)
+local R_Tee_mt = {}
+R_Tee_mt.__index = R_Tee_mt
+
+
+function R_Tee_mt:clone()
+	local c = setmetatable({}, R_mt)
+	c.hub = self.r.hub
+	c.no = self.r.no
+	c.timeout = self.r.timeout
+	local sender, recver = self.r.hub:flag()
+	self.evs[sender] = 1
+	c.t_ev = recver
+	return c
+end
+
+
+local function R_Tee(r)
+	local self = setmetatable({}, R_Tee_mt)
+	self.r = r
+	self.evs = {}
+	self.r.hub:spawn(function()
+		while true do
+			local err, sender, value = self.r.r_ev:recv()
+			for ev, v in pairs(self.evs) do
+				ev:send(value)
 			end
-			sender:close()
-		end)
-		return recver
+		end
+	end)
+	return self
+end
+
+
+function Chunk_mt:_tee_0copy(...)
+	local targets = {...}
+	local spawned
+	local last
+	local total = self.len
+
+	local buf, len = self:value()
+	if self.len - len < MIN_SPLICE_SIZE then
+		return self:_tee(...)
 	end
 
+	if type(targets[#targets]) == "function" then
+		local f = table.remove(targets)
+		spawned = (function()
+			local sender, recver = self.hub:pipe()
+			self.hub:spawn(function() f(recver) end)
+			return sender
+		end)()
+	end
 
-	function Chunk_mt:tee(...)
-		local len = self.len
-		local buf, buflen = self:value()
-		if len-buflen < splice_min then
-			return self:tee_copy(...)
+	-- manually flush buffered bytes
+	if len > 0 then
+		local err = self:_tee_once(spawned, unpack(targets))
+		if err then
+			if spawned then spawned:close() end
+			return err
 		end
+	end
 
-		local err, r, w = self.hub.io:pipe()
-		if err then return err end
+	-- if the final target isn't a callable, seperate so we can manually splice
+	-- to it
+	if not spawned then last = table.remove(targets) end
 
-		-- transfer pending bytes from the buffer to the pipe
-		local err = w:write(buf, buflen)
-		if err then return err end
-		self:trim(buflen)
+	local r, w = self.hub.io:pipe()
+	local r_tee = R_Tee(r)
+	local source = self.stream.conn
 
-		self.hub:spawn(function()
-			local remain = len
-			while remain > 0 do
-				local err, n = self.stream.conn:_splice(w, remain)
-				if err then break end
-				remain = remain - n
-			end
-			w:close()
-		end)
+	-- wire splice r, w pairs' evs together
+	w.w_ev.set = function(self, ...)
+		source.r_ev:set(...)
+	end
 
-		local fd = self.stream.conn.no
-		local conns = {...}
-		local last = table.remove(conns)
-		local teers = {}
-		local sel = self.hub:selector()
-		local sender, recver
-		if type(last) == "function" then
-			sender, recver = self.hub:pipe()
-			self.hub:spawn(function() last(recver) end)
-		end
+	local tees = {}
+	local sel = self.hub:selector()
 
-		for i, conn in ipairs(conns) do
-			local teer = tee_writer(self.hub, r, conn, len)
-			teers[teer.sender] = 0
-			teer:redirect(sel)
-		end
-
-		local done = 0
-		while done < len do
-			print("selctor:recv()")
-			local err, teer, n = sel:recv()
-			print("more", err)
-			if err then
-				if teers[teer] < len then
-					w:close()
-					return err
-				else
-					teers[teer] = nil
+	-- target writers
+	for i, target in ipairs(targets) do
+		local tee = (function()
+			local sender, recver = self.hub:pipe()
+			self.hub:spawn(function()
+				local r = r_tee:clone()
+				local towrite = self.len
+				while towrite > 0 do
+					local err, n = r:_tee(target, towrite)
+					if err then sender:close(); return end
+					local err = sender:send(n)
+					if err then return end
+					towrite = towrite - n
 				end
+			end)
+			return recver
+		end)()
+		tees[tee] = 0
+		tee:redirect(sel)
+	end
+
+	-- source reader
+	self.hub:spawn(function()
+		local toread = self.len
+		while toread > 0 do
+			local err, n = source:_splice(w, toread)
+			if err then w:close(); return end
+			toread = toread - n
+		end
+	end)
+
+	-- coordinator
+	local r_last = r_tee:clone()
+	local remain = self.len
+	local done = 0
+
+	while done < remain do
+		local err, tee, n = sel:recv()
+		if err then
+			if tees[tee] < remain then
+				w:close()
+				return err
 			end
 
-			teers[teer] = teers[teer] + n
-			local min = teers[teer]
-			for k,v in pairs(teers) do
-				print("min", v)
+		else
+			tees[tee] = tees[tee] + n
+
+			local min = tees[tee]
+			for k, v in pairs(tees) do
 				min = math.min(min, v)
 			end
+
 			if min > done then
-				local diff = min - done
-				local sub = Chunk(r:stream(), diff)
-				sub.tee = function() error("nope") end -- TODO
-				sub.splice = function(conn)
-					assert(sub == self)
-					local err, n = r:_splice(conn, diff)
-					self.len = 0
+				assert(not spawned)
+				local chunk = Chunk(r_last:stream(), min - done)
+				chunk.tee = nil
+				chunk.splice = function(self, target)
+					assert(self == chunk)
+					local total = self.len
+					while self.len > 0 do
+						local err, n = self.stream.conn:_splice(target, self.len)
+						if err then return err end
+						self.len = self.len - n
+					end
 					self.done:close()
-					return err, n
+					return nil, total
 				end
 
-				if sender then
-					sender:send(sub)
-					sub.done:recv()
-				else
-					sub:splice(last)
-				end
-
+				local err = chunk:splice(last)
+				if err then return err end
 				done = min
 			end
-			print("done", done)
 		end
-
-		self.len = 0
-		self.done:close()
-		if sender then sender:close() end
-		return nil, len
 	end
---]]
+
+	r:close()
+	w:close()
+	if spawned then spawned:close() end
+	return nil, total
+end
+
+
+if _.tee then
+	Chunk_mt.tee = Chunk_mt._tee_0copy
+else
+	Chunk_mt.tee = Chunk_mt._tee
+end
 
 
 function Chunk(stream, len)
