@@ -244,7 +244,7 @@ end
 local decoder = ffi.metatype("SpMsgpack", Msgpack_mt)
 
 local M = {
-	decoder = decode,
+	decoder = decoder,
 	encode = encode,
 }
 

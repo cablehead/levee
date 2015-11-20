@@ -186,7 +186,7 @@ end
 local decoder = ffi.metatype("SpJson", Json_mt)
 
 local M = {
-	decoder = decode,
+	decoder = decoder,
 	encode = encode,
 }
 
