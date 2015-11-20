@@ -470,6 +470,8 @@ return {
 	run = function(options)
 		_G.repr = repr
 
+		local start = _.time.now()
+
 		local path = _.path.dirname(options.path)
 		package.path = string.format(
 			'./?/init.lua;%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s',
@@ -489,9 +491,12 @@ return {
 		for key, value in pairs(options.stats) do
 			io.write(COLORS[key] or txtred, key, txtrst, '=', value, ' ')
 		end
+		io.write(("(%0.2fs)"):format((_.time.now() - start):seconds()))
 		io.write('\n')
 
 		cov:stop()
+
+
 		return options.stats.FAIL
 	end,
 }
