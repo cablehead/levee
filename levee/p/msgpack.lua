@@ -239,10 +239,17 @@ function Msgpack_mt:stream(stream)
 end
 
 
+-- convenience to decode from a string
+
 local decoder = ffi.metatype("SpMsgpack", Msgpack_mt)
 
-
-return {
+local M = {
+	decoder = decode,
 	encode = encode,
-	decoder = decoder,
 }
+
+function M.decode(s)
+	return decoder():stream(M.StringStream(s))
+end
+
+return M
