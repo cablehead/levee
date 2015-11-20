@@ -19,9 +19,15 @@ typedef enum {
 	LEVEE_CHAN_SND
 } LeveeChanType;
 
+typedef enum {
+	LEVEE_CHAN_RAW,
+	LEVEE_CHAN_MSGPACK
+} LeveeChanFormat;
+
 typedef struct {
 	const void *val;
-	size_t len;
+	uint32_t len;
+	LeveeChanFormat fmt;
 } LeveeChanPtr;
 
 typedef struct {
@@ -33,6 +39,7 @@ typedef struct {
 	LeveeNode base;
 	int64_t recv_id;
 	LeveeChanType type;
+	int error;
 	union {
 		LeveeChanPtr ptr;
 		LeveeChanObj obj;
@@ -91,25 +98,28 @@ extern int
 levee_chan_sender_close (LeveeChanSender *self);
 
 extern int
-levee_chan_send_nil (LeveeChanSender *self);
+levee_chan_send_nil (LeveeChanSender *self, int err);
 
 extern int
-levee_chan_send_ptr (LeveeChanSender *self, const void *val, size_t len);
+levee_chan_send_ptr (LeveeChanSender *self, int err,
+		const void *val, uint32_t len,
+		LeveeChanFormat fmt);
 
 extern int
-levee_chan_send_obj (LeveeChanSender *self, void *obj, void (*free)(void *obj));
+levee_chan_send_obj (LeveeChanSender *self, int err,
+		void *obj, void (*free)(void *obj));
 
 extern int
-levee_chan_send_dbl (LeveeChanSender *self, double val);
+levee_chan_send_dbl (LeveeChanSender *self, int err, double val);
 
 extern int
-levee_chan_send_i64 (LeveeChanSender *self, int64_t val);
+levee_chan_send_i64 (LeveeChanSender *self, int err, int64_t val);
 
 extern int
-levee_chan_send_u64 (LeveeChanSender *self, uint64_t val);
+levee_chan_send_u64 (LeveeChanSender *self, int err, uint64_t val);
 
 extern int
-levee_chan_send_bool (LeveeChanSender *self, bool val);
+levee_chan_send_bool (LeveeChanSender *self, int err, bool val);
 
 extern int64_t
 levee_chan_connect (LeveeChanSender *self, LeveeChan **chan);

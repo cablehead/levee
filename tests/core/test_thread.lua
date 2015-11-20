@@ -23,6 +23,23 @@ return {
 		assert.same({recver:recv()}, {nil, 3})
 	end,
 
+	test_channel_table = function()
+		local h = levee.Hub()
+		h:continue()
+
+		local chan = h.thread:channel()
+
+		local recver = chan:bind()
+		local sender = recver:create_sender()
+
+		sender:send({ name = "test", value = 123, nested = { 1, 2, 3 }})
+
+		-- normally these two halves would be running in different threads
+		h:continue()
+
+		assert.same({recver:recv()}, {nil, { name = "test", value = 123, nested = { 1, 2, 3 }}})
+	end,
+
 	test_channel_connect = function()
 		local parent = {}
 		parent.h = levee.Hub()

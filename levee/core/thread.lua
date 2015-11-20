@@ -3,6 +3,7 @@ local C = ffi.C
 
 
 local message = require("levee.core.message")
+local msgpack = require("levee.p").msgpack
 
 
 --
@@ -57,6 +58,7 @@ local ctype_ptr = ffi.typeof("struct LeveeData")
 local ctype_dbl = ffi.typeof("double")
 local ctype_u64 = ffi.typeof("uint64_t")
 local ctype_i64 = ffi.typeof("int64_t")
+local ctype_error = ffi.typeof("SpError")
 
 
 --
@@ -79,8 +81,13 @@ function Recver_mt:pump(node)
 	if node.type == C.LEVEE_CHAN_NIL then
 		self.queue:send(nil)
 	elseif node.type == C.LEVEE_CHAN_PTR then
-		local data = Data(node.as.ptr.val, node.as.ptr.len)
-		node.as.ptr.val = nil
+		local err, data
+		if node.as.ptr.fmt == C.LEVEE_CHAN_MSGPACK then
+			err, data = msgpack.decode(node.as.ptr.val, node.as.ptr.len)
+		else
+			data = Data(node.as.ptr.val, node.as.ptr.len)
+			node.as.ptr.val = nil
+		end
 		self.queue:send(data)
 	elseif node.type == C.LEVEE_CHAN_OBJ then
 		self.queue:send(ffi.gc(node.as.obj.obj, node.as.obj.free))
@@ -141,26 +148,48 @@ function Sender_mt:__tostring()
 end
 
 
-function Sender_mt:send(val)
-	-- TODO: check value type and call proper send
+function Sender_mt:pass(err, val)
+	if ffi.istype(ctype_error, err) then
+		err = tonumber(err.code)
+	elseif type(err) ~= "number" then
+		err = 0
+	end
 	if val == nil then
-		return C.levee_chan_send_nil(self)
+		return C.levee_chan_send_nil(self, err)
 	elseif type(val) == "number" or ffi.istype(ctype_dbl, val) then
-		return C.levee_chan_send_dbl(self, val)
+		return C.levee_chan_send_dbl(self, err, val)
 	elseif type(val) == "boolean" then
-		return C.levee_chan_send_bool(self, val)
+		return C.levee_chan_send_bool(self, err, val)
 	elseif ffi.istype(ctype_ptr, val) then
-		local rc = C.levee_chan_send_ptr(self, val.val, val.len)
+		local rc = C.levee_chan_send_ptr(self, err,
+			val.val, val.len, C.LEVEE_CHAN_RAW)
 		if rc >= 0 then
 			val.val = nil
 			val.len = 0
 		end
 		return rc
 	elseif ffi.istype(ctype_i64, val) then
-		return C.levee_chan_send_i64(self, val)
+		return C.levee_chan_send_i64(self, err, val)
 	elseif ffi.istype(ctype_u64, val) then
-		return C.levee_chan_send_u64(self, val)
+		return C.levee_chan_send_u64(self, err, val)
+	elseif ffi.istype(ctype_error, val) then
+		return C.levee_chan_send_error(self, err, val.code)
+	else
+		local encerr, m = msgpack.encode(val)
+		if encerr then return encerr end
+		local buf, len = m:value()
+		local rc = C.levee_chan_send_ptr(self, err,
+			buf, len, C.LEVEE_CHAN_MSGPACK)
+		if rc >= 0 then
+			m.buf = nil
+		end
+		return rc
 	end
+end
+
+
+function Sender_mt:send(val)
+	return self:pass(nil, val)
 end
 
 

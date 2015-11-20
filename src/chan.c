@@ -15,20 +15,21 @@
 	}                                                                 \
 } while (0)
 
-#define CREATE_NODE(id, typ, key, val) __extension__ ({               \
+#define CREATE_NODE(id, typ, err, key, val) __extension__ ({          \
 	LeveeChanNode *node = malloc (sizeof *node);                      \
 	if (node != NULL) {                                               \
 		node->recv_id = id;                                           \
 		node->type = typ;                                             \
+		node->error = err;                                            \
 		node->as.key = val;                                           \
 	}                                                                 \
 	node;                                                             \
 })
 
-#define SEND_MSG(self, typ, key, val) do {                            \
-	VERIFY_EOF (self);                                                \
-	LeveeChanNode *node = CREATE_NODE (self->recv_id, typ, key, val); \
-	return node == NULL ? -1 : send_node (self, node);                \
+#define SEND_MSG(self, typ, err, key, val) do {                            \
+	VERIFY_EOF (self);                                                     \
+	LeveeChanNode *node = CREATE_NODE (self->recv_id, typ, err, key, val); \
+	return node == NULL ? -1 : send_node (self, node);                     \
 } while (0)
 
 #if defined(LEVEE_EPOLL)
@@ -369,7 +370,7 @@ levee_chan_sender_close (LeveeChanSender *self)
 }
 
 int
-levee_chan_send_nil (LeveeChanSender *self)
+levee_chan_send_nil (LeveeChanSender *self, int err)
 {
 	assert (self != NULL);
 
@@ -381,55 +382,56 @@ levee_chan_send_nil (LeveeChanSender *self)
 	}
 	node->recv_id = self->recv_id;
 	node->type = LEVEE_CHAN_NIL;
+	node->error = err;
 	return send_node (self, node);
 }
 
 int
-levee_chan_send_ptr (LeveeChanSender *self, const void *val, size_t len)
+levee_chan_send_ptr (LeveeChanSender *self, int err, const void *val, uint32_t len, LeveeChanFormat fmt)
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_PTR, ptr, ((LeveeChanPtr){ val, len }));
+	SEND_MSG (self, LEVEE_CHAN_PTR, err, ptr, ((LeveeChanPtr){ val, len, fmt }));
 }
 
 int
-levee_chan_send_obj (LeveeChanSender *self, void *obj, void (*free)(void *obj))
+levee_chan_send_obj (LeveeChanSender *self, int err, void *obj, void (*free)(void *obj))
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_OBJ, obj, ((LeveeChanObj){ obj, free }));
+	SEND_MSG (self, LEVEE_CHAN_OBJ, err, obj, ((LeveeChanObj){ obj, free }));
 }
 
 int
-levee_chan_send_dbl (LeveeChanSender *self, double val)
+levee_chan_send_dbl (LeveeChanSender *self, int err, double val)
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_DBL, dbl, val);
+	SEND_MSG (self, LEVEE_CHAN_DBL, err, dbl, val);
 }
 
 int
-levee_chan_send_i64 (LeveeChanSender *self, int64_t val)
+levee_chan_send_i64 (LeveeChanSender *self, int err, int64_t val)
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_I64, i64, val);
+	SEND_MSG (self, LEVEE_CHAN_I64, err, i64, val);
 }
 
 int
-levee_chan_send_u64 (LeveeChanSender *self, uint64_t val)
+levee_chan_send_u64 (LeveeChanSender *self, int err, uint64_t val)
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_U64, u64, val);
+	SEND_MSG (self, LEVEE_CHAN_U64, err, u64, val);
 }
 
 int
-levee_chan_send_bool (LeveeChanSender *self, bool val)
+levee_chan_send_bool (LeveeChanSender *self, int err, bool val)
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_BOOL, b, val);
+	SEND_MSG (self, LEVEE_CHAN_BOOL, err, b, val);
 }
 
 int64_t
@@ -457,7 +459,7 @@ levee_chan_connect (LeveeChanSender *self, LeveeChan **chan)
 		goto out;
 	}
 
-	node = CREATE_NODE (self->recv_id, LEVEE_CHAN_SND, sender, sender);
+	node = CREATE_NODE (self->recv_id, LEVEE_CHAN_SND, 0, sender, sender);
 	if (node == NULL) {
 		id = -1;
 		err = errno;
