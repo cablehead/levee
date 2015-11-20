@@ -109,6 +109,15 @@ function Hub_mt:selector()
 end
 
 
+function Hub_mt:dealer()
+	local sender = message.Sender(self)
+	local recver = message.Dealer(self)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
+end
+
+
 function Hub_mt:_coresume(co, err, sender, value)
 	if co ~= self._pcoro then
 		local status

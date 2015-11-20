@@ -18,6 +18,8 @@
 * selector():
   returns `recver`
 
+* dealer():
+  returns `sender`, `recver`
 
 ### Sender
 
@@ -100,6 +102,12 @@ Specialized Recver.
 
 A Selector coalesces many Senders into one Recver. Senders always lose context
 and will continue on the next poller tick after they have been recv'd.
+
+### Dealer
+
+Specialized Recver.
+
+A Dealer allows many recvers. recvers will be queued first in, first out.
 
 
 ### Pair

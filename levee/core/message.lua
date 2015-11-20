@@ -540,7 +540,66 @@ local function Selector(hub)
 end
 
 
+--
+-- Dealer
+
+local Dealer_mt = {}
+Dealer_mt.__index = Dealer_mt
+
+
+function Dealer_mt:recv(ms)
+	if self.closed then return errors.CLOSED end
+
+	local err, value = self.sender:_take()
+	if err or value then return err, value end
+
+	self.fifo:push(coroutine.running())
+	local err, sender, value = self.hub:pause(ms)
+	return err, value
+end
+
+
+function Dealer_mt:_give(err, sender, value)
+	if self.closed then return errors.CLOSED end
+
+	if #self.fifo == 0 then return end
+
+	if err == errors.CLOSED then
+		self.closed = true
+		for co in self.fifo:iter() do
+			self.hub:resume(co, err, sender, value)
+		end
+	else
+		local co = self.fifo:pop()
+		self.hub:resume(co, err, sender, value)
+	end
+
+	return nil, UNBUFFERED
+end
+
+
+function Dealer_mt:__call()
+	local err, value = self:recv()
+	if err then return end
+	return value
+end
+
+
+function Dealer_mt:close()
+	if self.closed then return errors.CLOSED end
+	self.closed = true
+	self.sender:_take(errors.CLOSED)
+	self:_give(errors.CLOSED)
+end
+
+
+local function Dealer(hub)
+	return setmetatable({hub=hub, fifo=d.Fifo()}, Dealer_mt)
+end
+
+
 ----
+
 
 return {
 	Sender = Sender,
@@ -551,5 +610,6 @@ return {
 	Queue = Queue,
 	Stalk = Stalk,
 	Selector = Selector,
+	Dealer = Dealer,
 	Pair = Pair,
 	}

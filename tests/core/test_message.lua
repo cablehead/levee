@@ -463,4 +463,43 @@ return {
 		h:spawn(function() s1:close() end)
 		assert.same({s:recv()}, {levee.errors.CLOSED, r1})
 	end,
+
+	test_dealer = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:dealer()
+
+		local check = {}
+		local function recv(s)
+			local err, value = recver:recv()
+			table.insert(check, s)
+			table.insert(check, {err, value})
+		end
+
+		h:spawn(function() recv("r1") end)
+		h:spawn(function() recv("r2") end)
+		h:spawn(function() recv("r3") end)
+
+		sender:send(3)
+		assert.same(check, {"r1", {nil, 3}})
+		check = {}
+
+		sender:send(2)
+		assert.same(check, {"r2", {nil, 2}})
+		check = {}
+
+		sender:send(1)
+		assert.same(check, {"r3", {nil, 1}})
+		check = {}
+
+		h:spawn(function() recv("r1") end)
+		h:spawn(function() recv("r2") end)
+		h:spawn(function() recv("r3") end)
+
+		sender:close()
+		assert.same(check, {
+			"r1", {levee.errors.CLOSED},
+			"r2", {levee.errors.CLOSED},
+			"r3", {levee.errors.CLOSED}, })
+	end,
 }
