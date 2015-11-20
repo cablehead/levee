@@ -708,6 +708,9 @@ end
 
 
 function Chunk_mt:_tee_0copy(...)
+	-- TODO: error handling, test what happens when and an end is interupted part
+	-- way through
+	-- TODO: if a target blocks on it's w_ev, it'll block forever at the moment
 	local targets = {...}
 	local spawned
 	local last
