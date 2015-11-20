@@ -32,13 +32,15 @@ function StringStream_mt:take(n)
 	return value
 end
 
-local function StringStream(s)
+local ctype_buffer = ffi.typeof("struct LeveeBuffer")
+
+local function StringStream(s, len)
 	local buf, n
-	if type(s) == "string" then
-		buf = ffi.cast("uint8_t *", s)
-		n = #s
-	else
+	if ffi.istype(ctype_buffer, s) then
 		buf, n = s:value()
+	else
+		buf = ffi.cast("uint8_t *", s)
+		n = len or #s
 	end
 	return setmetatable({buf=buf, n=n}, StringStream_mt)
 end

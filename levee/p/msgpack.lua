@@ -248,8 +248,8 @@ local M = {
 	encode = encode,
 }
 
-function M.decode(s)
-	return decoder():stream(M.StringStream(s))
+function M.decode(s, len)
+	return decoder():stream(M.StringStream(s, len))
 end
 
 return M
