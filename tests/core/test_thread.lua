@@ -70,17 +70,12 @@ return {
 	test_call = function()
 		local h = levee.Hub()
 
-		local function add(a, b)
-			return nil, a + b
-		end
+		local function add(a, b) return nil, a + b end
 		assert.same({h.thread:call(add, 3, 2):recv()}, {nil, 5})
 
-		local function throw(n)
-			local errors = require("levee.errors")
-			return errors.get(n)
-		end
-
-		local err = h.thread:call(throw, 4):recv()
+		local err = h.thread:call(
+			function(n) return require("levee.errors").get(n) end,
+			4):recv()
 		assert.equal(err, levee.errors.get(4))
 	end,
 
