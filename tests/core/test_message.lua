@@ -469,6 +469,8 @@ return {
 
 		local sender, recver = h:dealer()
 
+		assert.same({recver:recv(20)}, {levee.errors.TIMEOUT})
+
 		local check = {}
 		local function recv(s)
 			local err, value = recver:recv()

@@ -553,8 +553,10 @@ function Dealer_mt:recv(ms)
 	local err, value = self.sender:_take()
 	if err or value then return err, value end
 
-	self.fifo:push(coroutine.running())
+	self.pri = self.pri + 1
+	local wait = self.heap:push(self.pri, coroutine.running())
 	local err, sender, value = self.hub:pause(ms)
+	if err == errors.TIMEOUT then wait:remove() end
 	return err, value
 end
 
@@ -562,15 +564,15 @@ end
 function Dealer_mt:_give(err, sender, value)
 	if self.closed then return errors.CLOSED end
 
-	if #self.fifo == 0 then return end
+	if #self.heap == 0 then return end
 
 	if err == errors.CLOSED then
 		self.closed = true
-		for co in self.fifo:iter() do
+		for pri, co in self.heap:popiter() do
 			self.hub:resume(co, err, sender, value)
 		end
 	else
-		local co = self.fifo:pop()
+		local pri, co = self.heap:pop()
 		self.hub:resume(co, err, sender, value)
 	end
 
