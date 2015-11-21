@@ -118,6 +118,11 @@ function Hub_mt:dealer()
 end
 
 
+function Hub_mt:pool(factory, size)
+	return message.Pool(self, factory, size)
+end
+
+
 function Hub_mt:_coresume(co, err, sender, value)
 	if co ~= self._pcoro then
 		local status

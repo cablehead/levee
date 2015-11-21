@@ -504,4 +504,25 @@ return {
 			"r2", {levee.errors.CLOSED},
 			"r3", {levee.errors.CLOSED}, })
 	end,
+
+	test_pool = function()
+		local h = levee.Hub()
+
+		local pool = h:pool(function() return "foo" end, 3)
+
+		assert.same({pool:recv()}, {nil, "foo"})
+		assert.same({pool:recv()}, {nil, "foo"})
+		assert.same({pool:recv()}, {nil, "foo"})
+
+		assert.same({pool:recv(20)}, {levee.errors.TIMEOUT})
+		assert.same({pool:recv(20)}, {levee.errors.TIMEOUT})
+
+		pool:send("foo")
+		assert.same({pool:recv()}, {nil, "foo"})
+
+		pool:send("foo")
+		assert.same(
+			{pool:run(function(s1, s2) return nil, s1 .. s2 end, "bar")},
+			{nil, "foobar"})
+	end,
 }

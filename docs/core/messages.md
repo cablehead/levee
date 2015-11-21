@@ -21,6 +21,10 @@
 * dealer():
   returns `sender`, `recver`
 
+* pool(factory, size):
+  returns `pool`
+
+
 ### Sender
 
 
@@ -108,6 +112,25 @@ and will continue on the next poller tick after they have been recv'd.
 Specialized Recver.
 
 A Dealer allows many recvers. recvers will be queued first in, first out.
+
+### Pool(factory, size)
+
+Pool is a finite set of resources that can be shared. `factory` is a callable
+which returns a resource item to add to the pool. `size` is the number of
+resources the pool should contain.
+
+#### methods
+
+* recv(ms):
+  returns `err`, `item`. `item` is an item from the resource pool. if no
+  resources are available this call will block until one is.
+
+* send(item):
+  returns `item` to the resource pool.  return `err`.
+
+* run(f, ...):
+  convenience to run `f(item, ...)` where `item` is an item checked out from the
+  pool. `item` will be returned to the pool after `f` completes.
 
 
 ### Pair

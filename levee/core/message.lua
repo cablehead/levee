@@ -596,7 +596,71 @@ end
 
 
 local function Dealer(hub)
-	return setmetatable({hub=hub, fifo=d.Fifo()}, Dealer_mt)
+	return setmetatable({hub=hub, heap=d.Heap(), pri=0}, Dealer_mt)
+end
+
+
+--
+-- Pool
+
+-- A finite pool of resources to be shared.
+
+local Pool_mt = {}
+Pool_mt.__index = Pool_mt
+
+
+function Pool_mt:send(item)
+	return self.checkin.sender:send(item)
+end
+
+
+function Pool_mt:recv(ms)
+	return self.checkout.recver:recv(ms)
+end
+
+
+function Pool_mt:run(f, ...)
+	local err, item = self:recv()
+	if err then return err end
+		-- TODO: should we wrap in a pcall?
+	local err, value = f(item, ...)
+	self:send(item)
+	return err, value
+end
+
+
+local function Pool(hub, factory, size)
+	local self = setmetatable({}, Pool_mt)
+	self.hub = hub
+	self.factory = factory
+	self.size = size
+
+	-- TODO:
+	-- I'm pretty sure Queue and Stalk to be reworked to be Senders. Then a Queue
+	-- sender could be paired directly with a Dealer recver, without all this -->
+	self.checkin = {}
+	self.checkin.sender = Sender(hub)
+	self.checkin.recver = Queue(hub, size)
+	self.checkin.sender.recver = self.checkin.recver
+	self.checkin.recver.sender = self.checkin.sender
+
+	self.checkout = {}
+	self.checkout.sender = Sender(hub)
+	self.checkout.recver = Dealer(hub)
+	self.checkout.sender.recver = self.checkout.recver
+	self.checkout.recver.sender = self.checkout.sender
+
+	self.hub:spawn(function()
+		for item in self.checkin.recver do
+			local err = self.checkout.sender:send(item)
+			if err then break end
+		end
+		self.checkout.sender:close()
+	end)
+
+	for i = 1, size do self:send(factory()) end
+
+	return self
 end
 
 
@@ -604,6 +668,7 @@ end
 
 
 return {
+	Pair = Pair,
 	Sender = Sender,
 	Recver = Recver,
 	Value = Value,
@@ -613,5 +678,5 @@ return {
 	Stalk = Stalk,
 	Selector = Selector,
 	Dealer = Dealer,
-	Pair = Pair,
+	Pool = Pool,
 	}
