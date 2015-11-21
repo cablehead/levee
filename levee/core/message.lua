@@ -43,12 +43,12 @@ local Sender_mt = {}
 Sender_mt.__index = Sender_mt
 
 
-function Sender_mt:send(value)
+function Sender_mt:pass(errvalue, value)
 	assert(not self.co)
 
 	if self.closed then return errors.CLOSED end
 
-	local err, continued = self.recver:_give(nil, self, value)
+	local err, continued = self.recver:_give(errvalue, self, value)
 
 	if err == errors.CLOSED then
 		self.closed = true
@@ -60,6 +60,7 @@ function Sender_mt:send(value)
 		return
 	end
 
+	self.errvalue = errvalue
 	self.value = value
 	self.co = coroutine.running()
 	local err, sender, continued = self.hub:pause()
@@ -71,7 +72,17 @@ function Sender_mt:send(value)
 
 	if continued then return end
 
-	return self:send(value)
+	return self:pass(errvalue, value)
+end
+
+
+function Sender_mt:send(value)
+	return self:pass(nil, value)
+end
+
+
+function Sender_mt:error(errvalue)
+	return self:pass(errvalue)
 end
 
 
@@ -81,10 +92,12 @@ function Sender_mt:_take(err)
 	if not self.co then return end
 
 	self.hub:resume(self.co, err, nil, true)
+	local errvalue = self.errvalue
 	local value = self.value
 	self.co = nil
+	self.errvalue = nil
 	self.value = nil
-	return nil, value
+	return errvalue, value
 end
 
 
@@ -94,6 +107,7 @@ function Sender_mt:_link(recver)
 	self.hub:resume(self.co)
 	self.co = nil
 	self.value = nil
+	self.errvalue = nil
 end
 
 

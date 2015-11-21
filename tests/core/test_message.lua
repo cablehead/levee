@@ -82,6 +82,31 @@ return {
 		assert.equal(state, levee.errors.CLOSED)
 	end,
 
+	test_pipe_pass = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:pipe()
+
+		local err = levee.errors.get(1)
+
+		h:spawn(function() sender:pass((function() return err end)()) end)
+		assert.same({recver:recv()}, {err})
+
+		h:spawn(function() sender:pass((function() return nil, 3 end)()) end)
+		assert.same({recver:recv()}, {nil, 3})
+
+		h:spawn(function() sender:pass((function() return err end)()) end)
+		assert.same({recver:recv()}, {err})
+	end,
+
+	test_pipe_error = function()
+		local h = levee.Hub()
+		local sender, recver = h:pipe()
+		local err = levee.errors.get(1)
+		h:spawn(function() sender:error(err) end)
+		assert.equal(recver:recv(), err)
+	end,
+
 	test_pipe_timeout = function()
 		local h = levee.Hub()
 
