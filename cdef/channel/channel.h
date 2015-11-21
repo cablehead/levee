@@ -34,6 +34,7 @@ typedef struct {
 	LeveeNode base;
 	int64_t recv_id;
 	LeveeChanType type;
+	int error;
 	union {
 		LeveeChanPtr ptr;
 		LeveeChanObj obj;

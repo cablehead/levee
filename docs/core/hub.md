@@ -64,8 +64,8 @@
 #### thread
 
 * thread:call(f, ...):
-  runs `f` in a new thread with arguments `...`. returns a `rever` which will
-  yield the return values of `f`. `f` should return `err`, `value`
+  runs `f` in a new thread with arguments `...`. returns a `recver` which will
+  yield the return values of `f`. `f` is expected to return `err`, `value`
 
 * thread:spawn(f):
   spawns `f` in a new thread and returns a `channel` to send and recv data into

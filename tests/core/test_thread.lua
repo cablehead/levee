@@ -37,7 +37,9 @@ return {
 		-- normally these two halves would be running in different threads
 		h:continue()
 
-		assert.same({recver:recv()}, {nil, { name = "test", value = 123, nested = { 1, 2, 3 }}})
+		assert.same(
+			{recver:recv()},
+			{nil, { name = "test", value = 123, nested = { 1, 2, 3 }}})
 	end,
 
 	test_channel_connect = function()
@@ -69,25 +71,36 @@ return {
 		local h = levee.Hub()
 
 		local function add(a, b)
-			return a + b
+			return nil, a + b
+		end
+		assert.same({h.thread:call(add, 3, 2):recv()}, {nil, 5})
+
+		local function throw(n)
+			local errors = require("levee.errors")
+			return errors.get(n)
 		end
 
-		local recver = h.thread:call(add, 3, 2)
-		assert.same({recver:recv()}, {nil, 5})
+		local err = h.thread:call(throw, 4):recv()
+		assert.equal(err, levee.errors.get(4))
 	end,
 
 	test_spawn = function()
 		local h = levee.Hub()
 
 		local function f(h)
+			local errors = require("levee.errors")
+
 			local err, got = h.parent:recv()
 			assert(not err)
 			assert(got == 123)
+
 			h.parent:send(321)
+			h.parent:error(errors.get(1))
 		end
 
 		local child = h.thread:spawn(f)
 		child:send(123)
 		assert.same({child:recv()}, {nil, 321})
+		assert.same({child:recv()}, {levee.errors.get(1)})
 	end,
 }

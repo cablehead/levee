@@ -15,8 +15,18 @@ local Pair_mt = {}
 Pair_mt.__index = Pair_mt
 
 
+function Pair_mt:pass(err, value)
+	return self.sender:pass(err, value)
+end
+
+
 function Pair_mt:send(value)
 	return self.sender:send(value)
+end
+
+
+function Pair_mt:error(err)
+	return self.sender:pass(err)
 end
 
 

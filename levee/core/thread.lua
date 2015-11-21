@@ -2,6 +2,7 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
+local errors = require("levee.errors")
 local message = require("levee.core.message")
 local msgpack = require("levee.p").msgpack
 
@@ -78,8 +79,13 @@ end
 
 
 function Recver_mt:pump(node)
+	local err
+	if node.error ~= 0 then
+		err = errors.get(node.error)
+	end
+
 	if node.type == C.LEVEE_CHAN_NIL then
-		self.queue:send(nil)
+		self.queue:pass(err, nil)
 	elseif node.type == C.LEVEE_CHAN_PTR then
 		local err, data
 		if node.as.ptr.fmt == C.LEVEE_CHAN_MSGPACK then
@@ -88,19 +94,19 @@ function Recver_mt:pump(node)
 			data = Data(node.as.ptr.val, node.as.ptr.len)
 			node.as.ptr.val = nil
 		end
-		self.queue:send(data)
+		self.queue:pass(err, data)
 	elseif node.type == C.LEVEE_CHAN_OBJ then
-		self.queue:send(ffi.gc(node.as.obj.obj, node.as.obj.free))
+		self.queue:pass(err, ffi.gc(node.as.obj.obj, node.as.obj.free))
 	elseif node.type == C.LEVEE_CHAN_DBL then
-		self.queue:send(tonumber(node.as.dbl))
+		self.queue:pass(err, tonumber(node.as.dbl))
 	elseif node.type == C.LEVEE_CHAN_I64 then
-		self.queue:send(node.as.i64)
+		self.queue:pass(err, node.as.i64)
 	elseif node.type == C.LEVEE_CHAN_U64 then
-		self.queue:send(node.as.u64)
+		self.queue:pass(err, node.as.u64)
 	elseif node.type == C.LEVEE_CHAN_BOOL then
-		self.queue:send(node.as.b)
+		self.queue:pass(err, node.as.b)
 	elseif node.type == C.LEVEE_CHAN_SND then
-		self.queue:send(C.levee_chan_sender_ref(node.as.sender))
+		self.queue:pass(err, C.levee_chan_sender_ref(node.as.sender))
 	end
 end
 
@@ -401,14 +407,14 @@ function Thread_mt:call(f, ...)
 	-- bootstrap
 	assert(state:load_function(
 		function(sender, f, ...)
-			local ok, got = pcall(loadstring(f), ...)
+			local ok, err, value = pcall(loadstring(f), ...)
 
 			if not ok then
 				-- TODO: we should work an optional error message into Pipe close
-				print("ERROR:", got)
+				error("ERROR:", err)
 			else
 				-- TODO: close
-				sender:send(got)
+				sender:pass(err, value)
 			end
 		end))
 
