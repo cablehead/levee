@@ -64,23 +64,13 @@ local TCP_mt = {}
 TCP_mt.__index = TCP_mt
 
 
-local function _connect(port, host)
-	local _ = require("levee._")
-	local err, no = _.connect(host, port)
-	-- TODO: need to be able to send errors through channels
-	if err then return end
-	return no
-end
-
-
 function TCP_mt:connect(port, host, timeout)
-	local recver = self.hub.thread:call(_connect, port, host or "127.0.0.1")
-	local err, no = recver:recv()
+	local err, no = self.hub.thread:call(
+		function (port, host)
+			return require("levee._").connect(host, port)
+		end,
+		port, host or "127.0.0.1"):recv()
 	if err then return err end
-	-- TODO: ^^
-	if not no then
-		return errors.system.EADDRNOTAVAIL
-	end
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:rw(no, timeout)
 end
