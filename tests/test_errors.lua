@@ -12,6 +12,9 @@ return {
 		local e = errors.add(2001, "test", "BAD", "some bad thing")
 		assert.equal(type(e), "nil")
 
+		local e = errors.checkset(2001, "test", "BAD", "some bad thing")
+		assert.equal(want, e)
+
 		local e = errors.get(2001)
 		assert.equal(want, e)
 		assert(e:is("test", "BAD"))

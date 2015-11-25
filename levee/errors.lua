@@ -69,16 +69,19 @@ end
 
 
 M.add = function(code, domain, name, msg)
-	local e = M.get(code)
-	if e then
-		assert(e.domain == domain)
-		assert(e.name == name)
-		assert(e.msg == msg)
-	else
-		e = C.sp_error_add(code, domain, name, msg)
-		assert(e)
+	local e = C.sp_error_add(code, domain, name, msg)
+	if e ~= nil then
+		if not M[e.domain] then
+			M[e.domain] = {}
+		end
+		M[e.domain][e.name] = e
+		return e
 	end
+end
 
+
+M.checkset = function(code, domain, name, msg)
+	local e = C.sp_error_checkset(code, domain, name, msg)
 	if not M[e.domain] then
 		M[e.domain] = {}
 	end
@@ -100,8 +103,8 @@ while true do
 end
 
 
-M.TIMEOUT = M.add(10100, "levee", "TIMEOUT", "operation timed out")
-M.CLOSED = M.add(10101, "levee", "CLOSED", "channel is closed")
+M.TIMEOUT = M.checkset(10100, "levee", "TIMEOUT", "operation timed out")
+M.CLOSED = M.checkset(10101, "levee", "CLOSED", "channel is closed")
 
 
 return M

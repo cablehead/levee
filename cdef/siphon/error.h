@@ -30,3 +30,7 @@ sp_error_next (const SpError *err);
 
 const SpError *
 sp_error_add (int code, const char *domain, const char *name, const char *msg);
+
+const SpError *
+sp_error_checkset (
+	int code, const char *domain, const char *name, const char *msg);
