@@ -89,12 +89,18 @@ return {
 			assert(not err)
 			assert(got == 123)
 
+			local err, got = h.parent:recv()
+			assert(not err)
+			assert(got == 456)
+
 			h.parent:send(321)
 			h.parent:error(errors.get(1))
 		end
 
 		local child = h.thread:spawn(f)
 		child:send(123)
+		child:send(456)
+
 		assert.same({child:recv()}, {nil, 321})
 		assert.same({child:recv()}, {levee.errors.get(1)})
 	end,

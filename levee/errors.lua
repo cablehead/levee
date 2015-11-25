@@ -69,14 +69,21 @@ end
 
 
 M.add = function(code, domain, name, msg)
-	local e = C.sp_error_add(code, domain, name, msg)
-	if e ~= nil then
-		if not M[e.domain] then
-			M[e.domain] = {}
-		end
-		M[e.domain][e.name] = e
-		return e
+	local e = M.get(code)
+	if e then
+		assert(e.domain == domain)
+		assert(e.name == name)
+		assert(e.msg == msg)
+	else
+		e = C.sp_error_add(code, domain, name, msg)
+		assert(e)
 	end
+
+	if not M[e.domain] then
+		M[e.domain] = {}
+	end
+	M[e.domain][e.name] = e
+	return e
 end
 
 
