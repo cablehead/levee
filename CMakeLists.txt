@@ -80,6 +80,7 @@ install(FILES
 	src/chan.h
 	src/heap.h
 	src/levee.h
+	src/buffer.h
 	src/list.h
 	${LUAJIT_INC}/lauxlib.h
 	${LUAJIT_INC}/lua.h
