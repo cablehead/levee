@@ -8,54 +8,6 @@ local msgpack = require("levee.p").msgpack
 local d = require("levee.d")
 
 
---
--- Data
--- encapsulation for data passed on a channel
-
-ffi.cdef[[
-struct LeveeData {
-	const void *val;
-	size_t len;
-}; ]]
-
-
-local Data_mt = {}
-Data_mt.__index = Data_mt
-
-
-function Data_mt:__new(val, len)
-	return ffi.new(self, val, len)
-end
-
-
-function Data_mt:__gc()
-	C.free(ffi.cast("void *", self.val))
-end
-
-
-function Data_mt:__tostring()
-	return string.format("levee.Data: val=%p, len=%u", self.val, tonumber(self.len))
-end
-
-
-function Data_mt:__len()
-	return self.len
-end
-
-
-function Data_mt:value()
-	return self.val, self.len
-end
-
-
-function Data_mt:string()
-	return ffi.string(self.val, self.len)
-end
-
-
-local Data = ffi.metatype("struct LeveeData", Data_mt)
-
-
 local ctype_ptr = ffi.typeof("struct LeveeData")
 local ctype_buf = ffi.typeof("LeveeBuffer")
 local ctype_dbl = ffi.typeof("double")
@@ -93,7 +45,7 @@ function Recver_mt:pump(node)
 		if node.as.ptr.fmt == C.LEVEE_CHAN_MSGPACK then
 			err, data = msgpack.decode(node.as.ptr.val, node.as.ptr.len)
 		else
-			data = Data(node.as.ptr.val, node.as.ptr.len)
+			data = d.Data(node.as.ptr.val, node.as.ptr.len)
 			node.as.ptr.val = nil
 		end
 		self.queue:pass(err, data)
