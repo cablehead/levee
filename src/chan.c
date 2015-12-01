@@ -396,11 +396,11 @@ levee_chan_send_ptr (LeveeChanSender *self, int err, const void *val, uint32_t l
 
 // TODO: len is only needed as we don't have LeveeBuffer defined in C
 int
-levee_chan_send_buf (LeveeChanSender *self, int err, const void *buf, uint32_t len)
+levee_chan_send_buf (LeveeChanSender *self, int err, LeveeBuffer *buf)
 {
 	assert (self != NULL);
 
-	SEND_MSG (self, LEVEE_CHAN_BUF, err, ptr, ((LeveeChanPtr){ buf, len, LEVEE_CHAN_RAW }));
+	SEND_MSG (self, LEVEE_CHAN_BUF, err, ptr, ((LeveeChanPtr){ buf, sizeof(buf), LEVEE_CHAN_RAW }));
 }
 
 int

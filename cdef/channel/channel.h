@@ -103,7 +103,7 @@ levee_chan_send_ptr (LeveeChanSender *self, int err,
 
 extern int
 levee_chan_send_buf (LeveeChanSender *self, int err,
-		const void *buf, uint32_t len);
+		LeveeBuffer *buf);
 
 extern int
 levee_chan_send_obj (LeveeChanSender *self, int err,

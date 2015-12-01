@@ -7,7 +7,7 @@ local sys = require("levee.sys")
 
 ffi.cdef[[
 struct LeveeDatagram {
-	struct LeveeBuffer *buffer;
+	LeveeBuffer *buffer;
 	struct sockaddr *addr;
 };
 ]]

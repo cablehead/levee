@@ -5,16 +5,6 @@ local C = ffi.C
 local errors = require("levee.errors")
 
 
-ffi.cdef[[
-static const unsigned LEVEE_BUFFER_MIN_SIZE = 8192;
-static const unsigned LEVEE_BUFFER_MAX_BLOCK = 131072;
-struct LeveeBuffer {
-	uint8_t *buf;
-	uint32_t off, len, cap, sav;
-};
-]]
-
-
 local Buffer_mt = {}
 Buffer_mt.__index = Buffer_mt
 
@@ -206,7 +196,7 @@ local function cleanup(buf)
 end
 
 
-local mt = ffi.metatype("struct LeveeBuffer", Buffer_mt)
+local mt = ffi.metatype("LeveeBuffer", Buffer_mt)
 
 
 local M_mt = {}
@@ -215,7 +205,7 @@ M_mt.__index = M_mt
 
 function M_mt.__call(M, hint)
 	local buf = C.malloc(ffi.sizeof(mt))
-	buf = ffi.cast("struct LeveeBuffer*", buf)
+	buf = ffi.cast("LeveeBuffer*", buf)
 	buf = ffi.gc(buf, cleanup)
 	buf.buf = nil
 	buf.off = 0
@@ -228,7 +218,7 @@ end
 
 
 function M_mt.from_ptr(M, buf)
-	buf = ffi.cast("struct LeveeBuffer*", buf)
+	buf = ffi.cast("LeveeBuffer*", buf)
 	buf = ffi.gc(buf, cleanup)
 	return buf
 end

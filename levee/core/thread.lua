@@ -57,7 +57,7 @@ local Data = ffi.metatype("struct LeveeData", Data_mt)
 
 
 local ctype_ptr = ffi.typeof("struct LeveeData")
-local ctype_buf = ffi.typeof("struct LeveeBuffer")
+local ctype_buf = ffi.typeof("LeveeBuffer")
 local ctype_dbl = ffi.typeof("double")
 local ctype_u64 = ffi.typeof("uint64_t")
 local ctype_i64 = ffi.typeof("int64_t")
@@ -173,8 +173,7 @@ function Sender_mt:pass(err, val)
 		return C.levee_chan_send_bool(self, err, val)
 	elseif ffi.istype(ctype_buf, val) then
 		ffi.gc(val, nil)  -- cancel the buffer's local gc
-		return C.levee_chan_send_buf(
-			self, err, val, ffi.sizeof("struct LeveeBuffer"))
+		return C.levee_chan_send_buf(self, err, val)
 	elseif ffi.istype(ctype_ptr, val) then
 		local rc = C.levee_chan_send_ptr(self, err,
 			val.val, val.len, C.LEVEE_CHAN_RAW)

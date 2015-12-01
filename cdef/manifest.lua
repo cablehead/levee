@@ -52,6 +52,7 @@ local headers = {
 	include("fcntl", os),
 	include("ioctl", os),
 	include("poller", os),
+	include("buffer", "buffer"),
 	include("heap", "heap"),
 	include("list", "list"),
 	include("channel", "channel"),

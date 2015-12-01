@@ -32,7 +32,7 @@ function StringStream_mt:take(n)
 	return value
 end
 
-local ctype_buffer = ffi.typeof("struct LeveeBuffer")
+local ctype_buffer = ffi.typeof("LeveeBuffer")
 
 local function StringStream(s, len)
 	local buf, n

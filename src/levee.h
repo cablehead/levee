@@ -99,7 +99,6 @@ levee_require (Levee *self, const char *name);
 extern void
 levee_set_arg (Levee *self, int argc, const char **argv);
 
-
 struct levee_stat {
 	// unsigned long long  st_dev;       /* Device.  */
 	// unsigned long long  st_ino;       /* File serial number.  */
