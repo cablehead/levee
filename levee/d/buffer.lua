@@ -19,16 +19,6 @@ local Buffer_mt = {}
 Buffer_mt.__index = Buffer_mt
 
 
-function Buffer_mt:__new(hint)
-	return ffi.new(self):ensure(hint or 0)
-end
-
-
-function Buffer_mt:__gc()
-	C.free(self.buf)
-end
-
-
 function Buffer_mt:__tostring()
 	return string.format(
 		"levee.Buffer: sav=%u, off=%u, len=%u, cap=%u",
@@ -210,4 +200,24 @@ function Buffer_mt:push(s)
 end
 
 
-return ffi.metatype("struct LeveeBuffer", Buffer_mt)
+local function cleanup(buf)
+	C.free(buf.buf)
+	C.free(buf)
+end
+
+
+local mt = ffi.metatype("struct LeveeBuffer", Buffer_mt)
+
+
+return function(hint)
+	local buf = C.malloc(ffi.sizeof(mt))
+	buf = ffi.cast("struct LeveeBuffer*", buf)
+	buf = ffi.gc(buf, cleanup)
+	buf.buf = nil
+	buf.off = 0
+	buf.len = 0
+	buf.cap = 0
+	buf.sav = 0
+	buf:ensure(hint)
+	return buf
+end
