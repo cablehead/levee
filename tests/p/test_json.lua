@@ -96,11 +96,17 @@ return {
 
 	test_encode = function()
 		local want = {"a", 1, "b", {foo="bar\nfoo"}}
-		local err, got = p.json.decode(p.json.encode(want))
+
+		local err, buf = p.json.encode(want)
+		local s = buf:take()
+		assert.equal(s, '["a", 1, "b", {"foo": "bar\\nfoo"}]')
+
+		local err, got = p.json.decode(s)
 		assert.same(want, got)
 	end,
 
 	test_encode_empty_table = function()
-		assert.equal(p.json.encode({}), "{}")
+		local err, buf = p.json.encode({})
+		assert.equal(buf:take(), "{}")
 	end
 }

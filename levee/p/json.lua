@@ -2,6 +2,7 @@ local ffi = require("ffi")
 local C = ffi.C
 
 local errors = require("levee.errors")
+local d = require("levee.d")
 
 
 local Json_mt = {}
@@ -135,47 +136,58 @@ function is_array(t)
 end
 
 
-local function encode(data)
+local function encode(data, buf)
+	if not buf then
+		buf = d.Buffer(4096)
+	end
+
 	if type(data) == "table" then
 		if is_array(data) then
 			-- encode empty tables as dicts
 			if #data == 0 then
-				return "{}"
+				buf:push("{}")
+				return buf
 			end
 
 			local ret = {}
-			table.insert(ret, "[")
+			buf:push("[")
 			for i, item in ipairs(data) do
-					table.insert(ret, encode(item))
-					table.insert(ret, ", ")
+				encode(item, buf)
+				buf:push(", ")
 			end
-			table.remove(ret)  -- pop trailing ','
-			table.insert(ret, "]")
-			return table.concat(ret)
+			buf.len = buf.len - 2  -- pop trailing ','
+			buf:push("]")
+			return buf
 
 		else
 			-- dict
 			local ret = {}
-			table.insert(ret, "{")
+			buf:push("{")
 			if next(data) then
 				for key, value in pairs(data) do
 					assert(type(key) == "string")
-					table.insert(ret, '"'..key..'"')
-					table.insert(ret, ": ")
-					table.insert(ret, encode(value))
-					table.insert(ret, ", ")
+					-- TODO: memcpy
+					buf:push('"')
+					buf:push(key)
+					buf:push('": ')
+					encode(value, buf)
+					buf:push(", ")
 				end
-				table.remove(ret)  -- pop trailing ','
+				buf.len = buf.len - 2  -- pop trailing ','
 			end
-			table.insert(ret, "}")
-			return table.concat(ret)
-	end
+			buf:push("}")
+			return buf
+		end
 
 	elseif type(data) == "string" then
-		return '"'.. data:gsub("\n", "\\n") ..'"'
+		buf:push('"')
+		buf:push(data:gsub("\n", "\\n"))
+		buf:push('"')
+		return buf
 
 	elseif type(data) == "number" then
-		return tostring(data)
+		buf:push(tostring(data))
+		return buf
 
 	else
 		print(type(data))
@@ -187,7 +199,10 @@ local decoder = ffi.metatype("SpJson", Json_mt)
 
 local M = {
 	decoder = decoder,
-	encode = encode,
+	-- TODO:
+	encode = function(t)
+		return nil, encode(t)
+	end,
 }
 
 function M.decode(s, len)
