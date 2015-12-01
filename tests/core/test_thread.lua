@@ -104,4 +104,21 @@ return {
 		assert.same({child:recv()}, {nil, 321})
 		assert.same({child:recv()}, {levee.errors.get(1)})
 	end,
+
+	test_buffer = function()
+		local h = levee.Hub()
+
+		local function f(h)
+			local levee = require("levee")
+			local buf = levee.d.Buffer(4096)
+			buf:push("foobar123")
+			h.parent:send(buf)
+			collectgarbage("collect")
+		end
+
+		local child = h.thread:spawn(f)
+		local err, buf = child:recv()
+		collectgarbage("collect")
+		assert.equal(buf:take(), "foobar123")
+	end,
 }

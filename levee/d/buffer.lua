@@ -209,7 +209,11 @@ end
 local mt = ffi.metatype("struct LeveeBuffer", Buffer_mt)
 
 
-return function(hint)
+local M_mt = {}
+M_mt.__index = M_mt
+
+
+function M_mt.__call(M, hint)
 	local buf = C.malloc(ffi.sizeof(mt))
 	buf = ffi.cast("struct LeveeBuffer*", buf)
 	buf = ffi.gc(buf, cleanup)
@@ -221,3 +225,13 @@ return function(hint)
 	buf:ensure(hint)
 	return buf
 end
+
+
+function M_mt.from_ptr(M, buf)
+	buf = ffi.cast("struct LeveeBuffer*", buf)
+	buf = ffi.gc(buf, cleanup)
+	return buf
+end
+
+
+return setmetatable({}, M_mt)

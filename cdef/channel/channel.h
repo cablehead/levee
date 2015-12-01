@@ -6,6 +6,7 @@ typedef enum {
 	LEVEE_CHAN_NIL,
 	LEVEE_CHAN_PTR,
 	LEVEE_CHAN_OBJ,
+	LEVEE_CHAN_BUF,
 	LEVEE_CHAN_DBL,
 	LEVEE_CHAN_I64,
 	LEVEE_CHAN_U64,
@@ -99,6 +100,10 @@ extern int
 levee_chan_send_ptr (LeveeChanSender *self, int err,
 		const void *val, uint32_t len,
 		LeveeChanFormat fmt);
+
+extern int
+levee_chan_send_buf (LeveeChanSender *self, int err,
+		const void *buf, uint32_t len);
 
 extern int
 levee_chan_send_obj (LeveeChanSender *self, int err,

@@ -5,6 +5,7 @@ local C = ffi.C
 local errors = require("levee.errors")
 local message = require("levee.core.message")
 local msgpack = require("levee.p").msgpack
+local d = require("levee.d")
 
 
 --
@@ -56,6 +57,7 @@ local Data = ffi.metatype("struct LeveeData", Data_mt)
 
 
 local ctype_ptr = ffi.typeof("struct LeveeData")
+local ctype_buf = ffi.typeof("struct LeveeBuffer")
 local ctype_dbl = ffi.typeof("double")
 local ctype_u64 = ffi.typeof("uint64_t")
 local ctype_i64 = ffi.typeof("int64_t")
@@ -95,6 +97,9 @@ function Recver_mt:pump(node)
 			node.as.ptr.val = nil
 		end
 		self.queue:pass(err, data)
+	elseif node.type == C.LEVEE_CHAN_BUF then
+		local buf = d.Buffer:from_ptr(node.as.ptr.val)
+		self.queue:pass(nil, buf)
 	elseif node.type == C.LEVEE_CHAN_OBJ then
 		self.queue:pass(err, ffi.gc(node.as.obj.obj, node.as.obj.free))
 	elseif node.type == C.LEVEE_CHAN_DBL then
@@ -166,6 +171,10 @@ function Sender_mt:pass(err, val)
 		return C.levee_chan_send_dbl(self, err, val)
 	elseif type(val) == "boolean" then
 		return C.levee_chan_send_bool(self, err, val)
+	elseif ffi.istype(ctype_buf, val) then
+		ffi.gc(val, nil)  -- cancel the buffer's local gc
+		return C.levee_chan_send_buf(
+			self, err, val, ffi.sizeof("struct LeveeBuffer"))
 	elseif ffi.istype(ctype_ptr, val) then
 		local rc = C.levee_chan_send_ptr(self, err,
 			val.val, val.len, C.LEVEE_CHAN_RAW)
