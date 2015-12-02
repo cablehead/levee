@@ -37,7 +37,7 @@ end
 
 
 function Data_mt:value()
-	return self.val, self.len
+	return self.val, tonumber(self.len)
 end
 
 
