@@ -192,7 +192,16 @@ Options:
 		local inc = options.include or "levee"
 		local debug = true
 
-		if options.file then
+		if options.script then
+			options.name = options.name or "__script"
+			local f = check(loadstring(options.script))
+			table.insert(files, {
+				id = "__script",
+				req_name = "__script.main",
+				func_name = "__script",
+				bytecode = string.dump(f), })
+
+		elseif options.file then
 			options.name = options.name or options.file:match("^(.+)%..+$")
 			local f = collect_file(dirname(options.file), options.file, debug)
 			if f then

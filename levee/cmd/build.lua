@@ -83,13 +83,15 @@ end
 
 return {
 	usage = function()
-    return [[Usage: levee build [-o <exe] [-n <name>] <module> [module...]
+    return [[
+Usage: levee build [-o <exe] [-n <name>]
+                   (<module> [module...] | -e <script>)
 
 Options:
   -o <exe>, --out <exe>       # file to out to [default: ./a.out]
   -n <name>, --name <name>    # project name [default: name of first module
                               # listed]
-  ]]
+  -e <script>                 # adhoc script to compile]]
 	end,
 
 	parse = function(argv)
@@ -102,6 +104,9 @@ Options:
 				local path = argv:next():gsub("/$", "")
 				table.insert(options.modules, path)
 
+			elseif opt == "e" then
+				options.script = argv:next()
+
 			elseif opt == "o" or opt == "output" then
 				options.exe = argv:next()
 
@@ -111,16 +116,26 @@ Options:
 		end
 
 		if #options.modules == 0 then
-			io.stderr:write("no modules provided\n")
-			os.exit(1)
+			if not options.script then
+				io.stderr:write("no modules or script provided\n")
+				os.exit(1)
+			end
+			options.modules = nil
+
+		else
+			if options.script then
+				io.stderr:write("either provide an adhoc script or a set of modules\n")
+				os.exit(1)
+			end
+
+			local err, st = _.stat(options.modules[1])
+			if err then err:exit() end
+
+			if st:is_reg() then
+				options.file = options.modules[1]
+			end
 		end
 
-		local err, st = _.stat(options.modules[1])
-		if err then err:exit() end
-
-		if st:is_reg() then
-			options.file = options.modules[1]
-		end
 
 		options.exe = options.exe or "./a.out"
 
