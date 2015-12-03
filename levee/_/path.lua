@@ -1,7 +1,6 @@
 local ffi = require('ffi')
 local C = ffi.C
 
-
 local errors = require("levee.errors")
 
 
@@ -125,6 +124,14 @@ function _.envname(s)
 	local n = C.sp_path_env(s, buf, buflen)
 	if n < 0 then return errors.get(n) end
 	return nil, ffi.string(buf, n)
+end
+
+
+function _.exists(name)
+  local ffi = require("ffi")
+  local C = ffi.C
+  local rc = C.access(name, C.F_OK)
+  return rc ~= -1
 end
 
 

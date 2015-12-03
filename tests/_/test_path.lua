@@ -291,4 +291,11 @@ return {
 		assert.equal(a, "/path/to/file")
 		assert.equal(b, "txt")
 	end,
+
+	test_exists = function()
+		local path = os.tmpname()
+		assert(_.path.exists(path))
+		os.remove(path)
+		assert(not _.path.exists(path))
+	end,
 }
