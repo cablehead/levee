@@ -68,9 +68,11 @@ local function traceback(n, m)
 		table.insert(s, ": ")
 		table.insert(s, tostring(info.currentline))
 		table.insert(s, "\n")
-		table.insert(s, "  --> "..
-			trim(Source(info.short_src):line(info.currentline)))
-		table.insert(s, "\n")
+		if _.path.exists(info.short_src) then
+			table.insert(s, "  --> "..
+				trim(Source(info.short_src):line(info.currentline)))
+			table.insert(s, "\n")
+		end
 		table.insert(s, "\n")
 	end
 	return table.concat(s)
