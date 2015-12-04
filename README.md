@@ -3,17 +3,17 @@
 Levee is a tool to succinctly and quickly create high performance network
 appliances.
 
-## Getting setup
+## Installing
 
-First, you will need a few dependencies:
-
-On Mac:
+### On Mac
 
 ```bash
-brew install ragel
+brew install imgix/brew/levee
 ```
 
-On Debian / Ubuntu:
+### On Debian / Ubuntu
+
+First, you will need a few dependencies:
 
 ```bash
 apt-get install ragel
