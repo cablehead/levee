@@ -28,15 +28,19 @@ Options:
 	run = function(options)
 		local version = meta.version
 		if options.build then
-			print(string.format("%d.%d.%d",
-				version.major, version.minor, version.patch))
+			print(string.format("%d.%d.%d%s",
+				version.major, version.minor, version.patch, version.pre_release))
 		end
 		if options.date then
 			print(version.date.string)
 		end
 		if not options.build and not options.date then
-			print(string.format("Levee version %d.%d.%d %s",
-					version.major, version.minor, version.patch, version.date.string))
+			print(string.format("Levee version %d.%d.%d%s %s",
+					version.major,
+					version.minor,
+					version.patch,
+					version.pre_release,
+					version.date.string))
 			print(string.format("Copyright (c) %d Imgix",
 					version.date.year))
 		end
