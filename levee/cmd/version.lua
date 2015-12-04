@@ -35,8 +35,8 @@ Options:
 			print(version.date.string)
 		end
 		if not options.build and not options.date then
-			print(string.format("Levee version %d.%d %s",
-					version.major, version.minor, version.date.string))
+			print(string.format("Levee version %d.%d.%d %s",
+					version.major, version.minor, version.patch, version.date.string))
 			print(string.format("Copyright (c) %d Imgix",
 					version.date.year))
 		end
