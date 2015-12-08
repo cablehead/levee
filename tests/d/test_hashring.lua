@@ -46,9 +46,9 @@ return {
 
 		r:put("test1", 3, 2)
 		local replica = r:find("/some/path")
+
 		local node1 = replica1:reserve()
 		assert(node1:key(), "test1")
-
 		local node2 = replica1:reserve()
 		assert(node2:key(), "test1")
 		local node3 = replica1:reserve()
