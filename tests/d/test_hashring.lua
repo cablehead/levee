@@ -47,11 +47,11 @@ return {
 		r:put("test1", 3, 2)
 		local replica = r:find("/some/path")
 
-		local node1 = replica1:reserve()
+		local node1 = replica:reserve()
 		assert(node1:key(), "test1")
-		local node2 = replica1:reserve()
+		local node2 = replica:reserve()
 		assert(node2:key(), "test1")
-		local node3 = replica1:reserve()
+		local node3 = replica:reserve()
 		assert.equal(node3, nil)
 	end,
 
