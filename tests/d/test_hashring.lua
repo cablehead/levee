@@ -41,6 +41,20 @@ return {
 		assert.equal(replica3.node, node3)
 	end,
 
+	test_reserve_no_avail = function()
+		local r = d.HashRing()
+
+		r:put("test1", 3, 2)
+		local replica = r:find("/some/path")
+		local node1 = replica1:reserve()
+		assert(node1:key(), "test1")
+
+		local node2 = replica1:reserve()
+		assert(node2:key(), "test1")
+		local node3 = replica1:reserve()
+		assert.equal(node3, nil)
+	end,
+
 	test_iter = function()
 		local r = d.HashRing()
 		r:put("test1", 3, 2)
@@ -54,5 +68,19 @@ return {
 		end
 
 		assert.same(matched, {test1=3, test2=3, test3=3})
-	end
+	end,
+
+	test_del = function()
+		-- this might be an issue. after deleted one node there appears to be an
+		-- additional replica for the remaining node
+		do return "SKIP" end
+		local r = d.HashRing()
+		-- 3 replicas, 2 availability
+		r:put("test1", 3, 2)
+		r:del("test1")
+		r:put("test2", 3, 2)
+		for n in r:iter() do
+			print(n, n:key())
+		end
+	end,
 }

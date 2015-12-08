@@ -53,7 +53,9 @@ end
 
 
 function HashRingReplica_mt:reserve()
-	return C.sp_ring_reserve(self.node.ring, self)
+	local node = C.sp_ring_reserve(self.node.ring, self)
+	if node == nil then return end
+	return node
 end
 
 
