@@ -55,6 +55,20 @@ return {
 		assert.equal(node3, nil)
 	end,
 
+	test_find_no_node = function()
+		local r = d.HashRing()
+
+		-- test when initially empty
+		local replica = r:find("/some/path")
+		assert.equal(replica, nil)
+
+		-- test after last node deleted
+		r:put("test1", 3, 2)
+		r:del("test1")
+		local replica = r:find("/some/path")
+		assert.equal(replica, nil)
+	end,
+
 	test_iter = function()
 		local r = d.HashRing()
 		r:put("test1", 3, 2)

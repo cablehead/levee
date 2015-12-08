@@ -114,7 +114,9 @@ end
 
 
 function HashRing_mt:find(val)
-	return C.sp_ring_find(self, val, #val)
+	local replica = C.sp_ring_find(self, val, #val)
+	if replica == nil then return end
+	return replica
 end
 
 
