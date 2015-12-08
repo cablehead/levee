@@ -85,16 +85,14 @@ return {
 	end,
 
 	test_del = function()
-		-- this might be an issue. after deleted one node there appears to be an
-		-- additional replica for the remaining node
-		do return "SKIP" end
 		local r = d.HashRing()
-		-- 3 replicas, 2 availability
+
 		r:put("test1", 3, 2)
 		r:del("test1")
 		r:put("test2", 3, 2)
-		for n in r:iter() do
-			print(n, n:key())
-		end
+
+		local count = 0
+		for n in r:iter() do count = count + 1 end
+		assert.equal(count, 3)
 	end,
 }
