@@ -6,7 +6,7 @@ local _ = require("levee._")
 
 local function usage()
 	local ret = {
-		"usage: levee <command> ...\n\n",
+		"Usage: levee <command> ...\n\n",
 		"Available commands are:\n", }
 
 	for k, v in pairs(cmd) do

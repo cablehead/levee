@@ -1,13 +1,19 @@
 local meta = require("levee.meta")
 
+
+local function capitalize(s)
+	return s:sub(1,1):upper()..s:sub(2)
+end
+
+
 return {
 	usage = function()
-		return [[Usage: levee version"
+		return ([[Usage: %s version
 
 Options:
   -b, --build  # print the build version
   -d, --date   # print the date
-]]
+]]):format(meta.name)
 	end,
 
 	parse = function(argv)
@@ -36,7 +42,7 @@ Options:
 		end
 		if not options.build and not options.date then
 			print(string.format("%s version %d.%d.%d%s %s",
-				meta.project,
+				capitalize(meta.name),
 				version.major,
 				version.minor,
 				version.patch,

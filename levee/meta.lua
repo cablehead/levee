@@ -10,7 +10,7 @@ date.string = string.format(
 )
 
 return {
-	project = "Levee",
+	name = "levee",
 	version = {
 		major = 0,
 		minor = 3,
