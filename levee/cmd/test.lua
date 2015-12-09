@@ -2,6 +2,7 @@ local math = require('math')
 local io = require('io')
 local os = require('os')
 
+local meta = require("levee.meta")
 local _ = require("levee._")
 
 
@@ -437,7 +438,8 @@ end
 
 return {
 	usage = function()
-		return "Usage: levee test [-v] [-x] [-k <match>] [--cov] <path>"
+		return (
+			"Usage: %s test [-v] [-x] [-k <match>] [--cov] <path>"):format(meta.name)
 	end,
 
 	parse = function(argv)

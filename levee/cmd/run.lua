@@ -1,12 +1,13 @@
 local os = require('os')
 
 local levee = require("levee")
+local meta = require("levee.meta")
 local _ = require("levee._")
 
 
 return {
 	usage = function()
-		return "Usage: levee run (<path> | -e <script>) [arg...]"
+		return ("Usage: %s run (<path> | -e <script>) [arg...]"):format(meta.name)
 	end,
 
 	parse = function(argv)

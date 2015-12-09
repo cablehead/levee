@@ -2,6 +2,7 @@ local ffi = require('ffi')
 local os = require('os')
 
 local levee = require("levee")
+local meta = require("levee.meta")
 local _ = require("levee._")
 
 local bundle = require("levee.cmd.bundle")
@@ -83,15 +84,15 @@ end
 
 return {
 	usage = function()
-    return [[
-Usage: levee build [-o <exe] [-n <name>]
+    return ([[
+Usage: %s build [-o <exe] [-n <name>]
                    (<module> [module...] | -e <script>)
 
 Options:
   -o <exe>, --out <exe>       # file to out to [default: ./a.out]
   -n <name>, --name <name>    # project name [default: name of first module
                               # listed]
-  -e <script>                 # adhoc script to compile]]
+  -e <script>                 # adhoc script to compile]]):format(meta.name)
 	end,
 
 	parse = function(argv)
