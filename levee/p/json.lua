@@ -2,6 +2,7 @@ local ffi = require("ffi")
 local C = ffi.C
 
 local errors = require("levee.errors")
+local _ = require("levee._")
 local d = require("levee.d")
 
 
@@ -125,15 +126,6 @@ end
 --
 -- Poor man's encode - just awful, please replace
 
--- http://ericjmritz.name/2014/02/26/lua-is_array/
-function is_array(t)
-    local i = 0
-    for _ in pairs(t) do
-        i = i + 1
-        if t[i] == nil then return false end
-    end
-    return true
-end
 
 
 local function encode(data, buf)
@@ -142,7 +134,7 @@ local function encode(data, buf)
 	end
 
 	if type(data) == "table" then
-		if is_array(data) then
+		if _.is_array(data) then
 			-- encode empty tables as dicts
 			if #data == 0 then
 				buf:push("{}")
@@ -209,5 +201,5 @@ function M.decode(s, len)
 	return decoder():stream(M.StringStream(s, len))
 end
 
-return M
 
+return M

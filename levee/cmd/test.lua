@@ -154,32 +154,6 @@ end
 
 assert = setmetatable({}, Assert_mt)
 
-local function repr(x, indent, seen)
-	seen = seen or {}
-
-	indent = indent or ""
-	local s
-	if type(x) == "table" then
-		if seen[x] then return tostring(x) end
-		seen[x] = 1
-		s = "{\n"
-		local i, v = next(x)
-		while i do
-			s = s .. indent .. "    " .. repr(i, nil, seen) .. " = " .. repr(v, indent.."    ", seen)
-			i, v = next(x, i)
-			if i then s = s .. ",\n" end
-
-		end
-		return s .. "}"
-
-	elseif type(x) == "string" then
-		return '"'..x..'"'
-
-	else
-		return tostring(x)
-	end
-end
-
 
 --
 -- colors
@@ -472,7 +446,7 @@ return {
 	end,
 
 	run = function(options)
-		_G.repr = repr
+		_G.repr = _.repr
 
 		local start = _.time.now()
 
