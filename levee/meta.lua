@@ -9,12 +9,18 @@ date.string = string.format(
 	date.year, date.month, date.day
 )
 
+local version = {
+	major = 0,
+	minor = 3,
+	patch = 2,
+	pre_release = "-alpha",
+	date = date, }
+
+version.string = string.format(
+	"%d.%d.%d%s",
+	version.major, version.minor, version.patch, version.pre_release)
+
 return {
 	name = "levee",
-	version = {
-		major = 0,
-		minor = 3,
-		patch = 2,
-		pre_release = "-alpha",
-		date = date, },
+	version = version,
 }

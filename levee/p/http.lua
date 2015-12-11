@@ -5,15 +5,14 @@ local errors = require("levee.errors")
 local _ = require("levee._")
 local d = require("levee.d")
 local json = require("levee.p.json")
-
-
--- TODO
-local meta = {version = "foo"}
+local meta = require("levee.meta")
 
 
 local VERSION = "HTTP/1.1"
 local FIELD_SEP = ": "
 local EOL = "\r\n"
+
+local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
 
 
 --
@@ -463,7 +462,8 @@ end
 function Client_mt:__headers(headers)
 	-- TODO: Host
 	local ret = {
-		["User-Agent"] = "levee/" .. meta.version,
+		Host = self.HOST,
+		["User-Agent"] = USER_AGENT,
 		Accept = "*/*", }
 	for key, value in pairs(headers or {}) do
 		ret[key] = value
@@ -805,6 +805,14 @@ HTTP_mt.__index = HTTP_mt
 
 function HTTP_mt:connect(port, host)
 	local m = setmetatable({}, Client_mt)
+
+	host = host or "127.0.0.1"
+
+	if port ~= 80 then
+		m.HOST = ("%s:%s"):format(host, port)
+	else
+		m.HOST = host
+	end
 
 	local err, conn = self.hub.tcp:connect(port, host)
 	if err then return err end

@@ -185,6 +185,9 @@ return {
 		local err, req = s:recv()
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/path")
+		assert(req.headers["Host"])
+		assert(req.headers["User-Agent"])
+		assert(req.headers["Accept"])
 		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
 		local err, response = response:recv()
