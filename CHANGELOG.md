@@ -5,7 +5,7 @@
 * hashring fixes
 * add meta.name for usage messages so subcommands can be reused by other
   projects
-* clean up repr and move to \_
+* clean up repr and move to \_.
 
 ## 0.3.1 - 2015-12-03
 
