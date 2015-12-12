@@ -399,6 +399,7 @@ function Client_mt:reader(responses)
 		local err, value
 
 		err, value = self.parser:stream_next(self.stream)
+		assert(self.parser.type == C.SP_HTTP_RESPONSE)
 		if err then goto __cleanup end
 
 		local res = setmetatable({
@@ -450,6 +451,10 @@ function Client_mt:reader(responses)
 					self.stream.buf:freeze(chunk.len)
 				end
 			end
+			err, value = self.parser:stream_next(self.stream)
+			if err then goto __cleanup end
+			-- TODO: trailing headers
+			assert(not value[1])
 			chunks:close()
 		end
 	end

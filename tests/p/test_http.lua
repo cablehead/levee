@@ -426,24 +426,29 @@ return {
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		assert.same({res:discard()}, {nil, 14})
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		assert.equal(res:tostring(), '{"foo": "bar"}')
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		local err, buf = res:tobuffer()
 		assert.equal(buf:peek(), '{"foo": "bar"}')
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		assert.same({res:json()}, {nil, {foo = "bar"}})
 
 		local tmp = os.tmpname()
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		res:save(tmp)
 		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
 		os.remove(tmp)
@@ -475,24 +480,29 @@ return {
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		assert.same({res:discard()}, {nil, 14})
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		assert.equal(res:tostring(), '{"foo": "bar"}')
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		local err, buf = res:tobuffer()
 		assert.equal(buf:peek(), '{"foo": "bar"}')
 
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		assert.same({res:json()}, {nil, {foo = "bar"}})
 
 		local tmp = os.tmpname()
 		local err, res = c:get("/")
 		local err, res = res:recv()
+		assert.equal(res.code, 200)
 		res:save(tmp)
 		assert.equal(io.open(tmp):read(), '{"foo": "bar"}')
 		os.remove(tmp)
