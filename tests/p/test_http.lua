@@ -465,7 +465,8 @@ return {
 			for req in s do
 				req.response:send({levee.HTTPStatus(200), {}, nil})
 				req.response:send('{"foo": "')
-				req.response:send('bar"}')
+				req.response:send(5)
+				req.conn:write('bar"}')
 				req.response:close()
 			end
 		end)
