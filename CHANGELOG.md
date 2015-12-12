@@ -7,6 +7,7 @@
   projects
 * clean up repr and move to \_.
 * add Host header to http client requests, fix http client User-Agent
+* fix bug in chunk transfer encoding parsing
 
 ## 0.3.1 - 2015-12-03
 
