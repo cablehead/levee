@@ -167,12 +167,8 @@ function Msgpack_mt:stream_next(stream)
 	local err, n = self:next(buf, len, false)
 	if err then return err end
 
-	if n > 0 then
-		stream:trim(n)
-		if self.type ~= C.SP_MSGPACK_NONE then
-			return
-		end
-	end
+	if n > 0 then stream:trim(n) end
+	if self.type ~= C.SP_MSGPACK_NONE then return end
 
 	local err, n = stream:readin()
 	if err then return err end
@@ -186,25 +182,23 @@ function Msgpack_mt:stream_value(stream)
 
 	if self.type == C.SP_MSGPACK_MAP then
 		local ob = {}
-		local num = self.tag.count
-		for _ = 1, num do
+		while true do
 			local err, key = self:stream_value(stream)
 			if err then return err end
+			if key == C.SP_MSGPACK_MAP_END then return nil, ob end
 			local err, value = self:stream_value(stream)
 			if err then return err end
 			ob[key] = value
 		end
-		return nil, ob
 
 	elseif self.type == C.SP_MSGPACK_ARRAY then
-		local num = self.tag.count
 		local arr = {}
-		for _ = 1, num do
+		while true do
 			local err, value = self:stream_value(stream)
 			if err then return err end
+			if value == C.SP_MSGPACK_ARRAY_END then return nil, arr end
 			table.insert(arr, value)
 		end
-		return nil, arr
 
 	elseif self.type == C.SP_MSGPACK_SIGNED then
 		return nil, tonumber(self.tag.i64)
@@ -225,7 +219,8 @@ function Msgpack_mt:stream_value(stream)
 		return nil, stream:take(self.tag.count)
 
 	else
-		error("TODO: "..tostring(self.type))
+		-- should only be SP_MSGPACK_MAP_END and SP_MSGPACK_ARRAY_END
+		return nil, self.type
 	end
 end
 

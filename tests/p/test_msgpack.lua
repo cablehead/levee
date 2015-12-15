@@ -1,22 +1,20 @@
+local levee = require("levee")
+
 return {
 	test_nested = function()
-		local p = require("levee.p")
-
 		local want = {
 			foo = "bar",
 			arr = {3, -4, "foo", true, false, 3.7},
 		}
 
-		local err, buf = p.msgpack.encode(want)
-
-		local err, got = p.msgpack.decoder():stream(buf)
+		local err, buf = levee.p.msgpack.encode(want)
+		local err, got = levee.p.msgpack.decoder():stream(buf)
 		assert(not err)
 		assert.same(want, got)
 		assert.equal(#buf, 0)
 	end,
 
 	test_stream = function()
-		local levee = require("levee")
 
 		local h = levee.Hub()
 
@@ -30,5 +28,20 @@ return {
 		local err, got = levee.p.msgpack.decoder():stream(s)
 		assert(not err)
 		assert.same(want, got)
+	end,
+
+	test_more = function()
+		local want = {
+			params = {
+							h = "50",
+							w = "100" },
+			uri = "/1/5376404c0d42e0472e0784aa:100/gA/:/i2.jpg",
+			headers = {
+							Accept = "*/*",
+							["User-Agent"] = "levee/0.3.2-alpha",
+							Host = "cgraphics.imgix.net" } }
+		local err, buf = levee.p.msgpack.encode(want)
+		local err, got = levee.p.msgpack.decoder():stream(buf)
+		assert.same(got, want)
 	end,
 }
