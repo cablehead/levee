@@ -8,6 +8,8 @@
 * clean up repr and move to \_.
 * add Host header to http client requests, fix http client User-Agent
 * fix bug in chunk transfer encoding parsing
+* fix bug in lua msgpack bindings where array/map end states weren't expected
+  from the parser
 
 ## 0.3.1 - 2015-12-03
 
