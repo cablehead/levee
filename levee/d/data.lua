@@ -37,7 +37,7 @@ end
 
 
 function Data_mt:value()
-	return self.val, tonumber(self.len)
+	return ffi.cast("char*", self.val), tonumber(self.len)
 end
 
 
