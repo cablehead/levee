@@ -108,5 +108,20 @@ return {
 	test_encode_empty_table = function()
 		local err, buf = p.json.encode({})
 		assert.equal(buf:take(), "{}")
-	end
+	end,
+
+	test_more = function()
+		local want = {
+			params = {
+							h = "50",
+							w = "100" },
+			uri = "/1/5376404c0d42e0472e0784aa:100/gA/:/i2.jpg",
+			headers = {
+							Accept = "*/*",
+							["User-Agent"] = "levee/0.3.2-alpha",
+							Host = "cgraphics.imgix.net" } }
+		local err, buf = p.json.encode(want)
+		local err, got = p.json.decoder():stream(buf)
+		assert.same(got, want)
+	end,
 }

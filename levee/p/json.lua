@@ -49,13 +49,8 @@ function Json_mt:stream_next(stream)
 	local err, n = self:next(buf, len, false)
 	if err then return err end
 
-	if n > 0 then
-		stream:trim(n)
-		-- need to read more if SP_JSON_NONE
-		if self.type ~= C.SP_JSON_NONE then
-			return
-		end
-	end
+	if n > 0 then stream:trim(n) end
+	if self.type ~= C.SP_JSON_NONE then return end
 
 	local err, n = stream:readin()
 	if err then return err end
