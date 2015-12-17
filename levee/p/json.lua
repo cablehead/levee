@@ -16,7 +16,7 @@ end
 
 
 function Json_mt:__tostring()
-	return string.format("levee.json: %p", self)
+	return string.format("levee.p.json: %p", self)
 end
 
 

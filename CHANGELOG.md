@@ -10,6 +10,7 @@
 * fix bug in chunk transfer encoding parsing
 * fix bug in lua msgpack bindings where array/map end states weren't expected
   from the parser
+* pull in siphon empty map / array msgpack fix
 
 ## 0.3.1 - 2015-12-03
 

@@ -116,6 +116,7 @@ return {
 							h = "50",
 							w = "100" },
 			uri = "/1/5376404c0d42e0472e0784aa:100/gA/:/i2.jpg",
+			foo = {},
 			headers = {
 							Accept = "*/*",
 							["User-Agent"] = "levee/0.3.2-alpha",

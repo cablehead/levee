@@ -3,6 +3,7 @@ local C = ffi.C
 
 local errors = require("levee.errors")
 local d = require("levee.d")
+local _ = require("levee._")
 
 
 --
@@ -151,6 +152,28 @@ end
 
 function Msgpack_mt:__new()
 	return ffi.new(self):init()
+end
+
+
+function Msgpack_mt:__tostring()
+	local type_map = {
+		[C.SP_MSGPACK_NONE] = "NONE",
+		[C.SP_MSGPACK_MAP] = "MAP",
+		[C.SP_MSGPACK_ARRAY] = "ARRAY",
+		[C.SP_MSGPACK_MAP_END] = "MAP_END",
+		[C.SP_MSGPACK_ARRAY_END] = "ARRAY_END",
+		[C.SP_MSGPACK_NIL] = "NIL",
+		[C.SP_MSGPACK_TRUE] = "TRUE",
+		[C.SP_MSGPACK_FALSE] = "FALSE",
+		[C.SP_MSGPACK_SIGNED] = "SIGNED",
+		[C.SP_MSGPACK_UNSIGNED] = "UNSIGNED",
+		[C.SP_MSGPACK_FLOAT] = "FLOAT",
+		[C.SP_MSGPACK_DOUBLE] = "DOUBLE",
+		[C.SP_MSGPACK_STRING] = "STRING",
+		[C.SP_MSGPACK_BINARY] = "BINARY",
+		[C.SP_MSGPACK_EXT] = "EXT", }
+	return string.format(
+		"levee.p.msgpack: %p type=%s", self, type_map[tonumber(self.type)])
 end
 
 

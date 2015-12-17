@@ -35,6 +35,7 @@ return {
 			params = {
 							h = "50",
 							w = "100" },
+			foo = {},
 			uri = "/1/5376404c0d42e0472e0784aa:100/gA/:/i2.jpg",
 			headers = {
 							Accept = "*/*",
