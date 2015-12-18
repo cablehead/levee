@@ -156,4 +156,16 @@ return {
 		local diff = (stop - start):seconds()
 		assert(diff > 0.09 and diff < 0.11, diff)
 	end,
+
+	test_error = function()
+		-- investigate the behavior of error reporting when a coroutine errors
+		-- skipped as this would trigger a FAIL otherwise
+		-- TODO: should it be possible to capture coroutines that crash?
+		do return "SKIP" end
+		local h = levee.Hub()
+		function foo()
+			assert(false)
+		end
+		h:spawn(function() foo() end)
+	end,
 }
