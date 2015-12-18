@@ -813,14 +813,16 @@ function HTTP_mt:connect(port, host)
 
 	host = host or "127.0.0.1"
 
-	if port ~= 80 then
+	local err, conn = self.hub.tcp:connect(port, host)
+	if err then return err end
+
+	local err, peer = _.getpeername(conn.no)
+
+	if peer:port() ~= 80 then
 		m.HOST = ("%s:%s"):format(host, port)
 	else
 		m.HOST = host
 	end
-
-	local err, conn = self.hub.tcp:connect(port, host)
-	if err then return err end
 
 	m.hub = self.hub
 	m.conn = conn
