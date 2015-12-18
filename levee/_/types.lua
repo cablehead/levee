@@ -56,7 +56,7 @@ function _.repr(val, depth, seen)
 		end
 
 	elseif type(val) == "string" then
-		return '"' .. val:gsub('"', '\\"'):gsub("\n", "\\n") .. '"'
+		return '"' .. val:gsub('"', '\\"'):gsub("\n", "\\n"):gsub("\r", "\\r") .. '"'
 
 	else
 		return tostring(val)
