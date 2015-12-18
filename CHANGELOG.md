@@ -12,6 +12,7 @@
   from the parser
 * pull in siphon empty map / array msgpack fix
 * improve error logging when coroutines error
+* fix composing Host header in http client
 
 ## 0.3.1 - 2015-12-03
 
