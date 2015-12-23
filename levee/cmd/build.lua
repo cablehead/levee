@@ -172,8 +172,8 @@ Options:
 			linux = {
 				"-D_BSD_SOURCE", "-D_GNU_SOURCE",
 				"-pthread", "-Wl,--export-dynamic", "-static-libgcc",
-				"-lm", "-ldl",
 				"-Wl,--whole-archive," .. lib .. ",--no-whole-archive",
+				"-lm", "-ldl",
 			},
 			osx = {
 				"-pagezero_size", "10000", "-image_base", "100000000",
