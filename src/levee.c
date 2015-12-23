@@ -44,7 +44,7 @@ static int
 levee_dsym_loader (lua_State *L) {
 	size_t len;
 	const char *target = lua_tolstring (L, 1, &len);
-	const char *offset = strchr (target, (int) '.');
+	const char *offset = strchr (target, '.');
 	if (offset != NULL) { len = offset - target; }
 
 	static const char prefix[] = "luaopen_";
