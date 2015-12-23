@@ -13,6 +13,8 @@
 * pull in siphon empty map / array msgpack fix
 * improve error logging when coroutines error
 * fix composing Host header in http client
+* for binaries built by levee, add a package.loader that attempts to open
+  linked bundles via dysm
 
 ## 0.3.1 - 2015-12-03
 
