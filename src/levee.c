@@ -52,12 +52,15 @@ levee_dsym_loader (lua_State *L) {
 	char sym[symsize];
 	snprintf (sym, symsize, "luaopen_%.*s", (int) len, target);
 
-	lua_CFunction f;
-	f = (lua_CFunction) dlsym (RTLD_SELF, sym);
+	union {
+		void *v;
+		lua_CFunction f;
+	} sym;
+	sym.v = dlsym (RTLD_DEFAULT, sym);
 
-	if (f != NULL) {
+	if (sym.v != NULL) {
 		int n;
-		n = f (L);
+		n = sym.f (L);
 		lua_pop(L, n);  // remove anything that luaopen may have put on the stack
 
 		lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
@@ -73,7 +76,7 @@ levee_dsym_loader (lua_State *L) {
 
 		if (n > 0) {
 			// the luaopen appears to return the module contents
-			lua_pushcfunction(L, f);
+			lua_pushcfunction(L, sym.f);
 			return 1;
 		}
 
