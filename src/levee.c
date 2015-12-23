@@ -56,11 +56,29 @@ levee_dsym_loader (lua_State *L) {
 	f = (lua_CFunction) dlsym (RTLD_SELF, sym);
 
 	if (f != NULL) {
-		f (L);
+		int n;
+		n = f (L);
+		lua_pop(L, n);  // remove anything that luaopen may have put on the stack
+
 		lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
 		lua_getfield (L, -1, target);
 		lua_remove (L, 2);  // remove _PRELOAD
-		return 1;
+
+		if (lua_type(L, -1) == LUA_TFUNCTION) {
+			// luaopen placed a callable in the PRELOAD table, use that
+			return 1;
+		}
+
+		lua_pop(L, 1);  // remove the PRELOAD table entry
+
+		if (n > 0) {
+			// the luaopen appears to return the module contents
+			lua_pushcfunction(L, f);
+			return 1;
+		}
+
+		// give up
+		return 0;
 	}
 
 	char msg[symsize + 20];
