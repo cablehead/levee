@@ -46,6 +46,9 @@ typedef struct {
 typedef struct Levee Levee;
 
 extern void
+levee_insert_dsym_loader (lua_State *L);
+
+extern void
 levee_init (const LeveeConfig *cfg);
 
 extern Levee *

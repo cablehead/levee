@@ -31,18 +31,12 @@ local function output_main(path, options)
 
 		#include "levee/levee.h"
 
-		extern int
-		luaopen_${name} (lua_State *L);
-
-		const LeveeConfig config = {
-			.init = luaopen_${name}
-		};
-
 		static Levee *state;
 
 		static int
 		pmain (lua_State *L)
 		{
+			levee_insert_dsym_loader(L);
 			(void)L;
 			int n = levee_require (state, "${name}.main");
 			if (n > 0) {
@@ -55,8 +49,6 @@ local function output_main(path, options)
 		main (int argc, const char *argv[])
 		{
 			signal (SIGPIPE, SIG_IGN);
-
-			levee_init (&config);
 
 			state = levee_create ();
 			levee_set_arg (state, argc-1, argv+1);

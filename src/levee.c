@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <dlfcn.h>
 #include <err.h>
 #include <sysexits.h>
 #include <errno.h>
@@ -37,6 +38,51 @@ require (lua_State *L, const char *name)
 	lua_pushstring (L, name);
 	lua_call (L, 1, 1);
 	return 1;
+}
+
+static int
+levee_dsym_loader (lua_State *L) {
+	const char *target = lua_tostring (L, 1);
+
+	char path[strlen (target)];
+	strcpy (path, target);
+	char *module = strtok (path, "./");
+
+	const char *prefix = "luaopen_";
+	char sym[strlen (prefix) + strlen (module)];
+	sprintf (sym, "%s%s", prefix, module);
+
+	lua_CFunction f;
+	f = (lua_CFunction) dlsym (RTLD_SELF, sym);
+
+	if (f != NULL) {
+		f (L);
+		lua_getfield (L, LUA_REGISTRYINDEX, "_PRELOAD");
+		lua_getfield (L, -1, target);
+		lua_remove (L, 2);  // remove _PRELOAD
+		return 1;
+	}
+
+	char msg[strlen (sym) + 20];
+	sprintf (msg, "\tno symbol: %s", sym);
+	lua_pushstring (L, msg);
+	return 1;
+}
+
+void levee_insert_dsym_loader (lua_State *L) {
+	lua_getglobal (L, "table");
+	lua_pushstring (L, "insert");
+	lua_gettable (L, 1);
+	lua_remove (L, 1);  // remove table
+
+	lua_getglobal (L, "package");
+	lua_pushstring (L, "loaders");
+	lua_gettable (L, 2);
+	lua_remove (L, 2);  // remove package
+
+	lua_pushnumber (L, 2);
+	lua_pushcfunction (L, levee_dsym_loader);
+	lua_call (L, 3, 0);
 }
 
 void
