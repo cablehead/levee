@@ -42,15 +42,15 @@ require (lua_State *L, const char *name)
 
 static int
 levee_dsym_loader (lua_State *L) {
-	const char *target = lua_tostring (L, 1);
+	size_t len;
+	const char *target = lua_tolstring (L, 1, &len);
+	const char *offset = strchr (target, (int) '.');
+	if (offset != NULL) { len = offset - target; }
 
-	char path[strlen (target)];
-	strcpy (path, target);
-	char *module = strtok (path, "./");
-
-	const char *prefix = "luaopen_";
-	char sym[strlen (prefix) + strlen (module)];
-	sprintf (sym, "%s%s", prefix, module);
+	static const char prefix[] = "luaopen_";
+	size_t symsize = len + sizeof (prefix);
+	char sym[symsize];
+	snprintf (sym, symsize, "luaopen_%.*s", (int) len, target);
 
 	lua_CFunction f;
 	f = (lua_CFunction) dlsym (RTLD_SELF, sym);
@@ -63,8 +63,8 @@ levee_dsym_loader (lua_State *L) {
 		return 1;
 	}
 
-	char msg[strlen (sym) + 20];
-	sprintf (msg, "\tno symbol: %s", sym);
+	char msg[symsize + 20];
+	snprintf (msg, sizeof(msg), "\tno symbol: %s", sym);
 	lua_pushstring (L, msg);
 	return 1;
 }
