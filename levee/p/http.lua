@@ -345,6 +345,8 @@ function Response_mt:discard()
 		return self.body:discard()
 	end
 
+	if not self.chunks then return end
+
 	local total = 0
 	for chunk in self.chunks do
 		local err, n = chunk:discard()

@@ -316,8 +316,8 @@ local function Hub()
 
 	self.http = require("levee.p.http")(self)
 
+	self.consul = require("levee.app.consul")(self)
 	-- self.udp = require("levee.udp")(self)
-	-- self.consul = require("levee.consul")(self)
 
 	return self
 end

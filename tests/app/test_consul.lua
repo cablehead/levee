@@ -3,9 +3,8 @@ local levee = require("levee")
 
 return {
 	skipif = function()
-		if true then return true end
 		local h = levee.Hub()
-		local conn = h.tcp:connect(8500)
+		local err, conn = h.tcp:connect(8500)
 		if not conn then return true end
 		conn:close()
 		return false
@@ -14,73 +13,73 @@ return {
 	test_agent_self = function()
 		local h = levee.Hub()
 		local c = h:consul()
-		assert(c.agent:self().Member)
+		local err, data = c.agent:self()
+		assert(data.Member)
 	end,
 
-
-	test_kv = function()
+	test_kv_core = function()
 		local h = levee.Hub()
 		local c = h:consul()
 
 		-- clean up old runs
 		c.kv:delete("foo/", {recurse=true})
-
-		local index, sessions = c.session:list()
+		local err, index, sessions = c.session:list()
 		for _, session in pairs(sessions) do
 			c.session:destroy(session["ID"])
 		end
 		--
 
-		local session_id = c.session:create({behavior="delete", lock_delay=0})
+		local err, session_id = c.session:create({behavior="delete", lock_delay=0})
 
-		local p = h:pipe()
+		local sender, recver = h:pipe()
 		h:spawn(function()
-			local index, data
+			local err, index, data
 			while true do
-				index, data = c.kv:get("foo/", {index=index, recurse=true, keys=true})
-				p:send(data)
+				err, index, data = c.kv:get(
+					"foo/", {index=index, recurse=true, keys=true})
+				sender:send(data)
 			end
 		end)
 
-		assert.same(p:recv(), {})
+		assert.same({recver:recv()}, {nil, {}})
 
-		assert.equal(c.kv:put("foo/1", "1"), true)
-		local index, data = c.kv:get("foo/1")
+		assert.same({c.kv:put("foo/1", "1")}, {nil, true})
+		local err, index, data = c.kv:get("foo/1")
 		assert.equal(data["Value"], "1")
-		assert.same(p:recv(), {"foo/1"})
+		assert.same({recver:recv()}, {nil, {"foo/1"}})
 
-		assert.equal(c.kv:put("foo/2", "2", {acquire=session_id}), true)
-		assert.same(p:recv(), {"foo/1", "foo/2"})
+		assert.same({c.kv:put("foo/2", "2", {acquire=session_id})}, {nil, true})
+		assert.same({recver:recv()}, {nil, {"foo/1", "foo/2"}})
 
-		local other_id = c.session:create()
-		assert.equal(c.kv:put("foo/2", "2", {acquire=other_id}), false)
-		assert.equal(c.kv:put("foo/2", "2", {release=other_id}), false)
-		c.session:destroy(other_id)
+		local err, other_id = c.session:create()
+		assert.same({c.kv:put("foo/2", "2", {acquire=other_id})}, {nil, false})
+		assert.same({c.kv:put("foo/2", "2", {release=other_id})}, {nil, false})
+		assert.same({c.session:destroy(other_id)}, {nil, true})
 
-		assert.equal(c.kv:put("foo/3", "3", {acquire=session_id}), true)
-		assert.same(p:recv(), {"foo/1", "foo/2", "foo/3"})
+		assert.same({c.kv:put("foo/3", "3", {acquire=session_id})}, {nil, true})
+		assert.same({recver:recv()}, {nil, {"foo/1", "foo/2", "foo/3"}})
 
-		assert.equal(c.kv:put("foo/4", "4"), true)
-		assert.same(p:recv(), {"foo/1", "foo/2", "foo/3", "foo/4"})
+		assert.same({c.kv:put("foo/4", "4")}, {nil, true})
+		assert.same({recver:recv()}, {nil, {"foo/1", "foo/2", "foo/3", "foo/4"}})
 
-		assert.equal(c.kv:delete("foo/1"), true)
-		assert.same(p:recv(), {"foo/2", "foo/3", "foo/4"})
+		assert.same({c.kv:delete("foo/1")}, {nil, true})
+		assert.same({recver:recv()}, {nil, {"foo/2", "foo/3", "foo/4"}})
 
-		assert.equal(c.kv:put("foo/2", "2", {release=session_id}), true)
-		assert.same(p:recv(), {"foo/2", "foo/3", "foo/4"})
+		assert.same({c.kv:put("foo/2", "2", {release=session_id})}, {nil, true})
+		assert.same({recver:recv()}, {nil, {"foo/2", "foo/3", "foo/4"}})
 
 		c.session:destroy(session_id)
-		assert.same(p:recv(), {"foo/2", "foo/4"})
+		assert.same({recver:recv()}, {nil, {"foo/2", "foo/4"}})
 
-		assert.equal(c.kv:delete("foo/", {recurse=true}), true)
-		assert.same(p:recv(), {})
+		assert.same({c.kv:delete("foo/", {recurse=true})}, {nil, true})
+		assert.same({recver:recv()}, {nil, {}})
 	end,
 
 	test_kv_put_nil = function()
 		local h = levee.Hub()
 		local c = h:consul()
 		c.kv:put("foo")
-		local index, data = c.kv:get("foo")
+		local err, index, data = c.kv:get("foo")
 		assert.equal(data.Value, nil)
 		c.kv:delete("foo")
 	end,
@@ -94,13 +93,11 @@ return {
 		--
 
 		c.kv:put("foo", "1", {cas=0})
-		local index, data = c.kv:get("foo")
+		local err, index, data = c.kv:get("foo")
 		assert.equal(data.Value, "1")
 
-		assert.equal(
-			c.kv:put("foo", "2", {cas=0}),
-			false)
-		local index, data = c.kv:get("foo")
+		assert.same({c.kv:put("foo", "2", {cas=0})}, {nil, false})
+		local err, index, data = c.kv:get("foo")
 		assert.equal(data.Value, "1")
 
 		c.kv:delete("foo")

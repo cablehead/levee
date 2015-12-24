@@ -1,4 +1,4 @@
-local json = require("levee.json")
+local json = require("levee.p.json")
 
 
 --
@@ -84,10 +84,17 @@ end
 
 
 function Consul_mt:request(method, path, options, callback)
-	local conn = self.hub.http:connect(self.port)
-	if not conn then return end
-	local res = conn:request(
-		method, "/v1/"..path, options.params, options.headers, options.data):recv()
+	local err, conn = self.hub.http:connect(self.port)
+	if err then return err end
+	if type(options.data) == "table" then
+		err, options.data = json.encode(options.data)
+		if err then return err end
+	end
+	local err, req = conn:request(
+		method, "/v1/"..path, options.params, options.headers, options.data)
+	if err then return err end
+	local err, res = req:recv()
+	if err then return err end
 	res = {callback(res)}
 	conn:close()
 	return unpack(res)
@@ -125,10 +132,11 @@ function KV_mt:get(key, options)
 		function(res)
 			if res.code ~= 200 then
 				res:discard()
-				return res.headers["X-Consul-Index"], options.recurse and {} or nil
+				return nil, res.headers["X-Consul-Index"], options.recurse and {} or nil
 			end
 
-			local data = res:json()
+			local err, data = res:json()
+			if err then return err end
 
 			if not options.keys then
 				for _, item in ipairs(data) do
@@ -138,7 +146,7 @@ function KV_mt:get(key, options)
 					data = data[1]
 				end
 			end
-			return res.headers["X-Consul-Index"], data
+			return nil, res.headers["X-Consul-Index"], data
 	end)
 end
 
@@ -161,7 +169,7 @@ function KV_mt:put(key, value, options)
 
 	return self.agent:request("PUT", "kv/"..key, {params=params, data=value},
 		function(res)
-			return res:tostring() == "true"
+			return nil, res:tostring() == "true"
 		end)
 end
 
@@ -180,7 +188,7 @@ function KV_mt:delete(key, options)
 	return self.agent:request("DELETE", "kv/"..key, {params=params},
 		function(res)
 			res:discard()
-			return res.code == 200
+			return nil, res.code == 200
 		end)
 end
 
@@ -232,10 +240,12 @@ function Session_mt:create(options)
 		data.ttl = tostring(options.ttl).."s"
 	end
 
-	return self.agent:request("PUT", "session/create", {data=json.encode(data)},
+	return self.agent:request("PUT", "session/create", {data=data},
 		function(res)
 			assert(res.code == 200)
-			return res:json()["ID"]
+			local err, data = res:json()
+			if err then return err end
+			return nil, data["ID"]
 		end)
 end
 
@@ -244,7 +254,9 @@ function Session_mt:list()
 	return self.agent:request("GET", "session/list", {},
 		function(res)
 			assert(res.code == 200)
-			return res.headers["X-Consul-Index"], res:json()
+			local err, data = res:json()
+			if err then return err end
+			return nil, res.headers["X-Consul-Index"], data
 		end)
 end
 
@@ -253,7 +265,7 @@ function Session_mt:destroy(session_id)
 	return self.agent:request("PUT", "session/destroy/"..session_id, {},
 		function(res)
 			res:discard()
-			return res.code == 200
+			return nil, res.code == 200
 		end)
 end
 
