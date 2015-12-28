@@ -141,24 +141,30 @@ return {
 		c.agent.service:deregister("foo")
 		--
 
-		local p = h:pipe()
+		local sender, recver = h:pipe()
 		h:spawn(function()
-			local index, services
+			local err, index, services
 			while true do
-				index, services = c.health:service("foo", {index=index})
-				p:send(services)
+				err, index, services = c.health:service("foo", {index=index})
+				sender:send(services)
 			end
 		end)
-		assert.equal(#p:recv(), 0)
+		local err, services = recver:recv()
+		assert.equal(#services, 0)
 
-		assert.equal(c.agent.service:register("foo"), true)
-		assert(c.agent:services()["foo"])
-		assert.equal(#p:recv(), 1)
+		local err, rc = c.agent.service:register("foo")
+		assert.equal(rc, true)
+		local err, services = c.agent:services()
+		assert(services["foo"])
+		local err, services = recver:recv()
+		assert.equal(#services, 1)
 
-		assert.equal(c.agent.service:deregister("foo"), true)
-		assert.equal(c.agent:services()["foo"], nil)
-		local index, services = c.health:service("foo")
-		assert.equal(#p:recv(), 0)
+		assert.same({c.agent.service:deregister("foo")}, {nil, true})
+		local err, services = c.agent:services()
+		assert.equal(services["foo"], nil)
+		local err, index, services = c.health:service("foo")
+		local err, services = recver:recv()
+		assert.equal(#services, 0)
 	end,
 
 	test_election = function()

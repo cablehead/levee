@@ -295,6 +295,8 @@ function Response_mt:tostring()
 		return self.body:tostring()
 	end
 
+	if not self.chunks then return "" end
+
 	local bits = {}
 	for chunk in self.chunks do
 		local s = chunk:tostring()
@@ -309,6 +311,8 @@ function Response_mt:tobuffer(buf)
 	if self.body then
 		return self.body:tobuffer(buf)
 	end
+
+	if not self.chunks then return nil, buf end
 
 	local err, buf
 	for chunk in self.chunks do

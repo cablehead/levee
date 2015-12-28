@@ -340,10 +340,13 @@ function AgentService_mt:register(name, options)
 	data.tags = options.tags
 	data.check = options.check
 
+	local err, data = json.encode(data)
+	if err then return err end
+
 	return self.agent:request(
-		"PUT", "agent/service/register", {data=json.encode(data)},
+		"PUT", "agent/service/register", {data=data},
 		function(res)
-			return res.code == 200, res:tostring()
+			return nil, res.code == 200, res:tostring()
 		end)
 end
 
@@ -352,7 +355,7 @@ function AgentService_mt:deregister(service_id)
 	return self.agent:request("GET", "agent/service/deregister/"..service_id, {},
 		function(res)
 			res:discard()
-			return res.code == 200
+			return nil, res.code == 200
 		end)
 end
 
@@ -377,7 +380,9 @@ function Health_mt:service(name, options)
 	return self.agent:request("GET", "health/service/"..name, {params=params},
 		function(res)
 			assert(res.code == 200)
-			return res.headers["X-Consul-Index"], res:json()
+			local err, data = res:json()
+			if err then return err end
+			return nil, res.headers["X-Consul-Index"], data
 		end)
 end
 
