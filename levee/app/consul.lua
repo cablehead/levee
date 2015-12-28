@@ -263,7 +263,6 @@ end
 
 function Session_mt:destroy(session_id)
 	return self.agent:request("PUT", "session/destroy/"..session_id, {},
-		function(res)
 			res:discard()
 			return nil, res.code == 200
 		end)
@@ -274,9 +273,10 @@ function Session_mt:info(session_id)
 	return self.agent:request("GET", "session/info/"..session_id, {},
 		function(res)
 			assert(res.code == 200)
-			local session = res:json()
+			local err, session = res:json()
+			if err then return err end
 			if session then session = session[1] end
-			return res.headers["X-Consul-Index"], session
+			return nil, res.headers["X-Consul-Index"], session
 		end)
 end
 
@@ -286,10 +286,12 @@ function Session_mt:renew(session_id)
 		function(res)
 			if res.code == 404 then
 				res:discard()
-				return false
+				return nil, false
 			end
 			assert(res.code == 200)
-			return res:json()[1]
+			local err, data = res:json()
+			if err then return err end
+			return nil, data[1]
 		end)
 end
 
@@ -339,9 +341,6 @@ function AgentService_mt:register(name, options)
 	data.port = options.port
 	data.tags = options.tags
 	data.check = options.check
-
-	local err, data = json.encode(data)
-	if err then return err end
 
 	return self.agent:request(
 		"PUT", "agent/service/register", {data=data},

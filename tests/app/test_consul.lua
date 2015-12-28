@@ -108,28 +108,30 @@ return {
 		local c = h:consul()
 
 		-- clean up old runs
-		local index, sessions = c.session:list()
+		local err, index, sessions = c.session:list()
 		for _, session in pairs(sessions) do
 			c.session:destroy(session["ID"])
 		end
 		--
 
-		local session_id = c.session:create({behavior="delete", ttl=10})
+		local err, session_id = c.session:create({behavior="delete", ttl=10})
 
-		local index, sessions = c.session:list()
+		local err, index, sessions = c.session:list()
 		assert.equal(#sessions, 1)
 		assert.equal(sessions[1]["ID"], session_id)
 
-		local index, session = c.session:info("foo")
+		local err, index, session = c.session:info("foo")
 		assert.equal(session, nil)
-		local index, session = c.session:info(session_id)
+		local err, index, session = c.session:info(session_id)
 		assert.equal(session["ID"], session_id)
 
-		assert.equal(c.session:renew("foo"), false)
-		assert.equal(c.session:renew(session_id)["ID"], session_id)
+		local err, session = c.session:renew("foo")
+		assert.same(session, false)
+		local err, session = c.session:renew(session_id)
+		assert.equal(session["ID"], session_id)
 
 		c.session:destroy(session_id)
-		local index, sessions = c.session:list()
+		local err, index, sessions = c.session:list()
 		assert.equal(#sessions, 0)
 	end,
 
