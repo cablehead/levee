@@ -17,6 +17,7 @@
   linked bundles via dsym
 * fix for http's :save convenience on Linux
 * small fixes for \_.open and io:open
+* bring Consul support back up to date
 
 ## 0.3.1 - 2015-12-03
 
