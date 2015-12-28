@@ -31,16 +31,18 @@ Consul_mt.__index = Consul_mt
 
 function Consul_mt:election(prefix, session_id, n)
 	n = n or 1
-	local ok = self.kv:put(prefix..session_id, session_id, {acquire=session_id})
+	local err, ok = self.kv:put(
+		prefix..session_id, session_id, {acquire=session_id})
+	if err then return err end
 	assert(ok)
 
 	local is_elected = false
 
-	local p = self.hub:pipe()
+	local sender, recver = self.hub:pipe()
 	self.hub:spawn(function()
-		local index, data
+		local err, index, data
 		while true do
-			index, data = self.kv:get(prefix, {index=index, recurse=true})
+			err, index, data = self.kv:get(prefix, {index=index, recurse=true})
 
 			local order = {}
 			local map = {}
@@ -57,7 +59,7 @@ function Consul_mt:election(prefix, session_id, n)
 
 			if not seen then
 				-- our entry has dropped out of consul
-				p:close()
+				sender:close()
 				return
 			end
 
@@ -75,11 +77,11 @@ function Consul_mt:election(prefix, session_id, n)
 
 			if elected and not is_elected then
 				is_elected = true
-				p:send(true)
+				sender:send(true)
 			end
 		end
 	end)
-	return p
+	return nil, recver
 end
 
 
@@ -199,17 +201,19 @@ Session_mt.__index = Session_mt
 
 -- convenience to establish an ephemeral session and keep alive
 function Session_mt:init()
-	local session_id = self:create({behavior="delete", ttl=10})
+	local err, session_id = self:create({behavior="delete", ttl=10})
+	if err then return err end
 
 	-- keep session alive
 	self.agent.hub:spawn(function()
 		while true do
+			-- TODO: if renew fails should break
 			self.agent.hub:sleep(5000)
 			self:renew(session_id)
 		end
 	end)
 
-	return session_id
+	return err, session_id
 end
 
 

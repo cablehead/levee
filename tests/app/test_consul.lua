@@ -176,53 +176,46 @@ return {
 		-- clean up old runs
 		c.kv:delete("foo/", {recurse=true})
 
-		local index, sessions = c.session:list()
+		local err, index, sessions = c.session:list()
 		for _, session in pairs(sessions) do
 			c.session:destroy(session["ID"])
 		end
 		--
 
-		local s1 = c.session:create({behavior="delete", lock_delay=0})
-		local r1 = c:election("foo/", s1, 2)
-		assert(r1:recv())
+		local err, s1 = c.session:create({behavior="delete", lock_delay=0})
+		local err, r1 = c:election("foo/", s1, 2)
+		assert.same({r1:recv()}, {nil, true})
 
-		local s2 = c.session:create({behavior="delete", lock_delay=0})
-		local r2 = c:election("foo/", s2, 2)
-		assert(r2:recv())
+		local err, s2 = c.session:create({behavior="delete", lock_delay=0})
+		local err, r2 = c:election("foo/", s2, 2)
+		assert.same({r2:recv()}, {nil, true})
 
-		local s3 = c.session:create({behavior="delete", lock_delay=0})
-		local r3 = c:election("foo/", s3, 2)
 
-		local s4 = c.session:create({behavior="delete", lock_delay=0})
-		local r4 = c:election("foo/", s4, 2)
+		local err, s3 = c.session:create({behavior="delete", lock_delay=0})
+		local err, r3 = c:election("foo/", s3, 2)
 
-		-- TODO: need to add timeout for :recv
-		h:sleep(40)
-		assert(not r1.sender)
-		assert(not r2.sender)
-		assert(not r3.sender)
-		assert(not r4.sender)
+		local err, s4 = c.session:create({behavior="delete", lock_delay=0})
+		local err, r4 = c:election("foo/", s4, 2)
+
+		assert.equal(r1:recv(10), levee.errors.TIMEOUT)
+		assert.equal(r2:recv(10), levee.errors.TIMEOUT)
+		assert.equal(r3:recv(10), levee.errors.TIMEOUT)
+		assert.equal(r4:recv(10), levee.errors.TIMEOUT)
 
 		c.session:destroy(s2)
-		assert(r3:recv())
-		assert.equal(r2:recv(), nil)
-		assert(r2.closed)
-		assert(not r1.sender)
-		assert(not r4.sender)
+		assert.same({r3:recv(10)}, {nil, true})
+		assert.equal(r2:recv(), levee.errors.CLOSED)
+		assert.equal(r4:recv(10), levee.errors.TIMEOUT)
 
 		c.session:destroy(s1)
-		assert.equal(r1:recv(), nil)
-		assert(r1.closed)
-		assert(r4:recv())
-		assert(not r3.sender)
+		assert.equal(r1:recv(), levee.errors.CLOSED)
+		assert.same({r4:recv(10)}, {nil, true})
 
 		c.session:destroy(s4)
-		assert.equal(r4:recv(), nil)
-		assert(r4.closed)
-		assert(not r3.sender)
+		assert.equal(r4:recv(), levee.errors.CLOSED)
+		assert.equal(r3:recv(10), levee.errors.TIMEOUT)
 
 		c.session:destroy(s3)
-		assert.equal(r3:recv(), nil)
-		assert(r3.closed)
+		assert.equal(r3:recv(10), levee.errors.CLOSED)
 	end,
 }
