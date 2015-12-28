@@ -263,6 +263,7 @@ end
 
 function Session_mt:destroy(session_id)
 	return self.agent:request("PUT", "session/destroy/"..session_id, {},
+		function(res)
 			res:discard()
 			return nil, res.code == 200
 		end)
