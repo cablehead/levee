@@ -636,18 +636,21 @@ function Server_mt:_response(response)
 	local err, value = response:recv()
 	if err then return err end
 	local status, headers, body = unpack(value)
+	local no_content = status == Status[304] -- TODO: check if status.code == 304
 
 	local err = self.conn:send(status)
 	if err then return err end
 
 	headers["Date"] = httpdate()
 
-	if type(body) == "string" then
-			headers["Content-Length"] = tostring(#body)
+	if no_content then
+		headers["Content-Length"] = nil
+	elseif type(body) == "string" then
+		headers["Content-Length"] = tostring(#body)
 	elseif body ~= nil then
-			headers["Content-Length"] = tostring(tonumber(body))
+		headers["Content-Length"] = tostring(tonumber(body))
 	else
-			headers["Transfer-Encoding"] = "chunked"
+		headers["Transfer-Encoding"] = "chunked"
 	end
 
 	for k, v in pairs(headers) do
@@ -656,6 +659,9 @@ function Server_mt:_response(response)
 	end
 	self.conn:send(EOL)
 
+	if no_content then
+		return self.conn:send()
+	end
 	if type(body) == "string" then
 		return self.conn:send(body)
 	end
