@@ -184,7 +184,7 @@ local function encode(data, buf)
 		buf:push('"')
 		return buf
 
-	elseif type(data) == "number" then
+	elseif type(data) == "number" or type(data) == "boolean" then
 		buf:push(tostring(data))
 		return buf
 
