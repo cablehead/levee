@@ -97,13 +97,18 @@ function Endpoint_mt:path()
 end
 
 
-function Endpoint_mt:name()
+function Endpoint_mt:name(full)
 	local path = self:path()
 	if path then return path end
 
+	local flags = 0
+	if not full then
+		flags = bit.bor(flags, C.NI_NOFQDN)
+	end
+
 	local rc = C.getnameinfo(
 		self.addr.sa, ffi.sizeof(self.addr.ss), buf, buf_len,
-		nil, 0, C.NI_NOFQDN);
+		nil, 0, flags);
 
 	if rc < 0 then
 		return self:host()
