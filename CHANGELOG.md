@@ -18,6 +18,7 @@
 * fix for http's :save convenience on Linux
 * small fixes for \_.open and io:open
 * bring Consul support back up to date
+* fix for linux 0copy splice
 
 ## 0.3.1 - 2015-12-03
 
