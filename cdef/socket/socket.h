@@ -87,4 +87,13 @@ int getaddrinfo(
 	const struct addrinfo *hints,
 	struct addrinfo **res);
 
+static const int NI_MAXHOST = 1025;
+static const int NI_MAXSERV = 32;
+
+int getnameinfo(
+	const struct sockaddr *sa, socklen_t salen,
+	char *host, socklen_t hostlen,
+	char *serv, socklen_t servlen,
+	int flags);
+
 void freeaddrinfo(struct addrinfo *ai);

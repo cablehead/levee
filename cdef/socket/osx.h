@@ -5,6 +5,12 @@ static const int SOL_SOCKET    = 0xffff;
 static const int SO_REUSEADDR  = 0x0004;
 static const int SO_ACCEPTCONN = 0x0002;
 
+static const int NI_NOFQDN      = 0x00000001;
+static const int NI_NUMERICHOST = 0x00000002;
+static const int NI_NAMEREQD    = 0x00000004;
+static const int NI_NUMERICSERV = 0x00000008;
+static const int NI_DGRAM       = 0x00000010;
+
 typedef uint8_t sa_family_t;
 
 struct sockaddr {

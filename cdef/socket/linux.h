@@ -6,6 +6,12 @@ static const int SO_REUSEADDR  = 2;
 static const int SO_ACCEPTCONN = 30;
 static const int SO_DOMAIN     = 39;
 
+static const int NI_NUMERICHOST = 1;
+static const int NI_NUMERICSERV = 2;
+static const int NI_NOFQDN      = 4;
+static const int NI_NAMEREQD    = 8;
+static const int NI_DGRAM       = 16;
+
 typedef uint16_t sa_family_t;
 
 struct sockaddr {

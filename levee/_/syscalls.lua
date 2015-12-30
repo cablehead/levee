@@ -1,6 +1,9 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local buf_len = C.NI_MAXHOST
+local buf = ffi.new("char [?]", buf_len)
+
 
 local errors = require("levee.errors")
 
@@ -65,6 +68,19 @@ function Endpoint_mt:__new()
 end
 
 
+function Endpoint_mt:host()
+	if self.family[0] == C.AF_INET then
+		if C.inet_ntop(C.AF_INET, self.addr.sin.sin_addr, buf, buf_len) then
+			return ffi.string(buf)
+		end
+	elseif self.family[0] == C.AF_INET6 then
+		if C.inet_ntop(C.AF_INET6, self.addr.sin6.sin6_addr, buf, buf_len) then
+			return ffi.string(buf)
+		end
+	end
+end
+
+
 function Endpoint_mt:port()
 	if self.family[0] == C.AF_INET then
 		return tonumber(C.ntohs(self.addr.sin.sin_port))
@@ -74,27 +90,42 @@ function Endpoint_mt:port()
 end
 
 
-function Endpoint_mt:__tostring()
-	if self.family[0] == C.AF_INET then
-		local buf = ffi.new("char [16]")
-		local str = C.inet_ntop(C.AF_INET, self.addr.sin.sin_addr, buf, 16)
-		if str then
-			return string.format(
-				"%s:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin.sin_port)))
-		end
-	elseif self.family[0] == C.AF_INET6 then
-		local buf = ffi.new("char [48]")
-		local str = C.inet_ntop(C.AF_INET6, self.addr.sin6.sin6_addr, buf, 48)
-		if str then
-			return string.format(
-				"[%s]:%d", ffi.string(buf), tonumber(C.ntohs(self.addr.sin6.sin6_port)))
-		end
-	elseif self.family[0] == C.AF_LOCAL then
+function Endpoint_mt:path()
+	if self.family[0] == C.AF_LOCAL then
 		return ffi.string(self.addr.sun.sun_path)
-	else
-		return string.format("levee.Endpoint: %p", self)
 	end
 end
+
+
+function Endpoint_mt:name()
+	local path = self:path()
+	if path then return path end
+
+	local rc = C.getnameinfo(
+		self.addr.sa, ffi.sizeof(self.addr.ss), buf, buf_len,
+		nil, 0, C.NI_NOFQDN);
+
+	if rc < 0 then
+		return self:host()
+	else
+		return ffi.string(buf)
+	end
+end
+
+
+function Endpoint_mt:__tostring()
+	if self.family[0] == C.AF_INET then
+		local host = self:host()
+		if host then return string.format("%s:%d", host, self:port()) end
+	elseif self.family[0] == C.AF_INET6 then
+		local host = self:host()
+		if host then return string.format("[%s]:%d", host, self:port()) end
+	elseif self.family[0] == C.AF_LOCAL then
+		return self:path()
+	end
+	return string.format("levee.Endpoint: %p", self)
+end
+
 
 local Endpoint = ffi.metatype("struct LeveeEndpoint", Endpoint_mt)
 
@@ -231,22 +262,22 @@ end
 
 
 _.fcntl_nonblock = function(no)
-		local err, flags = _.fcntl(no, C.F_GETFL)
-		if err then return err end
-		local nflags = bit.bor(flags, C.O_NONBLOCK)
-		if nflags == flags then return end
-		local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
-		if err then return err end
+	local err, flags = _.fcntl(no, C.F_GETFL)
+	if err then return err end
+	local nflags = bit.bor(flags, C.O_NONBLOCK)
+	if nflags == flags then return end
+	local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
+	if err then return err end
 end
 
 
 _.fcntl_block = function(no)
-		local err, flags = _.fcntl(no, C.F_GETFL)
-		if err then return err end
-		local nflags = bit.band(flags, bit.bnot(C.O_NONBLOCK))
-		if nflags == flags then return end
-		local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
-		if err then return err end
+	local err, flags = _.fcntl(no, C.F_GETFL)
+	if err then return err end
+	local nflags = bit.band(flags, bit.bnot(C.O_NONBLOCK))
+	if nflags == flags then return end
+	local err = _.fcntl(no, C.F_SETFL, ffi.new("int", nflags))
+	if err then return err end
 end
 
 
