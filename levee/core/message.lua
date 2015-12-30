@@ -519,7 +519,7 @@ function Selector_mt:_give(err, sender, value)
 		return
 	end
 
-	if err == errors.CLOSED then self.closed = true end
+	if err == errors.CLOSED and not sender then self.closed = true end
 
 	local co = self.co
 	self.co = nil
