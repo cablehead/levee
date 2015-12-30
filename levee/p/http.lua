@@ -761,9 +761,11 @@ local function Server(hub, conn)
 
 	local req_sender, req_recver = hub:pipe()
 	local res_sender, res_recver = hub:pipe()
+	self.requests = req_recver
+
 	hub:spawn(function() self:reader(req_sender, res_sender) end)
 	hub:spawn(function() self:writer(res_recver) end)
-	self.requests = req_recver
+
 	return self
 end
 
