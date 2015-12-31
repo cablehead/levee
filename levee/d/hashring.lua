@@ -104,7 +104,9 @@ end
 
 
 function HashRing_mt:get(key)
-	return C.sp_ring_get(self, key, #key)
+	local val = C.sp_ring_get(self, key, #key)
+	if val == nil then return end
+	return val
 end
 
 
