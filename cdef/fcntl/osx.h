@@ -10,12 +10,15 @@ static const int O_ACCMODE =      0003;
 static const int O_RDONLY =         00;
 static const int O_WRONLY =         01;
 static const int O_RDWR =           02;
-
-static const int O_CREAT     = 0x0200;
-static const int O_EXCL		   = 0x0800;
-static const int O_NOCTTY    = 0x20000;
-static const int O_TRUNC	   = 0x0400;
-static const int O_APPEND	   = 0x0008;
-static const int O_NONBLOCK	 = 0x0004;
-
+static const int O_CREAT =      0x0200;
+static const int O_EXCL =       0x0800;
+static const int O_NOCTTY =    0x20000;
+static const int O_TRUNC =      0x0400;
+static const int O_APPEND =     0x0008;
+static const int O_NONBLOCK =   0x0004;
 static const int O_NDELAY = O_NONBLOCK;
+static const int O_SYNC =       0x0080;
+static const int O_FSYNC =      O_SYNC;
+static const int O_ASYNC =      0x0040;
+static const int O_NOFOLLOW =   0x0100;
+static const int O_CLOEXEC = 0x1000000;
