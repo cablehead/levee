@@ -130,18 +130,29 @@ function Parser_mt:__tostring()
 end
 
 
-function Parser_mt:init_request()
+function Parser_mt:init_request(config)
 	C.sp_http_init_request(self)
+	if config then self:config(config) end
 end
 
 
-function Parser_mt:init_response()
+function Parser_mt:init_response(config)
 	C.sp_http_init_response(self)
+	if config then self:config(config) end
 end
 
 
 function Parser_mt:reset()
 	C.sp_http_reset(self)
+end
+
+
+function Parser_mt:config(t)
+	if t.max_method then self.max_method = t.max_method end
+	if t.max_uri then self.max_uri = t.max_uri end
+	if t.max_reason then self.max_reason = t.max_reason end
+	if t.max_field then self.max_field = t.max_field end
+	if t.max_value then self.max_value = t.max_value end
 end
 
 
