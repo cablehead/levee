@@ -3,7 +3,7 @@ include(ExternalProject)
 set(SIPHON_DIR "${CMAKE_CURRENT_BINARY_DIR}/siphon")
 set(SIPHON_LIB "${SIPHON_DIR}/lib/libsiphon.a")
 set(SIPHON_INC "${SIPHON_DIR}/include")
-set(SIPHON_HASH 5b498c37d2b62f3ed1ba67aa0bceb732c758737d)
+set(SIPHON_HASH bbba3efe419584ef5d443ef2cb2719c2eec901fd)
 
 if(CMAKE_OSX_SYSROOT)
 set(SIPHON_OSX_SYSROOT "-DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT}")

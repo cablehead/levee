@@ -48,15 +48,24 @@ typedef enum {
 } SpHttpType;
 
 typedef struct {
-	SpHttpValue as;   // captured value
-	SpHttpType type;  // type of the captured value
-	unsigned cs;      // current scanner state
-	size_t off;       // internal offset mark
-	size_t body_len;  // content length or current chunk size
-	uint16_t scans;   // number of passes through the scanner
-	bool response;    // true if response, false if request
-	bool chunked;     // set by field scanner
-	bool trailers;    // parsing trailers
+	// public
+	uint16_t max_method; // max size for a request method
+	uint16_t max_uri;    // max size for a request uri
+	uint16_t max_reason; // max size for a response status message
+	uint16_t max_field;  // max size for a header field
+	uint16_t max_value;  // max size for a header value
+
+	// readonly
+	uint16_t scans;      // number of passes through the scanner
+	uint8_t cscans;      // number of scans in the current rule
+	bool response;       // true if response, false if request
+	bool chunked;        // set by field scanner
+	bool trailers;       // parsing trailers
+	SpHttpValue as;      // captured value
+	SpHttpType type;     // type of the captured value
+	unsigned cs;         // current scanner state
+	size_t off;          // internal offset mark
+	size_t body_len;     // content length or current chunk size
 } SpHttp;
 
 extern void
