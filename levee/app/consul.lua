@@ -323,6 +323,26 @@ function Agent_mt:services()
 end
 
 
+local AgentCheck_mt = {}
+AgentCheck_mt.__index = AgentCheck_mt
+
+
+function AgentCheck_mt:pass(check_id, options)
+	-- options:
+	--   note
+	options = options or {}
+
+	local params = {}
+	params.note = options.note
+
+	return self.agent:request(
+		"GET", "agent/check/pass/"..check_id, {params=params},
+		function(res)
+			return nil, res.code == 200
+		end)
+end
+
+
 local AgentService_mt = {}
 AgentService_mt.__index = AgentService_mt
 
@@ -403,6 +423,7 @@ function M_mt:__call(hub, port)
 	M.kv = setmetatable({agent = M}, KV_mt)
 	M.session = setmetatable({agent = M}, Session_mt)
 	M.agent = setmetatable({agent = M}, Agent_mt)
+	M.agent.check = setmetatable({agent = M}, AgentCheck_mt)
 	M.agent.service = setmetatable({agent = M}, AgentService_mt)
 	M.health = setmetatable({agent = M}, Health_mt)
 	return M

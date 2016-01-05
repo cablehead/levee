@@ -143,6 +143,8 @@ return {
 		c.agent.service:deregister("foo")
 		--
 
+		assert.same({c.agent.check:pass("service:foo")}, {nil, false})
+
 		local sender, recver = h:pipe()
 		h:spawn(function()
 			local err, index, services
@@ -154,16 +156,24 @@ return {
 		local err, services = recver:recv()
 		assert.equal(#services, 0)
 
-		local err, rc = c.agent.service:register("foo")
+		local err, rc = c.agent.service:register("foo", {check={ttl="5s"}})
 		assert.equal(rc, true)
+
 		local err, services = c.agent:services()
 		assert(services["foo"])
+		local err, services = recver:recv()
+		assert.equal(#services, 1)
+
+		-- mark ttl as passed
+		assert.same({c.agent.check:pass("service:foo")}, {nil, true})
+		local err, services = c.agent:services()
 		local err, services = recver:recv()
 		assert.equal(#services, 1)
 
 		assert.same({c.agent.service:deregister("foo")}, {nil, true})
 		local err, services = c.agent:services()
 		assert.equal(services["foo"], nil)
+
 		local err, index, services = c.health:service("foo")
 		local err, services = recver:recv()
 		assert.equal(#services, 0)
