@@ -132,13 +132,13 @@ end
 
 function Parser_mt:init_request(config)
 	C.sp_http_init_request(self)
-	if config then self:config(config) end
+	self:config(config)
 end
 
 
 function Parser_mt:init_response(config)
 	C.sp_http_init_response(self)
-	if config then self:config(config) end
+	self:config(config)
 end
 
 
@@ -148,6 +148,7 @@ end
 
 
 function Parser_mt:config(t)
+	if type(t) ~= "table" then return end
 	if t.max_method then self.max_method = t.max_method end
 	if t.max_uri then self.max_uri = t.max_uri end
 	if t.max_reason then self.max_reason = t.max_reason end
@@ -238,16 +239,16 @@ local Parser = ffi.metatype("SpHttp", Parser_mt)
 
 local parser = {}
 
-parser.Request = function()
+parser.Request = function(config)
 	local p = Parser()
-	p:init_request()
+	p:init_request(config)
 	return p
 end
 
 
-parser.Response = function()
+parser.Response = function(config)
 	local p = Parser()
-	p:init_response()
+	p:init_response(config)
 	return p
 end
 
@@ -767,14 +768,14 @@ function Server_mt:close()
 end
 
 
-local function Server(hub, conn)
+local function Server(hub, conn, config)
 	local self = setmetatable({}, Server_mt)
 
 	self.hub = hub
 	self.conn = conn
 
 	self.stream = self.conn:stream()
-	self.parser = parser.Request()
+	self.parser = parser.Request(config)
 
 	local req_sender, req_recver = hub:pipe()
 	local res_sender, res_recver = hub:pipe()
@@ -808,7 +809,7 @@ end
 
 function Listener_mt:loop()
 	for conn in self.serve do
-		self.sender:send(Server(self.hub, conn))
+		self.sender:send(Server(self.hub, conn, self.config))
 	end
 end
 
@@ -831,7 +832,16 @@ local HTTP_mt = {}
 HTTP_mt.__index = HTTP_mt
 
 
-function HTTP_mt:connect(port, host)
+function HTTP_mt:connect(port, host, config)
+	if type(port) == "table" then
+		config = port
+		port = nil
+		host = nil
+	elseif type(host) == "table" then
+		config = host
+		host = nil
+	end
+
 	local m = setmetatable({}, Client_mt)
 
 	host = host or "127.0.0.1"
@@ -851,7 +861,7 @@ function HTTP_mt:connect(port, host)
 	m.conn = conn
 
 	m.stream = m.conn:stream()
-	m.parser = parser.Response()
+	m.parser = parser.Response(config)
 
 	local res_sender, res_recver = self.hub:pipe()
 	self.hub:spawn(function() m:reader(res_recver) end)
@@ -860,10 +870,20 @@ function HTTP_mt:connect(port, host)
 end
 
 
-function HTTP_mt:listen(port, host)
+function HTTP_mt:listen(port, host, config)
+	if type(port) == "table" then
+		config = port
+		port = nil
+		host = nil
+	elseif type(host) == "table" then
+		config = host
+		host = nil
+	end
 	local err, serve = self.hub.tcp:listen(port, host)
 	if err then return err end
-	local m = setmetatable({hub = self.hub, serve = serve}, Listener_mt)
+	local m = setmetatable(
+		{hub = self.hub, serve = serve, config = config},
+		Listener_mt)
 	m.sender, m.recver = self.hub:pipe()
 	self.hub:spawn(m.loop, m)
 	return nil, m
