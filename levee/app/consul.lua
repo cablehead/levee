@@ -403,9 +403,13 @@ function Health_mt:service(name, options)
 
 	return self.agent:request("GET", "health/service/"..name, {params=params},
 		function(res)
-			assert(res.code == 200)
-			local err, data = res:json()
-			if err then return err end
+			local err, data
+			if res.code ~= 200 then
+				data = {}
+			else
+				err, data = res:json()
+				if err then return err end
+			end
 			return nil, res.headers["X-Consul-Index"], data
 		end)
 end
