@@ -60,7 +60,7 @@ function M_mt:poweron()
 			while true do
 				local err, pid, code, sig = _.waitpid(-1, C.WNOHANG)
 				if err then print("TODO:", err, pid) end
-				if not pid then break end
+				if not pid or pid == 0 then break end
 				local child = self.children[pid]
 				if child then
 					self.children[pid] = nil
