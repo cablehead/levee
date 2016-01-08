@@ -110,3 +110,4 @@ struct ifaddrs {
 };
 
 int getifaddrs(struct ifaddrs **ifap);
+void freeifaddrs(struct ifaddrs *ifa);
