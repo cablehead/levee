@@ -97,3 +97,16 @@ int getnameinfo(
 	int flags);
 
 void freeaddrinfo(struct addrinfo *ai);
+
+
+struct ifaddrs {
+	struct ifaddrs   *ifa_next;         /* Pointer to next struct */
+	char             *ifa_name;         /* Interface name */
+	int               ifa_flags;        /* Interface flags */
+	struct sockaddr  *ifa_addr;         /* Interface address */
+	struct sockaddr  *ifa_netmask;      /* Interface netmask */
+	struct sockaddr  *ifa_dstaddr;      /* P2P interface destination */
+	void             *ifa_data;         /* Address specific data */
+};
+
+int getifaddrs(struct ifaddrs **ifap);
