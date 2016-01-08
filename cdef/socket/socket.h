@@ -111,3 +111,5 @@ struct ifaddrs {
 
 int getifaddrs(struct ifaddrs **ifap);
 void freeifaddrs(struct ifaddrs *ifa);
+
+int gethostname(char *name, size_t len);

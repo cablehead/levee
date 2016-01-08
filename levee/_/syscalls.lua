@@ -320,6 +320,13 @@ _.getpeername = function(no)
 end
 
 
+_.gethostname = function()
+	local rc = C.gethostname(buf, buf_len)
+	if rc < 0 then return errors.get(ffi.errno()) end
+	return nil, ffi.string(buf)
+end
+
+
 _.listen = function(domain, type_, host, port)
 	local BACKLOG = 256
 	-- TODO: should we be using getaddrinfo here?

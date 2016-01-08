@@ -137,4 +137,9 @@ return {
 		assert(not err)
 		assert.equal(ep:port(), c_ep:port())
 	end,
+
+	test_gethostname = function()
+		local err, name = _.gethostname()
+		assert(not err)
+	end,
 }
