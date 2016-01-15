@@ -15,7 +15,7 @@ static const int NI_DGRAM       = 16;
 typedef uint16_t sa_family_t;
 
 struct sockaddr {
-	sa_family_t sin_family;
+	sa_family_t sa_family;
 	char sa_data[14];
 };
 
