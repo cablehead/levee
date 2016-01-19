@@ -15,6 +15,14 @@ return {
 			_.plate(s, {b = "noog"}), "1  3")
 	end,
 
+	test_if_else = function()
+		local s = "1 {% if foo %} 2 {{ b }} {% else %} hrm {{c}} {% end %} 3"
+		assert.equal(
+			_.plate(s, {foo = true, b = "sub_b", c = "sub_c"}), "1  2 sub_b  3")
+		assert.equal(
+			_.plate(s, {foo = false, b = "sub_b", c = "sub_c"}), "1  hrm sub_c  3")
+	end,
+
 	test_nested = function()
 		local s = "1 {% if foo %}2 {% if bar %}3 {{ a }}{% end %}{% end %} 5"
 		assert.equal(

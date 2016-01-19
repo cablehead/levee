@@ -16,6 +16,8 @@ local VAR = VAR_BEGIN * VAR_MIDDLE * VAR_END
 
 local STMT_BEGIN = P("{%") * WHITE
 local STMT_END = WHITE * P("%}")
+
+local ELSE = STMT_BEGIN * P("else") * STMT_END
 local END = STMT_BEGIN * P("end") * STMT_END
 
 local IF_BEGIN = STMT_BEGIN * P("if ") * C(P((1-STMT_END)^0)) * STMT_END
@@ -24,15 +26,16 @@ local IF_BEGIN = STMT_BEGIN * P("if ") * C(P((1-STMT_END)^0)) * STMT_END
 local parse = Ct(P({
 	"DOC",
 
-	IF = (IF_BEGIN * V("BLOCK") * END) / function(var, ...)
-		return {"IF", {var, {...}}}
-	end,
+	IF = (IF_BEGIN * Ct(V("BLOCK")) * P((ELSE * Ct(V("BLOCK")))^-1) * END
+		) / function(var, block, else_block)
+					return {"IF", {var, block, else_block}}
+				end,
 
 	TAG = VAR + V("IF"),
 	NOT_TAG = P((1 - V("TAG"))^1),
 
 	BLOCK = P((C(V("NOT_BLOCK_END")) + V("TAG"))^1),
-	NOT_BLOCK_END = P((1 - (V("TAG")+END))^1),
+	NOT_BLOCK_END = P((1 - (V("TAG") + ELSE + END))^1),
 
 	DOC = P((C(V("NOT_TAG")) + V("TAG"))^1),
 }))
@@ -68,9 +71,11 @@ function nodes.SUB(d, var)
 end
 
 
-function nodes.IF(d, var, block)
+function nodes.IF(d, var, block, else_block)
 	if d[var] then
 		return nodes.BLOCK(d, block)
+	elseif else_block then
+		return nodes.BLOCK(d, else_block)
 	end
 end
 
