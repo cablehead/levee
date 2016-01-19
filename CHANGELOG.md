@@ -20,6 +20,7 @@
 * bring Consul support back up to date
 * fix for linux 0copy splice
 * fix 100% cpu waitpid bug in levee.core.process
+* added the beginnings of a jinja2-esque template library
 
 ## 0.3.1 - 2015-12-03
 
