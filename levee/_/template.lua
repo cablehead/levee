@@ -80,9 +80,16 @@ function nodes.IF(d, var, block, else_block)
 end
 
 
-return function(s, d)
-	d = d or {}
-	local doc = parse:match(s)
-	-- return nodes.BLOCK(d, doc)
-	return table.concat(nodes.BLOCK(d, doc))
+local Template_mt = {}
+Template_mt.__index = Template_mt
+
+
+function Template_mt:__call(d)
+	-- return nodes.BLOCK(d, self.parsed)
+	return table.concat(nodes.BLOCK(d, self.parsed))
+end
+
+
+return function(s)
+	return setmetatable({parsed=parse:match(s)}, Template_mt)
 end
