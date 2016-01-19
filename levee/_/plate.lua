@@ -78,5 +78,6 @@ end
 return function(s, d)
 	d = d or {}
 	local doc = parse:match(s)
+	-- return nodes.BLOCK(d, doc)
 	return table.concat(nodes.BLOCK(d, doc))
 end

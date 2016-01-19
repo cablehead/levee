@@ -14,4 +14,20 @@ return {
 		assert.equal(
 			_.plate(s, {b = "noog"}), "1  3")
 	end,
+
+	test_nested = function()
+		local s = "1 {% if foo %}2 {% if bar %}3 {{ a }}{% end %}{% end %} 5"
+		assert.equal(
+			_.plate(s, {foo = true, bar = true, a = 4}),
+			"1 2 3 4 5")
+		assert.equal(
+			_.plate(s, {foo = true, bar = false, a = 4}),
+			"1 2  5")
+		assert.equal(
+			_.plate(s, {foo = false, bar = true, a = 4}),
+			"1  5")
+		assert.equal(
+			_.plate(s, {a = 4}),
+			"1  5")
+	end,
 }
