@@ -29,10 +29,11 @@ local parse = Ct(P({
 	end,
 
 	TAG = VAR + V("IF"),
-
 	NOT_TAG = P((1 - V("TAG"))^1),
+
 	BLOCK = P((C(V("NOT_BLOCK_END")) + V("TAG"))^1),
 	NOT_BLOCK_END = P((1 - (V("TAG")+END))^1),
+
 	DOC = P((C(V("NOT_TAG")) + V("TAG"))^1),
 }))
 
