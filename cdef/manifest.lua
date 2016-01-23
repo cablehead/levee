@@ -50,6 +50,7 @@ local headers = {
 	include("socket", "socket"),
 	include("socket", os),
 	include("fcntl", os),
+	include("ioctl", "ioctl"),
 	include("ioctl", os),
 	include("poller", os),
 	include("buffer", "buffer"),
