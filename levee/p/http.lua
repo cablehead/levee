@@ -538,6 +538,12 @@ function Client_mt:get(path, options)
 end
 
 
+function Client_mt:head(path, options)
+	options = options or {}
+	return self:request("HEAD", path, options.params, options.headers)
+end
+
+
 function Client_mt:post(path, options)
 	options = options or {}
 	return self:request(
