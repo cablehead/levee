@@ -320,10 +320,8 @@ end
 
 
 function Response_mt:save(name)
-	local err, no = _.open(name, C.O_WRONLY)
+	local err, w = self.hub.io:open(name, "w+")
 	if err then return err end
-
-	local w = self.hub.io:w(no)
 
 	if self.body then
 		local err, n = self.body:splice(w)
