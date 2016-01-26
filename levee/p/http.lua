@@ -399,8 +399,8 @@ function Client_mt:reader(responses)
 		local err, value
 
 		err, value = self.parser:stream_next(self.stream)
-		assert(self.parser.type == C.SP_HTTP_RESPONSE)
 		if err then goto __cleanup end
+		assert(self.parser.type == C.SP_HTTP_RESPONSE)
 
 		local res = setmetatable({
 			hub = self.hub,
