@@ -14,7 +14,9 @@
 * improve error logging when coroutines error
 * fix composing Host header in http client
 * for binaries built by levee, add a package.loader that attempts to open
-  linked bundles via dysm
+  linked bundles via dsym
+* fix for http's :save convenience on Linux
+* small fixes for \_.open and io:open
 
 ## 0.3.1 - 2015-12-03
 
