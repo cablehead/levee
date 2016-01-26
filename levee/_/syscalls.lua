@@ -123,7 +123,7 @@ _.open_modes = {
 
 _.open = function(path, mode, ...)
 	if type(mode) == "string" then
-		mode = _.open_modes[str]
+		mode = _.open_modes[mode]
 		if not mode then
 			return errors.system.EINVAL
 		end
