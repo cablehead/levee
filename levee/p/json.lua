@@ -16,7 +16,19 @@ end
 
 
 function Json_mt:__tostring()
-	return string.format("levee.p.json: %p", self)
+	local type_map = {
+		[C.SP_JSON_NONE] = "NONE",
+		[C.SP_JSON_OBJECT] = "OBJECT",
+		[C.SP_JSON_ARRAY] = "ARRAY",
+		[C.SP_JSON_OBJECT_END] = "OBJECT_END",
+		[C.SP_JSON_ARRAY_END] = "ARRAY_END",
+		[C.SP_JSON_TRUE] = "TRUE",
+		[C.SP_JSON_FALSE] = "FALSE",
+		[C.SP_JSON_STRING] = "STRING",
+		[C.SP_JSON_NUMBER] = "NUMBER",
+		[C.SP_JSON_NULL] = "NULL", }
+	return string.format(
+		"levee.p.json: %p type=%s", self, type_map[tonumber(self.type)])
 end
 
 
