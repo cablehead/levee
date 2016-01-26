@@ -906,6 +906,7 @@ end
 
 function IO_mt:open(name, ...)
 	local err, no, mode = _.open(name, ...)
+	if err then return err end
 
 	if bit.band(C.O_WRONLY, mode) > 0 then
 		local m = setmetatable({hub = self.hub, no = no}, W_mt)
