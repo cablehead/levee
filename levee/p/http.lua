@@ -374,7 +374,7 @@ function Response_mt:json()
 		local err
 		err, self.chunk = self.chunks:recv()
 		if err then return err end
-		return self.chunk:readin()
+		return self.chunk:readin(1)
 	end
 
 	function ChunkedStream_mt:value()
