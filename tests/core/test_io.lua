@@ -544,6 +544,48 @@ return {
 
 			assert.same(h.registered, {})
 		end,
+
+		test_tcp = function()
+			local h = levee.Hub()
+
+			local data = ("."):rep(200000)
+
+			local err, serve = h.tcp:listen()
+			local err, addr = serve:addr()
+			local port = addr:port()
+
+			local err, c1 = h.tcp:connect(port)
+			local err, s1 = serve:recv()
+			local err, c2 = h.tcp:connect(port)
+			local err, s2 = serve:recv()
+
+			local stream = s2:stream()
+
+			h:spawn(function()
+				while true do
+					local err = c1:write(("."):rep(10000))
+					if err then break end
+					h:sleep(2)
+				end
+			end)
+
+			s1:stream():chunk(#data):splice(c2)
+			assert.equal(stream:take(#data), data)
+
+			s1:stream():chunk(#data):splice(c2)
+			assert.equal(stream:take(#data), data)
+
+			s1:stream():chunk(#data):splice(c2)
+			assert.equal(stream:take(#data), data)
+
+			s1:close()
+			c2:close()
+			s2:close()
+			serve:close()
+			h:sleep(10)
+
+			assert.same(h.registered, {})
+		end,
 	},
 
 	tee = {

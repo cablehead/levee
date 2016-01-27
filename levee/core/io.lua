@@ -604,8 +604,9 @@ function Chunk_mt:_splice_0copy(target)
 		end
 	end
 
-	-- restore target's w_ev
+	-- restore target and temp w's w_ev
 	target.w_ev.set = target_w_ev_set
+	w.w_ev.set = target_w_ev_set
 
 	r:close()
 	w:close()
