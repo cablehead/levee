@@ -114,6 +114,7 @@ local function encode(data, buf)
 		end
 
 	elseif type(data) == "string" then
+		buf:ensure(#data)
 		err, rc = encode_string(buf:tail(), data)
 		if err then return err end
 		buf:bump(rc)

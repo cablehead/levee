@@ -45,4 +45,21 @@ return {
 		local err, got = levee.p.msgpack.decoder():stream(buf)
 		assert.same(got, want)
 	end,
+
+	test_large = function()
+		local want = {
+			params = {
+							h = "50",
+							w = "100" },
+			foo = {},
+			uri = "/1/5376404c0d42e0472e0784aa:100/gA/:/i2.jpg",
+			graph = ("foo"):rep(20000),
+			headers = {
+							Accept = "*/*",
+							["User-Agent"] = "levee/0.3.2-alpha",
+							Host = "cgraphics.imgix.net" } }
+		local err, buf = levee.p.msgpack.encode(want)
+		local err, got = levee.p.msgpack.decoder():stream(buf)
+		assert.same(got, want)
+	end,
 }
