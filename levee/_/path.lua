@@ -8,7 +8,7 @@ local _ = {}
 
 
 local buflen = C.SP_PATH_MAX * 4
-local buf = ffi.cast("char *", ffi.gc(C.malloc(buflen), C.free))
+local buf = ffi.cast("char *", C.malloc(buflen))
 local ranges = ffi.new("SpRange16 [2]")
 local procname = false
 local procname_err, procname_val
