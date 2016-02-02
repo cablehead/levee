@@ -152,7 +152,25 @@ function Assert_mt.is_nil(got)
 	end
 end
 
-assert = setmetatable({}, Assert_mt)
+
+function Assert_mt.call(...)
+	return _assert(...)
+end
+
+
+AssertTracker_mt = {}
+AssertTracker_mt.__index = function(self, name)
+	self.count = self.count + 1
+	return Assert_mt[name]
+end
+
+
+function AssertTracker_mt.__call(self, ...)
+	return self["call"](...)
+end
+
+
+assert = setmetatable({count=0}, AssertTracker_mt)
 
 
 --
@@ -194,6 +212,7 @@ local txtrst='\27[0m'    -- Text Reset
 
 local COLORS = {
 	PASS = txtgrn,
+	ASSERT = txtblu,
 	SKIP = txtylw,
 	FAIL = txtred, }
 
@@ -466,6 +485,7 @@ return {
 		end
 
 		io.write('\n')
+		options.stats["ASSERT"] = assert.count
 		for key, value in pairs(options.stats) do
 			io.write(COLORS[key] or txtred, key, txtrst, '=', value, ' ')
 		end
