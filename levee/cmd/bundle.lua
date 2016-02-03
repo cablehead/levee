@@ -202,7 +202,7 @@ Options:
 				bytecode = string.dump(f), })
 
 		elseif options.file then
-			options.name = options.name or options.file:match("^(.+)%..+$")
+			options.name = options.name or basename(options.file:match("^(.+)%..+$"))
 			local f = collect_file(dirname(options.file), options.file, debug)
 			if f then
 				f.req_name = f.req_name .. ".main"
