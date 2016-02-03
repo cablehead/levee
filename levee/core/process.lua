@@ -68,7 +68,6 @@ function M_mt:poweron()
 					child.exit_sig = sig
 					child.done:send(child)
 					if child.stdin then child.stdin:close() end
-					if child.stdout then child.stdout:close() end
 				end
 			end
 		end
