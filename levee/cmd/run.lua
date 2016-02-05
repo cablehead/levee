@@ -35,6 +35,8 @@ return {
 			end
 
 			if st:is_dir() then
+				package.loaded[_.path.basename(path)..".assets"] = _.bundle(
+					_.path.join(path, "assets"))()
 				local root = _.path.dirname(path)
 				if root == "" then root = "./" end
 				package.path = (
