@@ -32,7 +32,7 @@ add_custom_command(
 
 add_custom_command(
 	OUTPUT ${LEVEE_BUNDLE_OUTPUT}
-	COMMAND luajit -e "local M = loadfile('${LEVEE_BUNDLE_SCRIPT}')(); M.run({modules = {'${PROJECT_SOURCE_DIR}/levee'}, name = 'levee', out = io.stdout})" > ${LEVEE_BUNDLE_OUTPUT}
+	COMMAND luajit -e "local M = loadfile('${LEVEE_BUNDLE_SCRIPT}')(); M.run({modules = {'${PROJECT_SOURCE_DIR}/levee'}, name = 'levee', out = io.stdout, bootstrap = true})" > ${LEVEE_BUNDLE_OUTPUT}
 	DEPENDS ${LEVEE_BUNDLE_SCRIPT} ${LEVEE_CDEF_HEADER} ${LEVEE_SCRIPTS}
 	VERBATIM
 )
