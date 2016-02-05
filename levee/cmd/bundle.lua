@@ -213,10 +213,22 @@ Options:
 			for _, path in ipairs(options.modules) do
 				-- TODO: make debug mode externally configurable
 				collect(path, files, debug)
+
 				if not options.bootstrap then
 					local _ = require("levee")._
+
 					local file = _.path.join(path, "assets")
-					local f = _.bundle(file)
+					local f = _.bundle.assets(file)
+					local root = dirname(path)
+					local id = file:sub(#root + 1):gsub("/", ".")
+					table.insert(files, {
+						id = id,
+						req_name = id,
+						func_name = id:gsub("%.", "_"),
+						bytecode = string.dump(f), })
+
+					local file = _.path.join(path, "templates")
+					local f = _.bundle.templates(file)
 					local root = dirname(path)
 					local id = file:sub(#root + 1):gsub("/", ".")
 					table.insert(files, {

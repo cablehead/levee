@@ -23,6 +23,7 @@
 * add the beginnings of a jinja2-esque template library
 * add ability to bundle static assets into a levee binary
 * add the beginnings of a micro-web framework http:droplet
+* add ability to bundle templates into a levee binary
 
 ## 0.3.1 - 2015-12-03
 
