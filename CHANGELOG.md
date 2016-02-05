@@ -21,6 +21,7 @@
 * fix for linux 0copy splice
 * fix 100% cpu waitpid bug in levee.core.process
 * added the beginnings of a jinja2-esque template library
+* add ability to bundle static assets into a levee binary
 
 ## 0.3.1 - 2015-12-03
 
