@@ -111,6 +111,71 @@ Status[524] = Status(524, "A timeout occurred")
 Status[598] = Status(598, "Network read timeout error")
 Status[599] = Status(599, "Network connect timeout error")
 
+--
+-- Droplet
+
+local Droplet_mt = {}
+Droplet_mt.__index = Droplet_mt
+
+
+function Droplet_mt:route(path, f)
+	self.routes[path] = f
+end
+
+
+function Droplet_mt:bundle(path, assets)
+	self.bundles[path] = assets
+end
+
+
+local function Droplet(hub, port)
+	local self = setmetatable({}, Droplet_mt)
+
+	self.hub = hub
+	self.routes = {}
+	self.bundles = {}
+
+	local err
+	err, self.serve = hub.http:listen(port)
+	if err then return err end
+
+	local function request(h, conn, req)
+		for path, f in pairs(self.routes) do
+			if path == req.path then
+				local s = f(h, req)
+				if s then
+					req.response:send({Status(200), {}, s})
+				end
+				return
+			end
+		end
+
+		for path, assets in pairs(self.bundles) do
+			if req.path:sub(1, #path) == path then
+				local static = assets[req.path:sub(#path)]
+				if not static then break end
+				req.response:send({Status(200), {}, static})
+			end
+		end
+
+		req.response:send({Status(404), {}, "Not found."})
+	end
+
+	local function connection(h, conn)
+		for req in conn do
+			request(h, conn, req)
+		end
+	end
+
+	hub:spawn(function()
+		for conn in self.serve do
+			hub:spawn(function() connection(hub, conn) end)
+		end
+	end)
+
+	return nil, self
+end
+
 
 --
 -- Parser
@@ -893,6 +958,11 @@ function HTTP_mt:listen(port, host, config)
 	m.sender, m.recver = self.hub:pipe()
 	self.hub:spawn(m.loop, m)
 	return nil, m
+end
+
+
+function HTTP_mt:droplet(port)
+	return Droplet(self.hub, port)
 end
 
 
