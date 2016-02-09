@@ -1,7 +1,9 @@
+local levee = require("levee")
+local _ = levee._
+
+
 return {
 	test_core = function()
-		local levee = require("levee")
-
 		local h = levee.Hub()
 
 		local buf = levee.d.Buffer(4096)
@@ -39,5 +41,36 @@ return {
 		s1:readinto(buf)
 		c2:readinto(buf)
 		assert.same(h.registered, {})
+	end,
+
+	test_conn_refused = function()
+		local h = levee.Hub()
+
+		-- bind to a random port to find a free one
+		local err, serve = h.tcp:listen()
+		local err, addr = serve:addr()
+		local port = addr:port()
+		serve:close()
+		assert.same(h.registered, {})
+
+		for no = 3, 65535 do local err, st = _.fstat(no) end
+		-- count the number of in use file descriptors
+		local pre = 0
+		for no = 3, 65535 do
+			local err, st = _.fstat(no)
+			if st then pre = pre + 1 end
+		end
+
+		local err, c = h.tcp:connect(port)
+		assert(err)
+		assert.same(h.registered, {})
+
+		-- check the number of in use file descriptors is the same
+		local post = 0
+		for no = 3, 65535 do
+			local err, st = _.fstat(no)
+			if st then post = post + 1 end
+		end
+		assert.equal(pre, post)
 	end,
 }

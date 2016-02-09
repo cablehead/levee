@@ -361,10 +361,11 @@ _.connect = function(host, port)
 	local no = C.socket(C.PF_INET, C.SOCK_STREAM, 0)
 	if no < 0 then return errors.get(ffi.errno()) end
 
-	local err, info, ptr = _.getaddrinfo(host, tostring(port))
-	if err then return err end
+	local err, info, ptr
 
-	local err
+	err, info, ptr = _.getaddrinfo(host, tostring(port))
+	if err then goto __close end
+
 	while ptr ~= nil do
 		local rc = C.connect(no, ptr.ai_addr, ptr.ai_addrlen)
 		if rc == 0 then break end
@@ -377,8 +378,11 @@ _.connect = function(host, port)
 	if ptr ~= nil then
 		return nil, no
 	end
+	err = errors.get(err)
 
-	return errors.get(err)
+	::__close::
+	_.close(no)
+	return err
 end
 
 
