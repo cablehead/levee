@@ -5,12 +5,18 @@ set(LUAJIT_LIB "${LUAJIT_DIR}/lib/libluajit-5.1.a")
 set(LUAJIT_BIN "${LUAJIT_DIR}/bin/luajit")
 set(LUAJIT_INC "${LUAJIT_DIR}/include/luajit-2.1")
 set(LUAJIT_HASH "v2.1.0-beta1")
+
 option(VALGRIND "VALGRIND" OFF)
 
-set(LUAJIT_XCFLAGS XCFLAGS="-DLUAJIT_ENABLE_LUA52COMPAT")
+set(LUAJIT_XCFLAGS "XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT")
+# The escaped quotes in XCFLAGS here are very important.
+# externalproject_add aggressively quotes strings incorrectly otherwise, which will wreak havoc
 if(VALGRIND STREQUAL "ON")
-	set(LUAJIT_XCFLAGS "XCFLAGS='-DLUAJIT_ENABLE_LUA52COMPAT -DLUAJIT_USE_VALGRIND -DLUAJIT_DISABLE_JIT'")
+	set(LUAJIT_XCFLAGS "XCFLAGS=-DLUAJIT_ENABLE_LUA52COMPAT\ -DLUAJIT_USE_VALGRIND\ -DLUAJIT_DISABLE_JIT")
+	set(LUAJIT_Q "Q=")
 endif()
+
+#MESSAGE( STATUS "LUAJIT_XCFLAGS: " ${LUAJIT_XCFLAGS} )
 
 externalproject_add(luajit_project
 	GIT_REPOSITORY http://luajit.org/git/luajit-2.0.git
@@ -20,11 +26,13 @@ externalproject_add(luajit_project
 	UPDATE_COMMAND ""
 	BUILD_COMMAND make
 		${LUAJIT_XCFLAGS}
+		${LUAJIT_Q}
 		BUILDMODE=static
 		INSTALL_TNAME=luajit
 		amalg
 	INSTALL_COMMAND make
 		${LUAJIT_XCFLAGS}
+		${LUAJIT_Q}
 		BUILDMODE=static
 		INSTALL_TNAME=luajit
 		PREFIX=${LUAJIT_DIR}
