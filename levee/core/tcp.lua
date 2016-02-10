@@ -95,8 +95,14 @@ TCP_mt.__index = TCP_mt
 
 
 function TCP_mt:connect(port, host, timeout)
-	if not self.connector then self.connector = Connector(self.hub) end
-	local err, no = self.connector:connect(host, port)
+	if not self.connector then
+		self.connector = self.hub:pool(function()
+			return Connector(self.hub)
+		end, 1)
+	end
+	local err, no = self.connector:run(function(connector)
+		return connector:connect(host, port)
+	end)
 	if err then return err end
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:rw(no, timeout)
