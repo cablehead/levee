@@ -58,18 +58,45 @@ end
 
 
 --
+-- Background thread to resolve connections
+--
+
+local Connector_mt = {}
+Connector_mt.__index = Connector_mt
+
+
+function Connector_mt:connect(host, port)
+	self.child:send({host, port})
+	return self.child:recv()
+end
+
+
+local function Connector(hub)
+	local self = setmetatable({hub=hub}, Connector_mt)
+	self.child = hub.thread:spawn(function(h)
+		local _ = require("levee._")
+		while true do
+			local err, req = h.parent:recv()
+			if err then break end
+			local host, port = unpack(req)
+			h.parent:pass(_.connect(host, port))
+		end
+	end)
+	return self
+end
+
+
+--
 -- TCP module interface
 --
+
 local TCP_mt = {}
 TCP_mt.__index = TCP_mt
 
 
 function TCP_mt:connect(port, host, timeout)
-	local err, no = self.hub.thread:call(
-		function (port, host)
-			return require("levee._").connect(host, port)
-		end,
-		port, host or "127.0.0.1"):recv()
+	if not self.connector then self.connector = Connector(self.hub) end
+	local err, no = self.connector:connect(host, port)
 	if err then return err end
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:rw(no, timeout)
