@@ -128,7 +128,7 @@ function Droplet_mt:bundle(path, assets)
 end
 
 
-local function Droplet(hub, port)
+local function Droplet(hub, port, host, config)
 	local self = setmetatable({}, Droplet_mt)
 
 	self.hub = hub
@@ -136,7 +136,7 @@ local function Droplet(hub, port)
 	self.bundles = {}
 
 	local err
-	err, self.serve = hub.http:listen(port)
+	err, self.serve = hub.http:listen(port, host, config)
 	if err then return err end
 
 	local function request(h, conn, req)
@@ -961,8 +961,8 @@ function HTTP_mt:listen(port, host, config)
 end
 
 
-function HTTP_mt:droplet(port)
-	return Droplet(self.hub, port)
+function HTTP_mt:droplet(port, host, config)
+	return Droplet(self.hub, port, host, config)
 end
 
 
