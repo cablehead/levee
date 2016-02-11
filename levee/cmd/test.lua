@@ -474,6 +474,18 @@ return {
 			'./?/init.lua;%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s',
 				path, path, path, package.path)
 
+		table.insert(package.loaders, function(name)
+			local path = "."
+			name = name:gsub("%.", "/")
+			local typ = _.path.basename(name)
+			if typ == "assets" then
+				return _.bundle.assets(_.path.join(path, name))
+			end
+			if typ == "templates" then
+				return _.bundle.templates(_.path.join(path, name))
+			end
+		end)
+
 		local cov = Coverage(options.cov)
 		options.w = Writer(options.verbose)
 		options.stats = setmetatable({}, {__index = function() return 0 end})
