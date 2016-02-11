@@ -4,7 +4,7 @@ local M = {}
 local function _assets(path)
 	local t = {}
 	table.insert(t, '{')
-	local cmd = "find -L '"..path.."' -type f"
+	local cmd = "find -L '"..path.."' -type f 2>/dev/null"
 	for file in io.popen(cmd):lines() do
 		table.insert(t, ('\n\t["%s"] = "'):format(file:sub(#path+1)))
 		local f = io.open(file, "rb")
