@@ -26,6 +26,7 @@
 * add ability to bundle templates into a levee binary
 * fix a bug where file descriptors weren't being cleaned up on a failed TCP
   connect
+* add h.consul:spawn, to facilitate spawning consul instances for testing
 
 ## 0.3.1 - 2015-12-03
 
