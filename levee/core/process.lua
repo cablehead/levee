@@ -168,7 +168,7 @@ function M_mt:spawn(name, options)
 	local argv = options.argv or {}
 	table.insert(argv, 1, name)
 	local err = _.execvp(name, argv)
-	assert(not err)
+	if err then err:exit() end
 end
 
 
