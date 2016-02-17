@@ -7,6 +7,9 @@ local errors = require("levee.errors")
 local _ = {}
 
 
+_.stat = require("levee._.syscalls").stat
+
+
 local buflen = C.SP_PATH_MAX * 4
 local buf = ffi.cast("char *", C.malloc(buflen))
 local ranges = ffi.new("SpRange16 [2]")
@@ -133,6 +136,86 @@ function _.exists(name)
   local rc = C.access(name, C.F_OK)
   return rc ~= -1
 end
+
+
+--
+-- Path
+
+local Path_mt = {}
+Path_mt.__index = Path_mt
+
+
+function Path_mt:__tostring()
+	return self._path
+end
+
+function Path_mt:__concat(s)
+	return tostring(self) .. tostring(s)
+end
+
+
+function Path_mt:exists()
+	return _.exists(self._path)
+end
+
+
+function Path_mt:remove(recurse)
+	local __, __, rc = os.execute(("rm %s%s 2>/dev/null"):format(
+		recurse and "-r " or "", self))
+	return rc == 0
+end
+
+
+function Path_mt:stat()
+	local err, stat = _.stat(self._path)
+	return stat
+end
+
+
+function Path_mt:is_dir()
+	local err, stat = _.stat(self._path)
+	if not stat then return end
+	return stat:is_dir()
+end
+
+
+function Path_mt:cwd()
+	local err, cwd = _.cwd(self._path)
+	if err then err:exit() end
+	return cwd
+end
+
+
+function Path_mt:write(s)
+	local fh = io.open(self._path, "w")
+	fh:write(s)
+	fh:close()
+end
+
+
+function Path_mt:__call(rel)
+	return setmetatable({_path=_.join(self._path, rel)}, Path_mt)
+end
+
+
+local Path_constructor = {}
+Path_constructor.__index = Path_constructor
+
+
+function Path_constructor:__call(path)
+	return setmetatable({_path=_.abs(path)}, Path_mt)
+end
+
+
+function Path_constructor:tmpdir()
+	local path = os.tmpname()
+	os.remove(path)
+	os.execute("mkdir " .. path)
+	return setmetatable({_path=_.abs(path)}, Path_mt)
+end
+
+
+_.Path = setmetatable({}, Path_constructor)
 
 
 return _

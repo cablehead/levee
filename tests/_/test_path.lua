@@ -298,4 +298,14 @@ return {
 		os.remove(path)
 		assert(not _.path.exists(path))
 	end,
+
+	test_Path = function()
+		local tmp = _.path.Path:tmpdir()
+		assert(tmp:exists())
+		assert(tmp:is_dir())
+		assert(not tmp:remove())
+		assert(tmp:exists())
+		assert(tmp:remove(true))
+		assert(not tmp:exists())
+	end,
 }
