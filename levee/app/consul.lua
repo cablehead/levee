@@ -470,18 +470,18 @@ local function Instance(hub, bin, join)
 		argv = {
 			"agent",
 			"-server",
+			"-dev",
 			"-bind=127.0.0.1",
 			"-bootstrap",
-			"-config-dir="..self.path,
-			"-data-dir="..self.path("data"), }
+			"-config-dir="..self.path, }
 	else
 		argv = {
 			"agent",
+			"-dev",
 			"-bind=127.0.0.1",
 			"-join=localhost:"..tostring(join.config.ports.serf_lan),
 			"-node=node2",
-			"-config-dir="..self.path,
-			"-data-dir="..self.path("data"), }
+			"-config-dir="..self.path, }
 	end
 
 	self.child = self.hub.process:spawn(bin, {
