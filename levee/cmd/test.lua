@@ -83,6 +83,14 @@ end
 --
 -- setup global variables
 
+local deferred = {}
+
+
+function defer(f)
+	table.insert(deferred, f)
+end
+
+
 debug = require('debug')
 
 local Assert_mt = {}
@@ -413,6 +421,10 @@ local function run_suite(options, suite)
 					options.stats.FAIL = options.stats.FAIL + 1
 				end)
 		end
+
+		for __, f in ipairs(deferred) do f() end
+		deferred = {}
+
 		if success and extra ~= 'IGNORE' then
 			if not extra then extra = 'PASS' end
 			options.w(
