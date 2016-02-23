@@ -15,9 +15,10 @@ function Log_mt:log(lvl, f, ...)
 	io.write(" ")
 	io.write(time.now():localdate():iso8601())
 	io.write(" ")
-	io.write(("%-26s"):format(self.name:sub(1,25)))
+	io.write(("%-21s"):format(self.name:sub(1,20)))
 	io.write(f:format(...))
 	io.write("\n")
+	io.flush()
 end
 
 
@@ -36,6 +37,14 @@ function Log_mt:warn(...)
 end
 
 
-return function(name)
-	return setmetatable({name=name}, Log_mt)
-end
+return {
+	Log = function(name)
+		return setmetatable({name=name}, Log_mt)
+	end,
+
+	patch = function(f)
+		local ret = Log_mt.log
+		Log_mt.log = f
+		return ret
+	end,
+}
