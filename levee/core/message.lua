@@ -227,6 +227,11 @@ function Value_mt:_take(err)
 end
 
 
+function Value_mt:_link(recver)
+	self.recver = recver
+end
+
+
 function Value_mt:close()
 	if self.closed then return errors.CLOSED end
 	self.closed = true
@@ -625,6 +630,58 @@ end
 
 
 --
+-- Broadcast
+
+local Broadcast_mt = {}
+Broadcast_mt.__index = Broadcast_mt
+
+
+function Broadcast_mt:recv(ms)
+	if self.closed then return errors.CLOSED end
+
+	local err, value = self.sender:_take()
+	if err or value then return err, value end
+
+	local wait = self.heap:push(ms or -1, coroutine.running())
+	local err, sender, value = self.hub:pause(ms)
+	if err == errors.TIMEOUT then wait:remove() end
+	return err, value
+end
+
+
+function Broadcast_mt:_link(sender, recver)
+	self.sender = sender
+end
+
+
+function Broadcast_mt:_give(err, sender, value)
+	if self.closed then return errors.CLOSED end
+
+	if #self.heap == 0 then return nil, BUFFERED end
+
+	if err == errors.CLOSED then assert(false, "TODO") end
+
+	for pri, co in self.heap:popiter() do
+		self.hub:resume(co, err, sender, value)
+	end
+
+	return nil, UNBUFFERED
+end
+
+
+function Broadcast_mt:__call()
+	local err, value = self:recv()
+	if err then return end
+	return value
+end
+
+
+local function Broadcast(hub)
+	return setmetatable({hub=hub, heap=d.Heap()}, Broadcast_mt)
+end
+
+
+--
 -- Pool
 
 -- A finite pool of resources to be shared.
@@ -702,5 +759,6 @@ return {
 	Stalk = Stalk,
 	Selector = Selector,
 	Dealer = Dealer,
+	Broadcast = Broadcast,
 	Pool = Pool,
 	}

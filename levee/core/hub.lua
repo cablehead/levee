@@ -118,6 +118,11 @@ function Hub_mt:dealer()
 end
 
 
+function Hub_mt:broadcast()
+	return message.Broadcast(self)
+end
+
+
 function Hub_mt:pool(factory, size)
 	return message.Pool(self, factory, size)
 end

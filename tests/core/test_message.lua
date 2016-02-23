@@ -530,6 +530,66 @@ return {
 			"r3", {levee.errors.CLOSED}, })
 	end,
 
+	test_broadcast = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:pipe()
+
+		local b = h:broadcast()
+		recver:redirect(b)
+
+		-- send then recv
+		sender:send(1)
+		assert.equal(b:recv(20), levee.errors.TIMEOUT)
+
+		-- recv then send
+		local tick = 0
+		h:spawn(function() local err, n = b:recv(); tick = tick + n end)
+		h:spawn(function() local err, n = b:recv(); tick = tick + n end)
+		h:continue()
+		assert.equal(tick, 0)
+		sender:send(2)
+		assert.equal(tick, 4)
+
+		-- recv with timeout then send
+		local tick = 0
+		h:spawn(function()
+			local err, n = b:recv(20)
+			assert(err)
+			tick = tick + 1
+		end)
+		h:spawn(function() local err, n = b:recv(); tick = tick + n end)
+		h:continue()
+		assert.equal(tick, 0)
+		h:sleep(30)
+		assert.equal(tick, 1)
+		sender:send(2)
+		assert.equal(tick, 3)
+
+		assert.equal(#b.heap, 0)
+		assert.equal(#h.scheduled, 0)
+	end,
+
+	test_broadcast_value = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:value()
+
+		local b = h:broadcast()
+		recver:redirect(b)
+
+		-- recv then send
+		local tick = 0
+		h:spawn(function() local err, n = b:recv(); tick = tick + n end)
+		h:spawn(function() local err, n = b:recv(); tick = tick + n end)
+		h:continue()
+		assert.equal(tick, 0)
+		sender:send(2)
+		assert.equal(tick, 4)
+
+		assert.same({b:recv()}, {nil, 2})
+	end,
+
 	test_pool = function()
 		local h = levee.Hub()
 
