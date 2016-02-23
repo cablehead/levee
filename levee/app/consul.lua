@@ -488,8 +488,18 @@ local function Instance(hub, bin, join)
 		argv=argv,
 		io={
 			STDIN=0,
-			STDOUT=1,
 			}, })
+
+	self.hub:spawn(function()
+		local stream = self.child.stdout:stream()
+		local log = _.log.Log("levee.app.consul")
+		while true do
+			local err, line = stream:line()
+			if err then break end
+			log:info(line)
+		end
+	end)
+
 
 	local err, done = self.child.done:recv(100)
 	if done then
