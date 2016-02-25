@@ -12,8 +12,8 @@ date.string = string.format(
 local version = {
 	major = 0,
 	minor = 3,
-	patch = 2,
-	pre_release = "",
+	patch = 3,
+	pre_release = "-alpha",
 	date = date, }
 
 version.string = string.format(
