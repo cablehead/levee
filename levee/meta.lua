@@ -1,7 +1,7 @@
 local date = {
-	year = 2015,
-	month = 12,
-	day = 3,
+	year = 2016,
+	month = 2,
+	day = 24,
 }
 
 date.string = string.format(
@@ -13,7 +13,7 @@ local version = {
 	major = 0,
 	minor = 3,
 	patch = 2,
-	pre_release = "-alpha",
+	pre_release = "",
 	date = date, }
 
 version.string = string.format(

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.2-alpha
+## 0.3.2 - 2016-02-24
 
 * hashring fixes
 * add meta.name for usage messages so subcommands can be reused by other
