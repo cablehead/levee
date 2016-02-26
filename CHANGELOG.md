@@ -2,6 +2,8 @@
 
 ## 0.3.3-alpha
 
+* default pdeathsig to TERM. allow the signal to be configurable
+
 ## 0.3.2 - 2016-02-24
 
 * hashring fixes
