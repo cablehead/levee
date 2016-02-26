@@ -83,6 +83,14 @@ end
 --
 -- setup global variables
 
+local deferred = {}
+
+
+function defer(f)
+	table.insert(deferred, f)
+end
+
+
 debug = require('debug')
 
 local Assert_mt = {}
@@ -230,13 +238,6 @@ function Writer_mt:__call(verbose, terse)
 		if terse then io.write(terse) end
 	end
 	io.flush()
-end
-
-function Writer_mt:once(...)
-	if not self.once then
-		self(...)
-		self.once = true
-	end
 end
 
 function Writer_mt:notfirst(...)
@@ -413,15 +414,21 @@ local function run_suite(options, suite)
 					options.stats.FAIL = options.stats.FAIL + 1
 				end)
 		end
+
+		for __, f in ipairs(deferred) do f() end
+		deferred = {}
+
 		if success and extra ~= 'IGNORE' then
 			if not extra then extra = 'PASS' end
 			options.w(
+				(options._per_test_extra and pattern:format(name) or "")..
 				(COLORS[extra] or txtred)..' '..extra..txtrst..'\n',
 				extra == 'PASS' and '.' or extra:sub(1, 1))
 			options.stats[extra] = options.stats[extra] + 1
 		else
 			if options.exitfirst then return end
 		end
+		options._per_test_extra = nil
 	end
 end
 
@@ -438,10 +445,14 @@ return {
 	parse = function(argv)
 		local options = {}
 
+		options.verbose = 0
+
 		while argv:more() do
 			local opt = argv:option()
 
-			if opt == "v" then options.verbose = 1
+			if opt == "v" then
+				options.verbose = options.verbose + 1
+			elseif opt == "x" then options.exitfirst = 1
 			elseif opt == "x" then options.exitfirst = 1
 			elseif opt == "k" then options.match = argv:next()
 			elseif opt == "cov" then options.cov = 1
@@ -467,6 +478,20 @@ return {
 	run = function(options)
 		_G.repr = _.repr
 
+		if options.verbose >= 2 then
+			local orig_logger
+			orig_logger = _.log.patch(function(...)
+				if not options._per_test_extra then
+					options._per_test_extra = true
+					io.write(" ....\n")
+				end
+				io.write((" "):rep(8))
+				orig_logger(...)
+			end)
+		else
+			_.log.patch(function() end)
+		end
+
 		local start = _.time.now()
 
 		local path = _.path.dirname(options.path)
@@ -487,7 +512,7 @@ return {
 		end)
 
 		local cov = Coverage(options.cov)
-		options.w = Writer(options.verbose)
+		options.w = Writer(options.verbose >= 1)
 		options.stats = setmetatable({}, {__index = function() return 0 end})
 
 		for suite in scan(options.path) do

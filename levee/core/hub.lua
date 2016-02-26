@@ -118,6 +118,11 @@ function Hub_mt:dealer()
 end
 
 
+function Hub_mt:broadcast()
+	return message.Broadcast(self)
+end
+
+
 function Hub_mt:pool(factory, size)
 	return message.Pool(self, factory, size)
 end
@@ -147,7 +152,7 @@ function Hub_mt:_coyield(co, err, sender, value)
 	local status, err, sender, value = coroutine.resume(
 		self.loop, co, err, sender, value)
 	if not status then
-		error(debug.traceback(self.loop) .. "\n\n" .. err)
+		error(("%s\n\n%s"):format(debug.traceback(self.loop), err))
 	end
 	return err, sender, value
 end

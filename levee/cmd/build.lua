@@ -25,11 +25,11 @@ local function output_main(path, options)
 		#include <sysexits.h>
 		#include <err.h>
 
-		#include <levee/lua.h>
-		#include <levee/lauxlib.h>
-		#include <levee/lualib.h>
+		#include <${include}/lua.h>
+		#include <${include}/lauxlib.h>
+		#include <${include}/lualib.h>
 
-		#include "levee/levee.h"
+		#include "${include}/levee.h"
 
 		static Levee *state;
 
@@ -61,7 +61,10 @@ local function output_main(path, options)
 			levee_destroy (state);
 			return rc;
 		}
-]], {name = options.name}))
+]], {
+	name = options.name,
+	include = options.include or "levee",
+	}))
 	fh:close()
 end
 

@@ -57,8 +57,8 @@ end
 
 
 if ffi.os:lower() == "linux" then
-	_.set_pdeathsig = function()
-		C.prctl(C.PR_SET_PDEATHSIG, C.SIGKILL, 0, 0, 0)
+	_.set_pdeathsig = function(sig)
+		C.prctl(C.PR_SET_PDEATHSIG, sig or C.SIGTERM, 0, 0, 0)
 	end
 else
 	_.set_pdeathsig = function() end

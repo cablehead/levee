@@ -457,6 +457,11 @@ function Stream_mt:json()
 end
 
 
+function Stream_mt:line(delim)
+	return p.line.stream(self, delim)
+end
+
+
 function Stream_mt:chunk(len)
 	return Chunk(self, len)
 end

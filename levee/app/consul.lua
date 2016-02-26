@@ -1,4 +1,6 @@
+local errors = require("levee.errors")
 local json = require("levee.p.json")
+local _ = require("levee._")
 
 
 --
@@ -416,6 +418,116 @@ end
 
 
 --
+-- A spawned Consul instance, usually for testing
+
+local Instance_mt = {}
+Instance_mt.__index = Instance_mt
+
+
+function Instance_mt:connect()
+	return self.hub:consul(self.port)
+end
+
+
+function Instance_mt:stop()
+	self.child:kill()
+	self.child.done:recv()
+	self.path:remove(true)
+end
+
+
+local function Instance(hub, bin, join)
+
+	local function freeport()
+		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM, host, port)
+		local err, addr = _.getsockname(no)
+		C.close(no)
+		return addr:port()
+	end
+
+	local self = setmetatable({}, Instance_mt)
+
+	self.hub = hub
+	self.path = _.path.Path:tmpdir()
+
+	self.config = {
+		ports = {
+			http = freeport(),
+			rpc = freeport(),
+			serf_lan = freeport(),
+			serf_wan = freeport(),
+			server = freeport(),
+			dns = freeport(), } }
+
+	self.port = self.config.ports.http
+
+	local err, buf = json.encode(self.config)
+	local data = buf:take()
+	self.path("config.json"):write(data)
+
+	local argv
+	if not join then
+		argv = {
+			"agent",
+			"-server",
+			"-dev",
+			"-bind=127.0.0.1",
+			"-bootstrap",
+			"-config-dir="..self.path, }
+	else
+		argv = {
+			"agent",
+			"-dev",
+			"-bind=127.0.0.1",
+			"-join=localhost:"..tostring(join.config.ports.serf_lan),
+			"-node=node2",
+			"-config-dir="..self.path, }
+	end
+
+	self.child = self.hub.process:spawn(bin, {
+		argv=argv,
+		io={
+			STDIN=0,
+			}, })
+
+	self.hub:spawn(function()
+		local stream = self.child.stdout:stream()
+		local log = _.log.Log("levee.app.consul")
+		while true do
+			local err, line = stream:line()
+			if err then break end
+			log:info(line)
+		end
+	end)
+
+
+	local err, done = self.child.done:recv(100)
+	if done then
+		self.path:remove(true)
+		return errors.CLOSED
+	end
+
+	while true do
+		local err, conn = self.hub.tcp:connect(self.port)
+		if conn then conn:close(); break; end
+		self.hub:sleep(100)
+	end
+
+	local c = self:connect()
+
+	c.agent.service:register("foo")
+	while true do
+		local err, index, services = c.health:service("foo")
+		if #services > 0 then break end
+		self.hub:sleep(300)
+	end
+	c.agent.service:deregister("foo")
+
+	return nil, self
+end
+
+
+--
 -- Module interface
 
 local M_mt = {}
@@ -431,6 +543,13 @@ function M_mt:__call(hub, port)
 	M.agent.service = setmetatable({agent = M}, AgentService_mt)
 	M.health = setmetatable({agent = M}, Health_mt)
 	return M
+end
+
+
+function M_mt:spawn(options)
+	options = options or {}
+	options.bin = options.bin or "consul"
+	return Instance(self.hub, options.bin, options.join)
 end
 
 

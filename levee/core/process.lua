@@ -124,7 +124,7 @@ function M_mt:spawn(name, options)
 	end
 
 	-- child
-	_.set_pdeathsig()
+	_.set_pdeathsig(options.pdeathsig)
 
 	if not io.STDIN then
 		C.close(in_w)
@@ -168,7 +168,7 @@ function M_mt:spawn(name, options)
 	local argv = options.argv or {}
 	table.insert(argv, 1, name)
 	local err = _.execvp(name, argv)
-	assert(not err)
+	if err then err:exit() end
 end
 
 

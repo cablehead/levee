@@ -56,4 +56,5 @@ return {
 	msgpack = msgpack,
 	http = require("levee.p.http"),
 	uri = require("levee.p.uri"),
+	line = require("levee.p.line"),
 }

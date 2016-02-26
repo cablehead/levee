@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.3.2-alpha
+## 0.3.3-alpha
+
+* default pdeathsig to TERM. allow the signal to be configurable
+
+## 0.3.2 - 2016-02-24
 
 * hashring fixes
 * add meta.name for usage messages so subcommands can be reused by other
@@ -26,6 +30,8 @@
 * add ability to bundle templates into a levee binary
 * fix a bug where file descriptors weren't being cleaned up on a failed TCP
   connect
+* add h.consul:spawn, to facilitate spawning consul instances for testing
+* add a broadcast message primitive
 
 ## 0.3.1 - 2015-12-03
 

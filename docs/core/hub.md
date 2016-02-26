@@ -93,6 +93,11 @@
         captured, available as a stream on p.stdout. if this option is a number
         than the child's STDOUT will be mapped to that file descriptor.
 
+    * pdeathsig:
+
+      - signal to use for on pdeathsig. this is only applicable on Linux.
+        defaults to SIGTERM.
+
   returns a Process object
 
 #### tcp
