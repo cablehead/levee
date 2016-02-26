@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <pthread.h>
+#include <signal.h>
 #include <sys/socket.h>
 
 #ifdef __linux__
@@ -305,6 +306,10 @@ levee_load_string (Levee *self, const char *script, size_t len, const char *name
 static void *
 run (void *data)
 {
+	sigset_t set;
+	sigfillset (&set);
+	pthread_sigmask (SIG_SETMASK, &set, NULL);
+
 	Levee *self = data;
 
 	if (lua_pcall (self->L, self->narg, 0, 0)) {
