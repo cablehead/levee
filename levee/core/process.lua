@@ -124,7 +124,7 @@ function M_mt:spawn(name, options)
 	end
 
 	-- child
-	_.set_pdeathsig()
+	_.set_pdeathsig(options.pdeathsig)
 
 	if not io.STDIN then
 		C.close(in_w)
