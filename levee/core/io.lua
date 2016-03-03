@@ -452,8 +452,13 @@ function Stream_mt:take(n)
 end
 
 
+function Stream_mt:json_decoder()
+	if not self._json_decoder then self._json_decoder = p.json.decoder() end
+end
+
+
 function Stream_mt:json()
-	return p.json.decoder():stream(self)
+	return self:json_decoder():stream(self)
 end
 
 
@@ -526,7 +531,7 @@ end
 
 
 function Chunk_mt:json()
-	return p.json.decoder():stream(self)
+	return self.stream:json_decoder():stream(self)
 end
 
 
