@@ -454,6 +454,7 @@ end
 
 function Stream_mt:json_decoder()
 	if not self._json_decoder then self._json_decoder = p.json.decoder() end
+	return self._json_decoder
 end
 
 

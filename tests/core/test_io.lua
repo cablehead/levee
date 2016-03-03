@@ -394,6 +394,21 @@ return {
 			s:readin()
 			assert.equal(s:take(), ("."):rep(10))
 		end,
+
+		test_json = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+			local s = r:stream()
+
+			w:write([[{"foo": "bar"}]])
+			local err, data = s:json()
+			assert.same(data, {foo = "bar"})
+
+			w:write([[{"foo": "bar"}]])
+			local err, data = s:json()
+			assert.same(data, {foo = "bar"})
+		end,
 	},
 
 	chunk = {
