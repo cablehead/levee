@@ -38,6 +38,11 @@ function Json_mt:init()
 end
 
 
+function Json_mt:__gc()
+	C.sp_json_final(self)
+end
+
+
 function Json_mt:reset()
 	C.sp_json_reset(self)
 end

@@ -29,3 +29,5 @@ void sp_json_reset (SpJson *p);
 ssize_t
 	sp_json_next (SpJson *p, const void *restrict buf, size_t len, bool eof);
 bool sp_json_is_done (const SpJson *p);
+
+void sp_json_final (SpJson *p);
