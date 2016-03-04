@@ -724,7 +724,9 @@ function Server_mt:_response(response)
 	local err = self.conn:send(status)
 	if err then return err end
 
-	headers["Date"] = httpdate()
+	if not headers["Date"] then
+		headers["Date"] = httpdate()
+	end
 
 	if no_content then
 		headers["Content-Length"] = nil
