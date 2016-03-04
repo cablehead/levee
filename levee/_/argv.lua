@@ -10,7 +10,7 @@ Argv_mt.__index = Argv_mt
 function Argv_mt:exit(fmt, ...)
 	local msg
 	if fmt then
-		msg = string.format(fmt, unpack{...})
+		msg = string.format(fmt, ...)
 	end
 	if self.exit_cb then
 		self.exit_cb(self.idx, self.opt, msg)
@@ -21,7 +21,7 @@ function Argv_mt:exit(fmt, ...)
 			io.stderr:write(string.format("invalid argument #%d", self.idx))
 		end
 		if msg then
-			io.stderr:write(string.format(": %s", self.opt, msg))
+			io.stderr:write(string.format(": %s", msg))
 		end
 		io.stderr:write("\n")
 		os.exit(1)
