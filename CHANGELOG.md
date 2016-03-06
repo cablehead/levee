@@ -5,6 +5,7 @@
 * default pdeathsig to TERM. allow the signal to be configurable
 * clear sigmask when spawning threads on Linux
 * update LuaJIT to 2.1-beta2
+* add improved URI module
 
 ## 0.3.2 - 2016-02-24
 

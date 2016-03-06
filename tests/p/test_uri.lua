@@ -1,190 +1,110 @@
 
-local p = require("levee.p")
+local URI = require("levee.p.uri")
 
 return {
-	test_sub = function()
-		local parser = p.uri.URI()
-		local value = "http://user:pass@test.com:80/some/path?a=b#c"
-		local i, j
-
-		assert(parser:parse(value))
-
-		i, j = parser:sub(p.uri.scheme, p.uri.port)
-		assert.equal("http://user:pass@test.com:80", value:sub(i, j))
-
-		i, j = parser:sub(p.uri.host, p.uri.query)
-		assert.equal("test.com:80/some/path?a=b", value:sub(i, j))
-
-		-- the range has to back up to make a valid URI
-		i, j = parser:sub(p.uri.host, p.uri.query, true)
-		assert.equal("//user:pass@test.com:80/some/path?a=b", value:sub(i, j))
-
-		i, j = parser:sub(p.uri.query, p.uri.query)
-		assert.equal("a=b", value:sub(i, j))
-
-		-- the range has to back up to make a valid URI
-		i, j = parser:sub(p.uri.query, p.uri.query, true)
-		assert.equal("?a=b", value:sub(i, j))
-	end,
-
 	test_segment = function()
-		local parser = p.uri.URI()
-		local value = "http://user:pass@test.com:80/some/path?a=b#c"
-		local i, j
+		local err, uri = URI("http://user:pass@test.com:80/some/path?a=b#c")
+		assert.is_nil(err)
+		assert.equal("http", uri.scheme)
+		assert.equal("user", uri.user)
+		assert.equal("pass", uri.password)
+		assert.equal("test.com", uri.host)
+		assert.equal("80", uri.port)
+		assert.equal("/some/path", uri.path)
+		assert.equal("a=b", uri.query)
+		assert.equal("c", uri.fragment)
+		assert.equal("user:pass", uri.userinfo)
+		assert.equal("user:pass@test.com:80", uri.authority)
+		assert.equal("user:pass@test.com:80/some/path", uri.hierarch)
+		assert.equal("/some/path?a=b", uri.request)
 
-		assert(parser:parse(value))
+		local err, params = uri:params()
+		assert.is_nil(err)
+		assert.same({a="b"}, params)
+	end,
 
-		i, j = parser:segment(p.uri.scheme)
-		assert.equal("http", value:sub(i, j))
+	test_sub = function()
+		local err, uri = URI("http://user:pass@test.com:80/some/path?a=b#c")
+		assert.is_nil(err)
+		assert.equal("http://user:pass@test.com:80", uri:sub(URI.SCHEME, URI.PORT))
+		assert.equal("test.com:80/some/path?a=b", uri:sub(URI.HOST, URI.QUERY))
 
-		i, j = parser:segment(p.uri.user)
-		assert.equal("user", value:sub(i, j))
+		-- the range has to back up to make a valid URI
+		assert.equal("//user:pass@test.com:80/some/path?a=b", uri:sub(URI.HOST, URI.QUERY, true))
 
-		i, j = parser:segment(p.uri.password)
-		assert.equal("pass", value:sub(i, j))
+		assert.equal("a=b", uri:sub(URI.QUERY))
 
-		i, j = parser:segment(p.uri.host)
-		assert.equal("test.com", value:sub(i, j))
-
-		i, j = parser:segment(p.uri.port)
-		assert.equal("80", value:sub(i, j))
-
-		i, j = parser:segment(p.uri.path)
-		assert.equal("/some/path", value:sub(i, j))
-
-		i, j = parser:segment(p.uri.query)
-		assert.equal("a=b", value:sub(i, j))
-
-		i, j = parser:segment(p.uri.fragment)
-		assert.equal("c", value:sub(i, j))
+		-- the range has to back up to make a valid URI
+		assert.equal("?a=b", uri:sub(URI.QUERY, true))
 	end,
 
 	test_join_string = function()
-		local parser = p.uri.URI()
-		local value = "http://user:pass@test.com:80/some/path?a=b#c"
-		local join_parser, join_value
+		local err, uri = URI("http://user:pass@test.com:80/some/path?a=b#c")
+		assert.is_nil(err)
 
-		assert(parser:parse(value))
+		local err, join = uri:join("https://new.com/new/path")
+		assert.is_nil(err)
+		assert.equal("https://new.com/new/path", tostring(join))
 
-		join_parser, join_value = parser:join_string(value, "http://new.com/new/path")
-		assert.equal("http://new.com/new/path", join_value)
+		local err, join = uri:join("//new.com/new/path")
+		assert.is_nil(err)
+		assert.equal("http://user:pass@new.com/new/path", tostring(join))
 
-		join_parser, join_value = parser:join_string(value, "//new.com/new/path")
-		assert.equal("http://user:pass@new.com/new/path", join_value)
+		local err, join = uri:join("/new/path")
+		assert.is_nil(err)
+		assert.equal("http://user:pass@test.com:80/new/path", tostring(join))
 
-		join_parser, join_value = parser:join_string(value, "/new/path")
-		assert.equal("http://user:pass@test.com:80/new/path", join_value)
+		local err, join = uri:join("/../sibling")
+		assert.is_nil(err)
+		assert.equal("http://user:pass@test.com:80/sibling", tostring(join))
 
-		join_parser, join_value = parser:join_string(value, "/../sibling")
-		assert.equal("http://user:pass@test.com:80/sibling", join_value)
-
-		join_parser, join_value = parser:join_string(value, "?a=1")
-		assert.equal("http://user:pass@test.com:80/some/path?a=1", join_value)
+		local err, join = uri:join("?a=1")
+		assert.is_nil(err)
+		assert.equal("http://user:pass@test.com:80/some/path?a=1", tostring(join))
 	end,
 
-	test_join_parser = function()
-		local parser = p.uri.URI()
-		local other = p.uri.URI()
-		local value = "http://user:pass@test.com:80/some/path?a=b#c"
-		local join_parser, join_value
+	test_join_uri = function()
+		local err, uri = URI("http://user:pass@test.com:80/some/path?a=b#c")
+		assert.is_nil(err)
 
-		assert(parser:parse(value))
-
-		other_val = "http://new.com/new/path"
-		assert(other:parse(other_val))
-		join_parser, join_value = parser:join_parser(value, other, other_val)
-		assert.equal("http://new.com/new/path", join_value)
-
-		other_val = "//new.com/new/path"
-		assert(other:parse(other_val))
-		join_parser, join_value = parser:join_parser(value, other, other_val)
-		assert.equal("http://user:pass@new.com/new/path", join_value)
-
-		other_val = "/new/path"
-		assert(other:parse(other_val))
-		join_parser, join_value = parser:join_parser(value, other, other_val)
-		assert.equal("http://user:pass@test.com:80/new/path", join_value)
-
-		other_val = "/../sibling"
-		assert(other:parse(other_val))
-		join_parser, join_value = parser:join_parser(value, other, other_val)
-		assert.equal("http://user:pass@test.com:80/sibling", join_value)
-
-		other_val = "?a=1"
-		assert(other:parse(other_val))
-		join_parser, join_value = parser:join_parser(value, other, other_val)
-		assert.equal("http://user:pass@test.com:80/some/path?a=1", join_value)
-	end,
-
---[[
-	-- TODO: higher level URI tests
-	test_segments = function()
-		local u = URI("http://user:pass@test.com:80/some/path?a=b#c")
-		assert(u)
-		assert.equal("http", u.scheme)
-		assert.equal("user", u.user)
-		assert.equal("pass", u.password)
-		assert.equal("test.com", u.host)
-		assert.equal("80", u.port)
-		assert.equal("/some/path", u.path)
-		assert.equal("a=b", u.query)
-		assert.equal("c", u.fragment)
-		assert.equal("user:pass", u.userinfo)
-		assert.equal("user:pass@test.com:80", u.authority)
-	end,
-
-	test_join_string = function()
-		local u = URI("http://user:pass@test.com:80/some/path?a=b#c")
-		local join
-
-		assert(u)
-
-		join = u:join("http://new.com/new/path")
+		local err, other = URI("http://new.com/new/path")
+		assert.is_nil(err)
+		local err, join = uri:join(other)
+		assert.is_nil(err)
 		assert.equal("http://new.com/new/path", join.value)
 
-		join = u:join("//new.com/new/path")
+		local err, other = URI("//new.com/new/path")
+		assert.is_nil(err)
+		local err, join = uri:join(other)
+		assert.is_nil(err)
 		assert.equal("http://user:pass@new.com/new/path", join.value)
 
-		join = u:join("/new/path")
+		local err, other = URI("/new/path")
+		assert.is_nil(err)
+		local err, join = uri:join(other)
+		assert.is_nil(err)
 		assert.equal("http://user:pass@test.com:80/new/path", join.value)
 
-		join = u:join("/../sibling")
+		local err, other = URI("/../sibling")
+		assert.is_nil(err)
+		local err, join = uri:join(other)
+		assert.is_nil(err)
 		assert.equal("http://user:pass@test.com:80/sibling", join.value)
 
-		join = u:join("?a=1")
+		local err, other = URI("?a=1")
+		assert.is_nil(err)
+		local err, join = uri:join(other)
+		assert.is_nil(err)
 		assert.equal("http://user:pass@test.com:80/some/path?a=1", join.value)
 	end,
 
-	test_join_parser = function()
-		local u = URI("http://user:pass@test.com:80/some/path?a=b#c")
-		local other, join
+	test_params = function()
+		local err, uri = URI("?x=1&value=123&x=2&text=some+words+%F0%9F%91%8C%20&x=3")
+		assert.is_nil(err)
 
-		assert(u)
-
-		other = URI("http://new.com/new/path")
-		assert(other)
-		join = u:join(other)
-		assert.equal("http://new.com/new/path", join.value)
-
-		other = URI("//new.com/new/path")
-		assert(other)
-		join = u:join(other)
-		assert.equal("http://user:pass@new.com/new/path", join.value)
-
-		other = URI("/new/path")
-		assert(other)
-		join = u:join(other)
-		assert.equal("http://user:pass@test.com:80/new/path", join.value)
-
-		other = URI("/../sibling")
-		assert(other)
-		join = u:join(other)
-		assert.equal("http://user:pass@test.com:80/sibling", join.value)
-
-		other = URI("?a=1")
-		assert(other)
-		join = u:join(other)
-		assert.equal("http://user:pass@test.com:80/some/path?a=1", join.value)
-	end,
---]]
+		local err, params = uri:params()
+		assert.equal("123", params.value)
+		assert.equal("some words 👌 ", params.text)
+		assert.same({"1","2","3"}, params.x)
+	end
 }
