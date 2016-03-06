@@ -92,37 +92,6 @@ local function sub(self, first, last, valid)
 end
 
 
-local function join(self, other)
-	local other_str, other_par
-	if type(other) == "string" then
-		other_str = other
-		other_par = URIParser()
-		local rc = C.sp_uri_parse(other_par.par, other_str, #other_str)
-		if rc < 0 then return errors.uri.ESYNTAX end
-	else
-		other_str = other.value
-		other_par = other.parser
-	end
-
-	local parser = URIParser()
-	local len = #self.value + #other_str
-	local buf = ffi.new("char [?]", len)
-
-	len = C.sp_uri_join(
-		parser.par, buf, len,
-		self.parser.par, self.value,
-		other_par.par, other_str)
-
-	if len < 0 then return errors.get(len) end
-	return nil, setmetatable({
-		sub = sub,
-		join = join,
-		value = ffi.string(buf, len),
-		parser = out
-	}, URI_mt)
-end
-
-
 local function params(self)
 	if self._params then return nil, self._params end
 
@@ -159,6 +128,38 @@ local function params(self)
 end
 
 
+local function join(self, other)
+	local other_str, other_par
+	if type(other) == "string" then
+		other_str = other
+		other_par = URIParser()
+		local rc = C.sp_uri_parse(other_par.par, other_str, #other_str)
+		if rc < 0 then return errors.uri.ESYNTAX end
+	else
+		other_str = other.value
+		other_par = other.parser
+	end
+
+	local parser = URIParser()
+	local len = #self.value + #other_str
+	local buf = ffi.new("char [?]", len)
+
+	len = C.sp_uri_join(
+		parser.par, buf, len,
+		self.parser.par, self.value,
+		other_par.par, other_str)
+
+	if len < 0 then return errors.get(len) end
+	return nil, setmetatable({
+		sub = sub,
+		params = params,
+		join = join,
+		value = ffi.string(buf, len),
+		parser = parser
+	}, URI_mt)
+end
+
+
 local M_mt = {
 	SCHEME = C.SP_URI_SCHEME,
 	USER = C.SP_URI_USER,
@@ -178,8 +179,8 @@ function M_mt:__call(str)
 	if rc < 0 then return errors.uri.ESYNTAX end
 	return nil, setmetatable({
 		sub = sub,
-		join = join,
 		params = params,
+		join = join,
 		value = str,
 		parser = parser
 	}, URI_mt)
