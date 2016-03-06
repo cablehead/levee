@@ -4,7 +4,7 @@ set(LUAJIT_DIR "${CMAKE_CURRENT_BINARY_DIR}/luajit")
 set(LUAJIT_LIB "${LUAJIT_DIR}/lib/libluajit-5.1.a")
 set(LUAJIT_BIN "${LUAJIT_DIR}/bin/luajit")
 set(LUAJIT_INC "${LUAJIT_DIR}/include/luajit-2.1")
-set(LUAJIT_HASH "v2.1.0-beta1")
+set(LUAJIT_HASH "v2.1.0-beta2")
 
 option(VALGRIND "VALGRIND" OFF)
 
