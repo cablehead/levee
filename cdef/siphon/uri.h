@@ -76,3 +76,8 @@ sp_uri_has_segment (const SpUri *u, SpUriSegment seg);
 bool
 sp_uri_is_absolute (const SpUri *u);
 
+ssize_t
+sp_uri_query_next (const void *restrict buf, size_t len,
+		void *restrict key, size_t *restrict klen,
+		void *restrict val, size_t *restrict vlen);
+

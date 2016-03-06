@@ -4,6 +4,7 @@
 
 * default pdeathsig to TERM. allow the signal to be configurable
 * clear sigmask when spawning threads on Linux
+* add improved URI module
 
 ## 0.3.2 - 2016-02-24
 
