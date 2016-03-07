@@ -2,6 +2,7 @@ local os = require('os')
 local ffi = require('ffi')
 local C = ffi.C
 
+local pagesize = require("levee._").pagesize
 local tmp_int = ffi.new("uint32_t [1]")
 local tmp_num = ffi.new("double [1]")
 local tmp_len = 0
@@ -16,10 +17,10 @@ end
 
 local function string(len)
 	if len > tmp_len then
-		if len < _.pagesize then 
-			tmp_len = _.pagesize
+		if len < pagesize then 
+			tmp_len = pagesize
 		else
-			tmp_len = math.ceil(len / _.pagesize) * _.pagesize
+			tmp_len = math.ceil(len / pagesize) * pagesize
 		end
 		tmp_str = ffi.cast("uint8_t *", ffi.gc(C.malloc(tmp_len), C.free))
 	end
