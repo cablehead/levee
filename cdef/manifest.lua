@@ -36,7 +36,6 @@ function include(name, ...)
 end
 
 local headers = {
-	include("std", arch),
 	include("std", "std"),
 	include("process", "process"),
 	include("process", os),
