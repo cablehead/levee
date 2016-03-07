@@ -30,6 +30,10 @@ function Status_mt:__tostring()
 end
 
 
+function Status_mt:no_content()
+	return self.code == 204 or self.code == 304
+end
+
 
 local Status = {}
 
@@ -731,7 +735,7 @@ function Server_mt:_response(response)
 	local err, value = response:recv()
 	if err then return err end
 	local status, headers, body = unpack(value)
-	local no_content = status.code == 304
+	local no_content = status:no_content()
 
 	local err = self.conn:send(tostring(status))
 	if err then return err end
