@@ -672,8 +672,6 @@ function Request_mt:_sendfile(no, size)
 			return err
 		end
 	end
-
-	self.response:close()
 end
 
 
