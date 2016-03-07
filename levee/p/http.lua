@@ -18,13 +18,27 @@ local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
 --
 -- Status
 
+local Status_mt = {}
+Status_mt.__index = Status_mt
+
+
+function Status_mt:__tostring()
+	if not self._line then
+		self._line = string.format("HTTP/1.1 %d %s\r\n", self.code, self.reason)
+	end
+	return self._line
+end
+
+
+
 local Status = {}
 
 function Status:__call(code, reason)
-	if reason then
-		return string.format("HTTP/1.1 %d %s\r\n", code, reason)
+	local s = Status[code]
+	if s == nil or (reason and reason ~= s.reason) then
+		s = setmetatable({ code=code, reason=reason }, Status_mt)
 	end
-	return Status[code]
+	return s
 end
 
 setmetatable(Status, Status)
@@ -717,9 +731,9 @@ function Server_mt:_response(response)
 	local err, value = response:recv()
 	if err then return err end
 	local status, headers, body = unpack(value)
-	local no_content = status == Status[304] -- TODO: check if status.code == 304
+	local no_content = status.code == 304
 
-	local err = self.conn:send(status)
+	local err = self.conn:send(tostring(status))
 	if err then return err end
 
 	if not headers["Date"] then
