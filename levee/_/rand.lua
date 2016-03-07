@@ -16,7 +16,11 @@ end
 
 local function string(len)
 	if len > tmp_len then
-		tmp_len = math.pow(2, math.ceil(math.log(len)/math.log(2)))
+		if len < _.pagesize then 
+			tmp_len = _.pagesize
+		else
+			tmp_len = math.ceil(len / _.pagesize) * _.pagesize
+		end
 		tmp_str = ffi.cast("uint8_t *", ffi.gc(C.malloc(tmp_len), C.free))
 	end
 	if C.sp_rand(tmp_str, len) == 0 then
