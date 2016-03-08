@@ -649,63 +649,27 @@ local Request_mt = {}
 Request_mt.__index = Request_mt
 
 
-function Request_mt:_open(name)
-	-- TODO: chroot
-	local err, no, st
-	err, no = _.open(name, C.O_RDONLY)
-	if err then return err end
-
-	local err, st = _.fstat(no)
-	if err then goto __cleanup end
-
-	-- check this is a regular file
-	if bit.band(st.st_mode, C.S_IFREG) == 0 then
-		err = errors.system.EACCES
-		goto __cleanup
-	end
-
-	if not err then return nil, no, st.st_size end
-
-	::__cleanup::
-	_.close(no)
-	return err
-end
-
-
-function Request_mt:_sendfile(no, size)
-
-	local off = 0
-
-	while true do
-		local n = C.levee_sendfile(self.conn.no, no, off, size - off)
-
-		if n > 0 then
-			off = off + n
-			if off == size then
-				break
-			end
-		end
-		local err, ev = self.conn.w_ev:recv()
-		if err then
-			return err
-		end
-	end
-end
-
-
 function Request_mt:sendfile(name)
-	local err, no, size = self:_open(name)
+	local err, r = self.hub.io:open(name)
 	if err then
 		self.response:send({Status(404), {}, "Not Found\n"})
 		return
 	end
 
-	self.response:send({Status(200), {}, size})
-	local err = self:_sendfile(no, size)
+	local err, st = r:stat()
+	if err or not st:is_reg() then
+		r:close()
+		self.response:send({Status(404), {}, "Not Found\n"})
+		return err or errors.system.EACCES
+	end
+
+	self.response:send({Status(200), {}, st.st_size})
+	err, n = r:sendfile(self.conn, st.st_size)
 	self.response:close()
-	_.close(no)
+	r:close()
 
 	if err then self.serve:close() end
+
 	return err
 end
 
