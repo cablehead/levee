@@ -131,6 +131,21 @@ function R_mt:reads(len)
 end
 
 
+function R_mt:sendfile(to, len, off)
+	local remain = len
+	off = off or 0
+	while remain > 0 do
+		local err, n = _.sendfile(self.no, to.no, remain, off)
+		if err then return err end
+		off = off + n
+		remain = remain - n
+		local err, ev = to.w_ev:recv()
+		if err then return err end
+	end
+	return nil, len
+end
+
+
 if _.splice then
 	function R_mt:_splice(to, len)
 		if self.closed then return errors.CLOSED end
@@ -188,11 +203,17 @@ function R_mt:close()
 end
 
 
+function R_mt:stat()
+	return _.fstat(self.no)
+end
+
+
 --
 -- Write
 --
 local W_mt = {}
 W_mt.__index = W_mt
+W_mt.stat = R_mt.stat
 
 
 function W_mt:write(buf, len)
@@ -354,6 +375,7 @@ RW_mt.readinto = R_mt.readinto
 RW_mt.stream = R_mt.stream
 RW_mt._splice = R_mt._splice
 RW_mt._tee = R_mt._tee
+RW_mt.stat = R_mt.stat
 RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
 RW_mt.iov = W_mt.iov

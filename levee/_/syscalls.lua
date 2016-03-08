@@ -214,6 +214,13 @@ _.reads = function(no, len)
 end
 
 
+_.sendfile = function(from, to, len, off)
+	local n = C.levee_sendfile(to, from, off or 0, len)
+	if n >= 0 then return nil, tonumber(n) end
+	return errors.get(ffi.errno())
+end
+
+
 if ffi.os:lower() == "linux" then
 	_.splice = function(from, to, len, more)
 		local flags = bit.bor(C.SPLICE_F_MOVE, C.SPLICE_F_NONBLOCK)
