@@ -436,7 +436,7 @@ function Instance_mt:stop()
 end
 
 
-local function Instance(hub, bin, join)
+local function Instance(hub, bin, http_port, join)
 
 	local function freeport()
 		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM, host, port)
@@ -452,7 +452,7 @@ local function Instance(hub, bin, join)
 
 	self.config = {
 		ports = {
-			http = freeport(),
+			http = http_port or freeport(),
 			rpc = freeport(),
 			serf_lan = freeport(),
 			serf_wan = freeport(),
@@ -549,7 +549,7 @@ end
 function M_mt:spawn(options)
 	options = options or {}
 	options.bin = options.bin or "consul"
-	return Instance(self.hub, options.bin, options.join)
+	return Instance(self.hub, options.bin, options.http_port, options.join)
 end
 
 
