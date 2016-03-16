@@ -912,8 +912,8 @@ end
 
 function IO_mt:w(no, timeout)
 	local m = setmetatable({hub = self.hub, no = no, timeout=timeout}, W_mt)
-	local _
-	_, m.w_ev = self.hub:register(no, false, true)
+	local __
+	__, m.w_ev = self.hub:register(no, false, true)
 	return m
 end
 
@@ -933,32 +933,25 @@ function IO_mt:pipe(timeout)
 end
 
 
-local function EVStub()
-	return {
-		recv = function() return 1 end
-	}
-end
-
-
 function IO_mt:open(name, ...)
 	local err, no, mode = _.open(name, ...)
 	if err then return err end
 
 	if bit.band(C.O_WRONLY, mode) > 0 then
 		local m = setmetatable({hub = self.hub, no = no}, W_mt)
-		m.w_ev = EVStub()
+		local __
+		__, m.w_ev = self.hub:register_nopoll(no, false, true)
 		return nil, m
 	end
 
 	if bit.band(C.O_RDWR, mode) > 0 then
 		local m = setmetatable({hub = self.hub, no = no}, RW_mt)
-		m.r_ev = EVStub()
-		m.w_ev = EVStub()
+		m.r_ev, m.w_ev = self.hub:register_nopoll(no, true, true)
 		return nil, m
 	end
 
 	local m = setmetatable({hub = self.hub, no = no}, R_mt)
-	m.r_ev = EVStub()
+	m.r_ev = self.hub:register_nopoll(no, true)
 	return nil, m
 end
 

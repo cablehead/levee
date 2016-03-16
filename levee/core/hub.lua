@@ -218,6 +218,22 @@ function Hub_mt:register(no, r, w)
 end
 
 
+local function EVStub()
+	return {
+		recv = function() return 1 end,
+		set = function() end,
+	}
+end
+
+
+function Hub_mt:register_nopoll(no, r, w)
+	local r_ev = r and EVStub()
+	local w_ev = w and EVStub()
+	self.registered[no] = {r_ev, w_ev}
+	return r_ev, w_ev
+end
+
+
 function Hub_mt:unregister(no)
 	local r = self.registered[no]
 	if r then
