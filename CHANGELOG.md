@@ -7,6 +7,8 @@
 * update LuaJIT to 2.1-beta2
 * add improved URI module
 * allow use of sendfile in IO
+* fix a file descriptor leak for io:open
+
 
 ## 0.3.2 - 2016-02-24
 
