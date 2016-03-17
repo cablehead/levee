@@ -1,4 +1,5 @@
 install:
+  - sudo apt-get update
   - sudo apt-get install cmake
   - sudo apt-get install ragel
   - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
