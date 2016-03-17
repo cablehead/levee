@@ -1,8 +1,11 @@
 sudo: false
+addons:
+  apt:
+    packages:
+    - cmake
+    - ragel
+
 install:
-  - apt-get update
-  - apt-get install cmake
-  - apt-get install ragel
   - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
   - cd build && make && make install
 
