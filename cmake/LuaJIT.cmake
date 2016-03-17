@@ -19,7 +19,7 @@ endif()
 #MESSAGE( STATUS "LUAJIT_XCFLAGS: " ${LUAJIT_XCFLAGS} )
 
 externalproject_add(luajit_project
-	GIT_REPOSITORY git@github.com:imgix/luajit.git
+	GIT_REPOSITORY https://github.com/imgix/luajit.git
 	GIT_TAG ${LUAJIT_HASH}
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/luajit_project_${LUAJIT_HASH}"
 	CONFIGURE_COMMAND ""
