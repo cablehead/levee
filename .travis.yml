@@ -1,5 +1,5 @@
 install:
-  - apt-get install ragel
+  - sudo apt-get install ragel
   - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
   - cd build && make && make install
 
