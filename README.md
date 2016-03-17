@@ -1,4 +1,4 @@
-# Levee
+# Levee [![Build Status](https://travis-ci.org/imgix/levee.png?branch=master)](https://travis-ci.org/imgix/levee)
 
 Levee is a tool to succinctly and quickly create high performance network
 appliances.
