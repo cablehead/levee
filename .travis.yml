@@ -2,12 +2,8 @@ sudo: required
 dist: trusty
 
 install:
-  - sudo apt-get update
-  - sudo apt-get install ragel
-  - wget --no-check-certificate https://cmake.org/files/v3.5/cmake-3.5.0-Linux-x86_64.tar.gz
-  - tar -xzf cmake-3.5.0-Linux-x86_64.tar.gz
-  - ./cmake-3.5.0-Linux-x86_64/bin/cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
-  - cd build && make && sudo make install && cd ..
+  - ./.travis/install.${TRAVIS_OS_NAME}.sh
+
 
 script:
   - levee test -v tests/
