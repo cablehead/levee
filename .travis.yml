@@ -1,3 +1,5 @@
+language: lua
+
 matrix:
   include:
     - os: linux
