@@ -39,5 +39,9 @@ return {
 		local self = Utf8()
 		self:_init()
 		return self
-	end
+	end,
+
+	charlen = function(buf, len)
+		return C.sp_utf8_charlen(buf, len or #buf)
+	end,
 }

@@ -14,4 +14,9 @@ return {
 		assert.equal(u2:decode(u1.buf, u1.len), 12)
 		assert.equal(u2:peek(), want)
 	end,
+
+	test_charlen = function()
+		assert.equal(p.utf8.charlen("H"), 1)
+		assert.equal(p.utf8.charlen("👻"), 4)
+	end,
 }

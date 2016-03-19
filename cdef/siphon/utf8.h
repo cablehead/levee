@@ -27,3 +27,6 @@ sp_utf8_encode (SpUtf8 *u, const void *src, size_t len, SpUtf8Flags f);
 
 ssize_t
 sp_utf8_decode (SpUtf8 *u, const void *src, size_t len, SpUtf8Flags f);
+
+ssize_t
+sp_utf8_charlen (const void *src, size_t len);
