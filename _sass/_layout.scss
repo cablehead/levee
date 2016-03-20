@@ -356,7 +356,7 @@ figure.highlight{
     background-color: transparent;
 }
 
-pre, code{
+pre{
     background-color: $color_invert_bg_tint;
     border:none;
     line-height: 1.2;
@@ -366,6 +366,11 @@ pre > code{
     background-color: transparent;
 }
 
+code{
+    color:$color_accent_blue;
+     background-color: $color_invert_bg_tint;
+}
+
 pre{
     padding:1em;
     border-radius: 4px;
@@ -373,7 +378,6 @@ pre{
 
 .hello-world{
     figure.highlight{
-        width:80%;
         margin: 0 auto;
     }
 }
