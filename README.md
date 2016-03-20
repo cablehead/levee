@@ -22,7 +22,7 @@ apt-get install ragel
 Next, install Levee:
 
 ```bash
-git clone git@github.com:imgix/levee.git
+git clone https://github.com/imgix/levee.git
 cd levee
 cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
 cd build
