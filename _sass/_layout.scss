@@ -331,6 +331,7 @@ body{
     }
     header h2{
         width:60%;
+        max-width:18em;
         float:left;
         display:block;
         vertical-align: text-top;
@@ -345,18 +346,37 @@ body{
 
 
 
-code.block{
-    display: block;
-    padding:2em;
-    margin-bottom:3em;
+/*
+    * Code Block
+*/
+
+
+
+figure.highlight{
+    background-color: transparent;
 }
 
-
-code.block{
-    background-color: $color_invert_bg;
-    color:$color_accent_blue;
+pre, code{
+    background-color: $color_invert_bg_tint;
+    border:none;
+    line-height: 1.2;
 }
 
+pre > code{
+    background-color: transparent;
+}
+
+pre{
+    padding:1em;
+    border-radius: 4px;
+}
+
+.hello-world{
+    figure.highlight{
+        width:80%;
+        margin: 0 auto;
+    }
+}
 
 
 
