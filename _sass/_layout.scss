@@ -378,7 +378,26 @@ pre{
     }
 }
 
-
+.callouts{
+    margin-top:3em;
+    .benefits{
+        width: -webkit-calc( 33.333333333333% - 32px );
+        width: calc( 33.333333333333% - 32px );
+        float:left;
+        margin:0 16px;
+        h3{
+            font-weight: 300;
+        }
+        p{
+            line-height:1.4;
+        }
+    }
+}
+.callouts:after{
+    display:block;
+    clear:both;
+    content:' ';
+}
 
 
 

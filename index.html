@@ -2,8 +2,6 @@
 layout: default
 ---
 
-  {% include header.html %}
-
 <div class="home">
 
   <header>
@@ -31,10 +29,10 @@ for conn in serve do
   end)
 end
 {% endhighlight %}
+
   </section>
 
   <section class="callouts">
-    <article>
       <div class="benefits">
         <h3>Straight forward concurrency</h3>
         <p><a href="http://www.lua.org/pil/9.1.html">Lua's native coroutines</a> to allow you to create Event-based Asynchronous
@@ -53,12 +51,12 @@ optimized parsers for common protocol and data formats.</p>
         <p>Once your service is ready to deploy, Levee provides tooling to compile your
 project to a standalone, static binary.</p>
       </div>
-    </article>
+    
   </section>
   <section class="install">
     <article class="osx selected">
       <code>brew install imgix/brew/levee</code>
-    </artcile>
+    </article>
 
   </section>
 
