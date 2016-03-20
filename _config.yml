@@ -2,8 +2,8 @@
 title: "Levee"
 email: "support@imgix.com"
 description: "Levee is a tool to succinctly and quickly create high performance network appliances with Lua."
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://imgix.com" # the base hostname & protocol for your site
+baseurl: "/levee/" # the subpath of your site, e.g. /blog
+url: "http://imgix.github.io" # the base hostname & protocol for your site
 twitter_username: "imgix"
 github_username:  "imgix"
 
