@@ -10,7 +10,8 @@ layout: default
   </header>
 
   <section class="hello-world">
-    <code class="block">
+
+{% highlight lua %}
 local levee = require("levee")
 
 local h = levee.Hub()
@@ -26,7 +27,8 @@ for conn in serve do
     end
     conn:close()
   end)
-end</code>
+end
+{% endhighlight %}
   </section>
 
   <section class="callouts">

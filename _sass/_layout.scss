@@ -1,3 +1,62 @@
+$color_bg: #FFF;
+$color_bg_shade: #E8F0F4;
+
+/* Foreground color for text and UI elements */
+$color_fg: #475F72;
+$color_fg_tint: lighten($color_fg,15%); /* 20% lighter */
+$color_fg_shade: darken($color_fg,15%); /* 20% darker */
+
+/* Used for borders, dividers, etc. */
+$color_chrome:#D0D7DD;
+$color_chrome_tint:lighten($color_chrome,10%); /* 10% lighter */
+$color_chrome_shade:darken($color_chrome,10%); /* 10% darker */
+
+/*--- Inverted Colors ---*/
+/* Background color */
+$color_invert_bg:#22303A;
+$color_invert_bg_tint:lighten($color_invert_bg,10%); /* 10% lighter */
+$color_invert_bg_shade:darken($color_invert_bg,10%); /* 10% darker */
+
+/* Foreground color for text and UI elements */
+$color_invert_fg:#FAFAFA;
+$color_invert_fg_shade:$color_chrome;
+
+/* Used for borders, dividers, etc. */
+$color_invert_chrome:#637787;
+$color_invert_chrome_tint:lighten($color_invert_chrome,10%); /* 10% lighter */
+$color_invert_chrome_shade:darken($color_invert_chrome,10%); /* 10% darker */
+
+/*--- Accent Colors ---*/
+
+/* Primary accent color (orange) */
+$color_accent_orange: #F8510F;
+$color_accent_orange_tint: lighten($color_accent_orange,10%); /* 10% lighter */
+$color_accent_orange_shade: darken($color_accent_orange,10%); /* 10% darker */
+$color_accent_orange_tint2: lighten($color_accent_orange,20%); /* 20% lighter */
+$color_accent_orange_shade2: darken($color_accent_orange,20%); /* 20% darker */
+
+/* Secondary accent color (blue) */
+$color_accent_blue: #00C0FA;
+$color_accent_blue_tint: lighten($color_accent_blue,10%); /* 10% lighter */
+$color_accent_blue_shade: darken($color_accent_blue,10%); /* 10% darker */
+$color_accent_blue_tint2: lighten($color_accent_blue,20%); /* 20% lighter */
+$color_accent_blue_shade2: darken($color_accent_blue,20%);; /* 20% darker */
+
+/* Tertiary accent colors */
+$color_accent_green:#28E398; /* H:156 S:82 B:89 */
+$color_accent_green_tint:lighten($color_accent_green,20%); /* 20% lighter */
+$color_accent_green_shade: darken($color_accent_green,10%); /* 10% darker */
+$color_accent_yellow:#FED800;
+$color_accent_yellow_tint:#FCED96;
+$color_accent_yellow_shade:#EFA50D;
+
+
+
+body{
+    font-family: 'Roboto', 'Open Sans', 'Helvetica Neue', Arial, sans;
+    font-weight: 400;
+}
+
 /**
  * Site header
  */
@@ -16,6 +75,8 @@
     line-height: 56px;
     letter-spacing: -1px;
     margin-bottom: 0;
+    font-family: 'Open Sans', 'Helvetica', Arial, sans;
+    font-weight: 800;
     float: left;
 
     &,
@@ -241,14 +302,61 @@
 }
 
 /**
- * Homeppage
+ * Homepage
  */
 
 .home{
     header{
-        width:100%;
+        margin-top: 1.5em;
+        margin-bottom:3em;
     }
+    header:after{
+        display:block;
+        clear:both;
+        content:' ';
+    }
+    header h1{
+        font-family: 'Open Sans';
+        font-weight: 800;
+        text-transform: uppercase;
+        color: $color_accent_blue;
+        font-size: 5em;
+        width:40%;
+        float:left;
+        display: block;
+        vertical-align: text-top;
+        line-height: 1.4;
+        padding-top: 0;
+        margin-bottom:0;
+    }
+    header h2{
+        width:60%;
+        float:left;
+        display:block;
+        vertical-align: text-top;
+        line-height: 1.4;
+        color: $color_fg;
+        padding-top: 1.4rem;
+        margin-bottom:0;
+        font-size: 1.5em;
+    }
+
 }
+
+
+
+code.block{
+    display: block;
+    padding:2em;
+    margin-bottom:3em;
+}
+
+
+code.block{
+    background-color: $color_invert_bg;
+    color:$color_accent_blue;
+}
+
 
 
 
