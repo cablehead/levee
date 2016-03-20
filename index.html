@@ -4,20 +4,58 @@ layout: default
 
 <div class="home">
 
-  <h1 class="page-heading">Posts</h1>
+  <header>
+    <h1>Levee</h1>
+    <h2>Levee is a tool to succinctly and quickly create high performance network appliances with Lua.</h2>
+  </header>
 
-  <ul class="post-list">
-    {% for post in site.posts %}
-      <li>
-        <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+  <section class="hello-world">
+    <code class="block">
+local levee = require("levee")
 
-        <h2>
-          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
-        </h2>
-      </li>
-    {% endfor %}
-  </ul>
+local h = levee.Hub()
 
-  <p class="rss-subscribe">subscribe <a href="{{ "/feed.xml" | prepend: site.baseurl }}">via RSS</a></p>
+local err, serve = h.tcp:listen(9000)
+
+for conn in serve do
+  h:spawn(function()
+    while true do
+      local err = conn:write("Hello World\n")
+      if err then break end
+      h:sleep(1000)
+    end
+    conn:close()
+  end)
+end</code>
+  </section>
+
+  <section class="callouts">
+    <article>
+      <div class="benefits">
+        <h3>Straight forward concurrency</h3>
+        <p><a href="http://www.lua.org/pil/9.1.html">Lua's native coroutines</a> to allow you to create Event-based Asynchronous
+services with straight forward, linear code; instead of nested callbacks.</p>
+      </div>
+      <div class="benefits">
+        <h3>Performance</h3>
+        <p>Levee is based on <a href="LuaJIT">http://luajit.org/</a> which provides a
+stellar <a href="https://en.wikipedia.org/wiki/Just-in-time_compilation">JIT</a> for
+Lua code and an excellent <a href="https://en.wikipedia.org/wiki/Foreign_function_interface">FFI</a> for
+binding to highly optimized C libraries. For example Levee comes bundled with <a href="https://github.com/imgix/siphon">Siphon</a>, a library of highly
+optimized parsers for common protocol and data formats.</p>
+      </div>
+      <div class="benefits">
+        <h3>Build standalone static binaries</h3>
+        <p>Once your service is ready to deploy, Levee provides tooling to compile your
+project to a standalone, static binary.</p>
+      </div>
+    </article>
+  </section>
+  <section class="install">
+    <article class="osx selected">
+      <code>brew install imgix/brew/levee</code>
+    </artcile>
+
+  </section>
 
 </div>
