@@ -56,7 +56,10 @@ return {
 		-- attempt to connect once, to start connector thread
 		local err, c = h.tcp:connect(port)
 		assert(err)
+
+		h:sleep(50)
 		for no = 3, 65535 do local err, st = _.fstat(no) end
+		h:sleep(50)
 
 		-- count the number of in use file descriptors
 		local pre = 0
