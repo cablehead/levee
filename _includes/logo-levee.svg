@@ -4,12 +4,12 @@
 	 x="0px" y="0px" width="480px" height="480px" viewBox="0 0 480 480" style="enable-background:new 0 0 480 480;"
 	 xml:space="preserve">
 <style type="text/css">
-	.st0{fill:#5ECC36;}
-	.st1{fill:#00ADEA;}
-	.st2{fill:url(#SVGID_1_);}
-	.st3{fill:#F0D4A8;}
-	.st4{fill:#E8A752;}
-	.st5{fill:#E2BF8D;}
+	.st0{fill:#00ADEA;}
+	.st1{fill:url(#SVGID_1_);}
+	.st2{fill:#F0D4A8;}
+	.st3{fill:#E8A752;}
+	.st4{fill:#E2BF8D;}
+	.st5{fill:#5ECC36;}
 	.st6{fill:#398919;}
 	.st7{fill:#E0AD69;}
 	.st8{fill:#80E7FF;}
@@ -31,17 +31,16 @@
 </style>
 <defs>
 </defs>
-<polyline class="st0" points="217,326.1 293.5,368.8 477.1,266.4 400.7,223.6 "/>
-<polygon class="st1" points="2.8,206.6 125.2,274.9 140.5,266.4 2.8,189.6 "/>
+<polygon class="st0" points="2.8,206.6 125.2,274.9 140.5,266.4 2.8,189.6 "/>
 <linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="26.7771" y1="189.5076" x2="266.7589" y2="189.5076">
 	<stop  offset="0" style="stop-color:#62D4F1"/>
 	<stop  offset="1" style="stop-color:#80E7FF"/>
 </linearGradient>
-<polygon class="st2" points="278.2,189.5 140.5,112.6 2.8,189.6 140.5,266.4 "/>
-<polygon class="st3" points="155.8,257.7 293.5,181 324.1,198.1 186.3,275 "/>
-<polygon class="st4" points="217,326.1 186.3,275 155.8,257.7 125.2,274.9 125.2,292 217,343.2 "/>
-<polygon class="st5" points="354.7,249.3 217,326.1 186.3,275 324.1,198.1 "/>
-<polygon class="st0" points="217,326.1 125.2,377.4 201.7,420 293.5,368.8 "/>
+<polygon class="st1" points="278.2,189.5 140.5,112.6 2.8,189.6 140.5,266.4 "/>
+<polygon class="st2" points="155.8,257.7 293.5,181 324.1,198.1 186.3,275 "/>
+<polygon class="st3" points="217,326.1 186.3,275 155.8,257.7 125.2,274.9 125.2,292 217,343.2 "/>
+<polygon class="st4" points="354.7,249.3 217,326.1 186.3,275 324.1,198.1 "/>
+<polygon class="st5" points="477.1,266.4 400.7,223.6 125.2,377.4 201.7,420 "/>
 <polygon class="st6" points="125.2,377.4 125.2,394.4 201.7,437.1 201.7,420 "/>
 <polygon class="st7" points="247.8,309.2 232.5,283.6 217.3,292.2 "/>
 <polygon class="st7" points="293.5,283.5 278.2,257.9 262.9,266.4 "/>
@@ -60,7 +59,7 @@
 	<polygon class="st10" points="477.1,266.4 201.7,420 201.7,437.1 477.1,283.5 	"/>
 </g>
 <polygon class="st11" points="354.7,334.7 354.7,343.2 370,334.7 370,326.1 "/>
-<polygon class="st1" points="155.8,394.4 155.8,403 171.1,411.5 171.1,403 "/>
+<polygon class="st0" points="155.8,394.4 155.8,403 171.1,411.5 171.1,403 "/>
 <polygon class="st12" points="265.1,213.8 262.9,215.2 262.9,87.1 265.2,88.4 "/>
 <polygon class="st13" points="262.9,87.1 262.9,104.2 285.8,117 285.8,99.9 "/>
 <polygon class="st14" points="265.2,88.4 262.9,87.1 262.9,104.2 265.2,105.5 "/>
@@ -95,7 +94,7 @@
 <polygon class="st19" points="370.1,189.5 393,202.3 416,189.5 393,159.6 "/>
 <polygon class="st6" points="370.1,189.5 393,202.3 393,159.6 "/>
 <polygon class="st21" points="400.7,232.2 393,236.5 393,245 400.7,240.7 "/>
-<polygon class="st17" points="209.3,407.1 201.6,402.9 201.6,377.3 209.3,381.5 "/>
+<polygon class="st17" points="209.3,407.1 201.7,403 201.6,377.3 209.3,381.5 "/>
 <polygon class="st18" points="216.9,402.9 209.3,407.1 209.3,381.5 216.9,377.3 "/>
 <polygon class="st19" points="186.3,377.3 209.3,390.1 232.2,377.3 209.3,347.4 "/>
 <polygon class="st10" points="209.3,381.5 209.3,347.3 227.7,371.2 "/>
@@ -122,4 +121,8 @@
 <polygon class="st6" points="415.8,215.1 438.8,227.9 438.8,185.2 "/>
 <polygon class="st21" points="446.4,257.8 438.8,262.1 438.8,270.6 446.4,266.3 "/>
 <rect class="st22" width="480" height="480"/>
+<polygon class="st10" points="155.7,377.4 140.5,368.8 148.1,364.6 155.8,368.8 "/>
+<polygon class="st10" points="385.1,249 369.8,240.5 377.5,236.2 385.1,240.5 "/>
+<polygon class="st10" points="201.7,403 186.4,394.4 194,390.2 201.7,394.4 "/>
+<polygon class="st10" points="431.2,274.9 415.9,266.4 423.5,262.1 431.2,266.4 "/>
 </svg>
