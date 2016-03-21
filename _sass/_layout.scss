@@ -515,6 +515,18 @@ pre{
 }
 
 
+.install{
+    width:50%;
+    margin-left:auto;
+    margin-right:auto;
+    @media(max-width: 768px){
+        width:80%;
+    }
+    @media(max-width:480px){
+        width:100%;
+    }
+}
+
 
 /*
     * Site Footer
