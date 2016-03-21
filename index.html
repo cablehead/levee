@@ -5,12 +5,12 @@ layout: default
 <div class="home">
 
   <header>
+    <div class="headline">
     <h1>Levee</h1>
     <h2>Levee is a tool to succinctly and quickly create high performance network appliances with Lua.</h2>
-  </header>
+    </div>
+    <div class="hello-world">
 
-  <section class="hello-world">
-`
 {% highlight lua %}
 local levee = require("levee")
 
@@ -30,11 +30,14 @@ for conn in serve do
 end
 {% endhighlight %}
 
-  </section>
+  </div>
+  </header>
+
+
 
   <section class="callouts">
       <div class="benefits">
-        <h3>Straight forward concurrency</h3>
+        <h3>Straight Forward Concurrency</h3>
         <p><a href="http://www.lua.org/pil/9.1.html">Lua's native coroutines</a> to allow you to create Event-based Asynchronous
 services with straight forward, linear code; instead of nested callbacks.</p>
       </div>
@@ -47,13 +50,14 @@ binding to highly optimized C libraries. For example Levee comes bundled with <a
 optimized parsers for common protocol and data formats.</p>
       </div>
       <div class="benefits">
-        <h3>Build standalone static binaries</h3>
+        <h3>Build Standalone Static Binaries</h3>
         <p>Once your service is ready to deploy, Levee provides tooling to compile your
 project to a standalone, static binary.</p>
       </div>
     
   </section>
   <section class="install">
+    <h3>Install on OS X</h3>
     <article class="osx selected">
 {% highlight terminal %}
 brew install imgix/brew/levee

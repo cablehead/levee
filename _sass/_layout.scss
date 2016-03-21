@@ -1,54 +1,3 @@
-$color_bg: #FFF;
-$color_bg_shade: #E8F0F4;
-
-/* Foreground color for text and UI elements */
-$color_fg: #475F72;
-$color_fg_tint: lighten($color_fg,15%); /* 20% lighter */
-$color_fg_shade: darken($color_fg,15%); /* 20% darker */
-
-/* Used for borders, dividers, etc. */
-$color_chrome:#D0D7DD;
-$color_chrome_tint:lighten($color_chrome,10%); /* 10% lighter */
-$color_chrome_shade:darken($color_chrome,10%); /* 10% darker */
-
-/*--- Inverted Colors ---*/
-/* Background color */
-$color_invert_bg:#22303A;
-$color_invert_bg_tint:lighten($color_invert_bg,10%); /* 10% lighter */
-$color_invert_bg_shade:darken($color_invert_bg,10%); /* 10% darker */
-
-/* Foreground color for text and UI elements */
-$color_invert_fg:#FAFAFA;
-$color_invert_fg_shade:$color_chrome;
-
-/* Used for borders, dividers, etc. */
-$color_invert_chrome:#637787;
-$color_invert_chrome_tint:lighten($color_invert_chrome,10%); /* 10% lighter */
-$color_invert_chrome_shade:darken($color_invert_chrome,10%); /* 10% darker */
-
-/*--- Accent Colors ---*/
-
-/* Primary accent color (orange) */
-$color_accent_orange: #F8510F;
-$color_accent_orange_tint: lighten($color_accent_orange,10%); /* 10% lighter */
-$color_accent_orange_shade: darken($color_accent_orange,10%); /* 10% darker */
-$color_accent_orange_tint2: lighten($color_accent_orange,20%); /* 20% lighter */
-$color_accent_orange_shade2: darken($color_accent_orange,20%); /* 20% darker */
-
-/* Secondary accent color (blue) */
-$color_accent_blue: #00C0FA;
-$color_accent_blue_tint: lighten($color_accent_blue,10%); /* 10% lighter */
-$color_accent_blue_shade: darken($color_accent_blue,10%); /* 10% darker */
-$color_accent_blue_tint2: lighten($color_accent_blue,20%); /* 20% lighter */
-$color_accent_blue_shade2: darken($color_accent_blue,20%);; /* 20% darker */
-
-/* Tertiary accent colors */
-$color_accent_green:#28E398; /* H:156 S:82 B:89 */
-$color_accent_green_tint:lighten($color_accent_green,20%); /* 20% lighter */
-$color_accent_green_shade: darken($color_accent_green,10%); /* 10% darker */
-$color_accent_yellow:#FED800;
-$color_accent_yellow_tint:#FCED96;
-$color_accent_yellow_shade:#EFA50D;
 
 
 
@@ -321,18 +270,17 @@ body{
         text-transform: uppercase;
         color: $color_accent_blue;
         font-size: 5em;
-        width:40%;
-        float:left;
+        //float:left;
         display: block;
         vertical-align: text-top;
         line-height: 1.4;
         padding-top: 0;
         margin-bottom:0;
+        max-width: 4em;
     }
     header h2{
-        width:60%;
         max-width:18em;
-        float:left;
+       // float:left;
         display:block;
         vertical-align: text-top;
         line-height: 1.4;
@@ -342,58 +290,42 @@ body{
         font-size: 1.5em;
     }
 
+    .headline{
+        float:left;
+        width:40%;
+    }
+
+    .hello-world{
+        width:55%;
+        float:right;
+        vertical-align: top;
+        line-height: 1;
+        figure.highlight{
+            margin: 0 auto;
+        }
+    }
+
 }
-
-
 
 /*
-    * Code Block
+    * Call Outs 
 */
-
-
-
-figure.highlight{
-    background-color: transparent;
-}
-
-pre{
-    background-color: $color_invert_bg_tint;
-    border:none;
-    line-height: 1.2;
-}
-
-pre > code{
-    background-color: transparent;
-}
-
-code{
-    color:$color_accent_blue;
-     background-color: $color_invert_bg_tint;
-}
-
-pre{
-    padding:1em;
-    border-radius: 4px;
-}
-
-.hello-world{
-    figure.highlight{
-        margin: 0 auto;
-    }
-}
-
 .callouts{
     margin-top:3em;
     .benefits{
-        width: -webkit-calc( 33.333333333333% - 32px );
-        width: calc( 33.333333333333% - 32px );
+        width: -webkit-calc( 33.333333333333% - 48px );
+        width: calc( 33.333333333333% - 48px );
         float:left;
-        margin:0 16px;
+        margin:0 24px 3em 24px;
         h3{
-            font-weight: 300;
+            font-weight: 400;
+            font-size: 1.4em;
+            line-height: 1.2;
         }
         p{
             line-height:1.4;
+            font-weight: 300;
+            max-width: 32em;
         }
     }
 }
@@ -406,17 +338,63 @@ pre{
 
 
 
+/*
+    * Code Block
+*/
 
 
 
+figure.highlight{
+    background-color: transparent;
+    .kd, .k, .kc{
+        color: $color_accent_blue_tint;
+    }
+
+    .mi{
+        color: $color_accent_orange_tint;
+    }
+
+    .s2{
+        color: $color_accent_green_tint;
+    }
+
+}
+
+
+pre{
+    background-color: $color_invert_bg_tint;
+    border:none;
+    line-height: 1.2;
+
+}
+
+pre > code{
+    background-color: transparent;
+}
+
+code{
+    padding: 1em;
+    color:$color_accent_blue;
+     background-color: $color_invert_bg_tint;
+}
+
+pre{
+    padding:2em;
+    border-radius: 4px;
+}
 
 
 
+/*
+    * Site Footer
+*/
 
 
-
-
-
+.site-footer{
+    p{
+            text-align: center;
+    }
+}
 
 
 

@@ -1,3 +1,59 @@
+$color_bg: #FFF;
+$color_bg_shade: #E8F0F4;
+
+/* Foreground color for text and UI elements */
+$color_fg: #475F72;
+$color_fg_tint: lighten($color_fg,15%); /* 20% lighter */
+$color_fg_shade: darken($color_fg,15%); /* 20% darker */
+
+/* Used for borders, dividers, etc. */
+$color_chrome:#D0D7DD;
+$color_chrome_tint:lighten($color_chrome,10%); /* 10% lighter */
+$color_chrome_shade:darken($color_chrome,10%); /* 10% darker */
+
+/*--- Inverted Colors ---*/
+/* Background color */
+$color_invert_bg:#22303A;
+$color_invert_bg_tint:lighten($color_invert_bg,10%); /* 10% lighter */
+$color_invert_bg_shade:darken($color_invert_bg,10%); /* 10% darker */
+
+/* Foreground color for text and UI elements */
+$color_invert_fg:#FAFAFA;
+$color_invert_fg_shade:$color_chrome;
+
+/* Used for borders, dividers, etc. */
+$color_invert_chrome:#637787;
+$color_invert_chrome_tint:lighten($color_invert_chrome,10%); /* 10% lighter */
+$color_invert_chrome_shade:darken($color_invert_chrome,10%); /* 10% darker */
+
+/*--- Accent Colors ---*/
+
+/* Primary accent color (orange) */
+$color_accent_orange: #F8510F;
+$color_accent_orange_tint: lighten($color_accent_orange,10%); /* 10% lighter */
+$color_accent_orange_shade: darken($color_accent_orange,10%); /* 10% darker */
+$color_accent_orange_tint2: lighten($color_accent_orange,20%); /* 20% lighter */
+$color_accent_orange_shade2: darken($color_accent_orange,20%); /* 20% darker */
+
+/* Secondary accent color (blue) */
+$color_accent_blue: #00C0FA;
+$color_accent_blue_tint: lighten($color_accent_blue,10%); /* 10% lighter */
+$color_accent_blue_shade: darken($color_accent_blue,10%); /* 10% darker */
+$color_accent_blue_tint2: lighten($color_accent_blue,20%); /* 20% lighter */
+$color_accent_blue_shade2: darken($color_accent_blue,20%);; /* 20% darker */
+
+/* Tertiary accent colors */
+$color_accent_green:#28E398; /* H:156 S:82 B:89 */
+$color_accent_green_tint:lighten($color_accent_green,20%); /* 20% lighter */
+$color_accent_green_shade: darken($color_accent_green,10%); /* 10% darker */
+$color_accent_yellow:#FED800;
+$color_accent_yellow_tint:#FCED96;
+$color_accent_yellow_shade:#EFA50D;
+
+$content-width: 1200px;
+
+
+
 /**
  * Reset some basic elements
  */
@@ -14,7 +70,7 @@ dl, dd, ol, ul, figure {
  */
 body {
     font: $base-font-weight #{$base-font-size}/#{$base-line-height} $base-font-family;
-    color: $text-color;
+    color: $color_fg;
     background-color: $background-color;
     -webkit-text-size-adjust: 100%;
     -webkit-font-feature-settings: "kern" 1;
@@ -149,7 +205,6 @@ pre {
     }
 }
 
-$content-width: 960px;
 
 
 
