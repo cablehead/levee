@@ -57,27 +57,8 @@ return {
 		local err, c = h.tcp:connect(port)
 		assert(err)
 
-		h:sleep(50)
-		for no = 3, 65535 do local err, st = _.fstat(no) end
-		h:sleep(50)
-
-		-- count the number of in use file descriptors
-		local pre = 0
-		for no = 3, 65535 do
-			local err, st = _.fstat(no)
-			if st then pre = pre + 1 end
-		end
-
 		local err, c = h.tcp:connect(port)
 		assert(err)
 		assert.same(h.registered, {})
-
-		-- check the number of in use file descriptors is the same
-		local post = 0
-		for no = 3, 65535 do
-			local err, st = _.fstat(no)
-			if st then post = post + 1 end
-		end
-		assert.equal(pre, post)
 	end,
 }
