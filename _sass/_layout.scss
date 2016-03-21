@@ -12,8 +12,8 @@ body{
  * Site header
  */
 .site-header {
-    border-top: 5px solid $grey-color-dark;
-    border-bottom: 1px solid $grey-color-light;
+    width:100%;
+    background-color: $color_invert_bg;
     min-height: 56px;
 
     // Positioning context for the mobile navigation icon
@@ -181,6 +181,18 @@ body{
  */
 .page-content {
     padding: $spacing-unit 0;
+
+
+}
+.page-content > header{
+    margin-top:-$spacing-unit;
+    margin-bottom:3em;
+    min-height: 24em;
+    position: absolute;
+    z-index: -1;
+    @media(max-width: 480px){
+       background-color: transparent; 
+    }
 }
 
 .page-heading {
@@ -229,7 +241,6 @@ body{
 
     h2 {
         font-size: 32px;
-
         @include media-query($on-laptop) {
             font-size: 28px;
         }
@@ -272,13 +283,13 @@ body{
         text-transform: uppercase;
         color: $color_accent_blue;
         font-size: 5em;
-        //float:left;
         display: block;
         vertical-align: text-top;
         line-height: 1.4;
         padding-top: 0;
         margin-bottom:0;
         max-width: 4em;
+        padding-bottom: 1rem;
     }
     header h2{
         max-width:18em;
@@ -286,13 +297,16 @@ body{
         display:block;
         vertical-align: text-top;
         line-height: 1.4;
-        color: $color_fg;
-        padding-top: 1.4rem;
+        color: $color_invert_fg_shade;
         margin-bottom:0;
         font-size: 1.5em;
+        @media(max-width: 480px){
+           color: $color_fg; 
+        }
     }
 
     .headline{
+        padding-top:0em;
         float:left;
         width:40%;
         vertical-align: top;
@@ -344,6 +358,21 @@ body{
                 font-size: .8em;
             }
             
+        }
+    }
+    .levee-logo{
+        position: relative;
+        top:-1.8em;
+        margin-left:auto;
+        margin-right:auto;
+        width:320px;
+        margin-bottom: -4em;
+        svg{
+            width:320px;
+            height: 320px;
+        }
+        @media(max-width:480px){
+            display:none;
         }
     }
     .hello-world:before{
