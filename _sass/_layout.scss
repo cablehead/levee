@@ -1,5 +1,7 @@
 
-
+*{
+    box-sizing:border-box;
+}
 
 body{
     font-family: 'Roboto', 'Open Sans', 'Helvetica Neue', Arial, sans;
@@ -295,6 +297,16 @@ body{
         width:40%;
         vertical-align: top;
         line-height: 1;
+        @media(max-width:768px){
+            float:none;
+            width:80%;
+            max-width:28rem;
+            margin: 0 auto 5em auto;
+            clear:both;
+        }
+        @media(max-width:480px){
+            width:90%;
+        }
     }
 
     .hello-world{
@@ -302,9 +314,55 @@ body{
         float:right;
         vertical-align: top;
         line-height: 1;
+        position: relative;
+        margin-top:24px;   
+
+        pre{
+            border-radius: 0 0 4px 4px;
+             box-shadow: 0 2px rgba(161, 167, 170, 0.3); 
+        }
         figure.highlight{
             margin: 0 auto;
+            
         }
+
+        @media(max-width:768px){
+            float:none;
+            width:80%;
+            margin: 0 auto 3em auto;
+            clear:both;
+        }
+        @media(max-width:480px){
+            float:none;
+            width:100%;
+            margin: 0 auto 3em auto;
+            clear:both;
+            figure.highlight pre{
+                padding:1em;
+            }
+            figure.highlight code{
+                font-size: .8em;
+            }
+            
+        }
+    }
+    .hello-world:before{
+        content:'"Hello World!"';
+        vertical-align: middle;
+        text-align: center;
+        line-height: 2.5;
+
+        display: block;
+        position: absolute;
+        width:100%;
+        top:-36px;
+        left:0;
+        height:36px;
+        overflow: hidden;
+        background-color: darken($color_bg_shade,10%);
+        border-bottom: solid 1px $color_bg_shade;
+        border-radius: 4px 4px 0 0;
+        color:lighten($color_fg_tint,10%);
     }
 
 }
@@ -315,10 +373,10 @@ body{
 .callouts{
     margin-top:3em;
     .benefits{
-        width: -webkit-calc( 33.333333333333% - 48px );
-        width: calc( 33.333333333333% - 48px );
+        width: -webkit-calc( 33.333333333333% - 32px );
+        width: calc( 33.333333333333% - 32px );
         float:left;
-        margin:0 24px 3em 24px;
+        margin:0 0 3em 0;
         h3{
             font-weight: 400;
             font-size: 1.4em;
@@ -328,6 +386,39 @@ body{
             line-height:1.4;
             font-weight: 300;
             max-width: 32em;
+        }
+    }
+    .benefits:nth-child(2n+2){
+        margin-right: 48px;
+        margin-left:48px;
+    }
+    @media(max-width:768px){
+        .benefits{
+            width:80%;
+            max-width:28rem;
+            float:none;
+            margin:0 auto 3em auto;
+
+            h3{
+                font-weight: 400;
+                font-size: 1.4em;
+                line-height: 1.2;
+                max-width: 32em;
+            }
+            p{
+                line-height:1.4;
+                font-weight: 300;
+                max-width: 32em;
+            }
+        }
+        .benefits:nth-child(2n+2){
+            margin-right: auto;
+            margin-left: auto;
+        }
+    }
+    @media(max-width:480px){
+        .benefits{
+            width:90%;
         }
     }
 }
