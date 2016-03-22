@@ -625,17 +625,20 @@ function Chunk_mt:_splice_0copy(target)
 		r.r_ev:set(...)
 	end
 
+	local err, rn, wn
 	while remain > 0 do
-		local err, rn = source:_splice(w, remain)
-		if err then return err end
+		err, rn = source:_splice(w, remain)
+		if err then goto cleanup end
 
 		while rn > 0 do
-			local err, wn = r:_splice(target, remain)
-			if err then return err end
+			err, wn = r:_splice(target, remain)
+			if err then goto cleanup end
 			rn = rn - wn
 			remain = remain - wn
 		end
 	end
+
+	::cleanup::
 
 	-- restore target and temp w's w_ev
 	target.w_ev.set = target_w_ev_set
@@ -643,6 +646,12 @@ function Chunk_mt:_splice_0copy(target)
 
 	r:close()
 	w:close()
+
+	if err then
+		self.stream.conn:close()
+		target:close()
+		return err
+	end
 
 	self.len = 0
 	self.done:close()

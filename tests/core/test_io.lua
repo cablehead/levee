@@ -560,6 +560,41 @@ return {
 			assert(not h:in_use())
 		end,
 
+		test_error = function()
+			local val = CHARS64:rep(4096)
+			local crc = C.sp_crc32c(0ULL, val, #val)
+			local N = 64 * 4096
+
+			local h = levee.Hub()
+
+			local p1 = {}
+			p1.r, p1.w = h.io:pipe()
+			p1.s = p1.r:stream()
+
+			local p2 = {}
+			p2.r, p2.w = h.io:pipe()
+			p2.s = p2.r:stream()
+
+			-- setup thread to drain p2
+			local drained = (function()
+				local sender, recver = h:pipe()
+				h:spawn(function()
+					assert.equal(p2.s:readin(N), levee.errors.CLOSED)
+					sender:close()
+				end)
+				return recver
+			end)()
+
+			-- drop write half way through
+			h:spawn(function() p1.w:write(val, N/2) ; p1.w:close() end)
+
+			p1.c = p1.s:chunk(N)
+			assert.equal(p1.c:splice(p2.w), levee.errors.CLOSED)
+			drained:recv()
+
+			assert(not h:in_use())
+		end,
+
 		test_tcp = function()
 			local h = levee.Hub()
 
