@@ -575,22 +575,57 @@ return {
 			p2.r, p2.w = h.io:pipe()
 			p2.s = p2.r:stream()
 
-			-- setup thread to drain p2
-			local drained = (function()
-				local sender, recver = h:pipe()
-				h:spawn(function()
-					assert.equal(p2.s:readin(N), levee.errors.CLOSED)
-					sender:close()
-				end)
-				return recver
-			end)()
-
+			h:spawn(function() assert.equal(p2.s:readin(N), levee.errors.CLOSED) end)
 			-- drop write half way through
 			h:spawn(function() p1.w:write(val, N/2) ; p1.w:close() end)
 
 			p1.c = p1.s:chunk(N)
 			assert.equal(p1.c:splice(p2.w), levee.errors.CLOSED)
-			drained:recv()
+
+			p2.r:close()
+			p2.w:close()
+			h:continue()
+			assert(not h:in_use())
+		end,
+
+		test_error_on_write = function()
+			local val = CHARS64:rep(4096)
+			local crc = C.sp_crc32c(0ULL, val, #val)
+			local N = 64 * 4096
+
+			local h = levee.Hub()
+
+			local p1 = {}
+			p1.r, p1.w = h.io:pipe()
+			p1.s = p1.r:stream()
+
+			local p2 = {}
+			p2.r, p2.w = h.io:pipe()
+			p2.s = p2.r:stream()
+
+			-- drop read half way through
+			h:spawn(function() p2.s:readin(N/4); p2.r:close() end)
+			h:spawn(function()
+				local err = p1.w:write(val, N)
+				assert(not err)
+				p1.w:close()
+			end)
+
+			p1.c = p1.s:chunk(N)
+			assert.equal(p1.c:splice(p2.w), levee.errors.CLOSED)
+			p2.w:close()
+
+			h:continue()
+
+			local want = #p1.c
+			local __, len = p1.c:value()
+			assert.equal(len, 0)
+
+			p1.c:readin(want)
+			local __, len = p1.c:value()
+			assert.equal(len, want)
+
+			assert.equal(p1.s:readin(), levee.errors.CLOSED)
 
 			assert(not h:in_use())
 		end,

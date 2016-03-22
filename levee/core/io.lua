@@ -584,17 +584,10 @@ function Chunk_mt:_splice(target)
 
 	while self.len > 0 do
 		local err = self:readin(1)
-		if err then
-			self.stream.conn:close()
-			target:close()
-			return err
-		end
+		if err then return err end
 		local err = target:write(self:value())
 		self:trim()
-		if err then
-			target:close()
-			return err
-		end
+		if err then return err end
 	end
 
 	return nil, n
@@ -632,20 +625,13 @@ function Chunk_mt:_splice_0copy(target)
 	local err, rn, wn
 	while self.len > 0 do
 		err, rn = source:_splice(w, self.len)
-		if err then
-			self.stream.conn:close()
-			target:close()
-			goto cleanup
-		end
+		if err then goto cleanup end
 
 		self.len = self.len - rn
 
 		while rn > 0 do
 			err, wn = r:_splice(target, rn)
-			if err then
-				target:close()
-				goto cleanup
-			end
+			if err then goto cleanup end
 			rn = rn - wn
 		end
 	end
