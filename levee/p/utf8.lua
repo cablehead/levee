@@ -23,8 +23,8 @@ function Utf8_mt:_init_fixed(buf, len)
 end
 
 
-function Utf8_mt:encode(buf, len)
-	local rc = C.sp_utf8_encode(self, buf, len or #buf, C.SP_UTF8_NONE)
+function Utf8_mt:encode(buf, len, mode)
+	local rc = C.sp_utf8_encode(self, buf, len or #buf, mode or C.SP_UTF8_NONE)
 	if rc >= 0 then return nil, rc end
 	return errors.get(rc)
 end
