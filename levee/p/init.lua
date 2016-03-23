@@ -55,6 +55,7 @@ return {
 	json = json,
 	msgpack = msgpack,
 	http = require("levee.p.http"),
+	utf8 = require("levee.p.utf8"),
 	uri = require("levee.p.uri"),
 	line = require("levee.p.line"),
 }
