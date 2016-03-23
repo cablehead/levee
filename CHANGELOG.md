@@ -8,6 +8,7 @@
 * add improved URI module
 * allow use of sendfile in IO
 * fix a file descriptor leak for io:open
+* fix escaping strings for JSON encode
 
 
 ## 0.3.2 - 2016-02-24
