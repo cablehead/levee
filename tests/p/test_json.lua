@@ -96,11 +96,9 @@ return {
 
 	test_encode = function()
 		local want = {"a", 1, "b", {foo="bar\nfoo"}}
-
 		local err, buf = p.json.encode(want)
 		local s = buf:take()
 		assert.equal(s, '["a", 1, "b", {"foo": "bar\\nfoo"}]')
-
 		local err, got = p.json.decode(s)
 		assert.same(want, got)
 	end,
@@ -108,6 +106,19 @@ return {
 	test_encode_empty_table = function()
 		local err, buf = p.json.encode({})
 		assert.equal(buf:take(), "{}")
+	end,
+
+	test_encode_escape = function()
+		local want = {key=[[\n\t\+=-/%.&}{"'👻]]}
+		local err, buf = p.json.encode(want)
+		local err, got = p.json.decode(buf:value())
+		assert.same(want, got)
+
+		-- pathological case
+		local want = {key=(('"'):rep(4096))}
+		local err, buf = p.json.encode(want)
+		local err, got = p.json.decode(buf:value())
+		assert.same(want, got)
 	end,
 
 	test_more = function()

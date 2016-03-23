@@ -4,6 +4,20 @@ local C = ffi.C
 local errors = require("levee.errors")
 local _ = require("levee._")
 local d = require("levee.d")
+local utf8 = require("levee.p.utf8")
+
+
+local __utf8_encoder
+
+
+local function utf8_encode(buf, s, pad)
+	if not __utf8_encoder then __utf8_encoder = utf8.Utf8.new() end
+	buf:ensure(math.ceil(#s * pad))
+	__utf8_encoder:init_fixed(buf:tail())
+	local err, n = __utf8_encoder:encode(s, #s, C.SP_UTF8_JSON)
+	__utf8_encoder:final()
+	return err, n
+end
 
 
 local Json_mt = {}
@@ -185,7 +199,14 @@ local function encode(data, buf)
 
 	elseif type(data) == "string" then
 		buf:push('"')
-		buf:push(data:gsub("\n", "\\n"))
+		local err, n
+		err, n = utf8_encode(buf, data, 1.2)
+		if err then
+			-- pathological case?
+			err, n = utf8_encode(buf, data, 2)
+			assert(not err)
+		end
+		buf:bump(n)
 		buf:push('"')
 		return buf
 

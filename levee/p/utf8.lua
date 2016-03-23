@@ -9,17 +9,22 @@ Utf8_mt.__index = Utf8_mt
 
 
 function Utf8_mt:__gc()
-	C.sp_utf8_final(self)
+	self:final()
 end
 
 
-function Utf8_mt:_init()
+function Utf8_mt:init()
 	C.sp_utf8_init(self)
 end
 
 
-function Utf8_mt:_init_fixed(buf, len)
+function Utf8_mt:init_fixed(buf, len)
 	C.sp_utf8_init_fixed(self, buf, len)
+end
+
+
+function Utf8_mt:final()
+	C.sp_utf8_final(self)
 end
 
 
@@ -51,14 +56,14 @@ Utf8.new = ffi.metatype("SpUtf8", Utf8_mt)
 
 function Utf8.__call()
 	local self = Utf8.new()
-	self:_init()
+	self:init()
 	return self
 end
 
 
 function Utf8.from_fixed(buf, len)
 	local self = Utf8.new()
-	self:_init_fixed(buf, len)
+	self:init_fixed(buf, len)
 	return self
 end
 
