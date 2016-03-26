@@ -18,16 +18,21 @@ local Log_mt = {}
 Log_mt.__index = Log_mt
 
 
+function Log_mt:__log(lvl, f, ...)
+	io.write(("%-5s"):format(lvl))
+	io.write(" ")
+	io.write(time.now():localdate():iso8601())
+	io.write(" ")
+	io.write(("%-21s"):format(self.name:sub(1,20)))
+	io.write(f:format(...))
+	io.write("\n")
+	io.flush()
+end
+
+
 function Log_mt:log(lvl, f, ...)
 	if LEVELS[lvl] >= self.lvl then
-		io.write(("%-5s"):format(lvl))
-		io.write(" ")
-		io.write(time.now():localdate():iso8601())
-		io.write(" ")
-		io.write(("%-21s"):format(self.name:sub(1,20)))
-		io.write(f:format(...))
-		io.write("\n")
-		io.flush()
+		self:__log(lvl, f, ...)
 	end
 end
 
@@ -58,8 +63,8 @@ return {
 	end,
 
 	patch = function(f)
-		local ret = Log_mt.log
-		Log_mt.log = f
+		local ret = Log_mt.__log
+		Log_mt.__log = f
 		return ret
 	end,
 }
