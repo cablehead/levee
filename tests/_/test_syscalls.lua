@@ -142,4 +142,9 @@ return {
 		local err, name = _.gethostname()
 		assert(not err)
 	end,
+
+	test_getrusage = function()
+		local err, rusage = _.getrusage()
+		assert(rusage.ru_maxrss > 0)
+	end,
 }

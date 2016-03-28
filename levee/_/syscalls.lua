@@ -402,4 +402,13 @@ _.accept = function(no)
 end
 
 
+_.getrusage = function(who)
+	who = who or C.RUSAGE_SELF
+	local rusage = ffi.new("struct rusage")
+	local rc = C.getrusage(who, rusage)
+	if rc < 0 then return errors.get(ffi.errno()) end
+	return nil, rusage
+end
+
+
 return _

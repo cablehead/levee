@@ -9,6 +9,7 @@
 * allow use of sendfile in IO
 * fix a file descriptor leak for io:open
 * fix escaping strings for JSON encode
+* add a binding for getrusage
 
 
 ## 0.3.2 - 2016-02-24
