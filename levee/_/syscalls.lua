@@ -411,4 +411,10 @@ _.getrusage = function(who)
 end
 
 
+_.getcurrentrss = function()
+	local rss = C.levee_getcurrentrss()
+	return nil, rss
+end
+
+
 return _

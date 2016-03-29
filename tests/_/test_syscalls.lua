@@ -147,4 +147,9 @@ return {
 		local err, rusage = _.getrusage()
 		assert(rusage.ru_maxrss > 0)
 	end,
+
+	test_getcurrentrss = function()
+		local err, rss = _.getcurrentrss()
+		assert(rss > 0)
+	end,
 }

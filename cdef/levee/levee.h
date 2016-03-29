@@ -38,3 +38,6 @@ levee_print_stack (Levee *self, const char *msg);
 
 extern const char *
 levee_get_error (Levee *self);
+
+extern size_t
+levee_getcurrentrss ();
