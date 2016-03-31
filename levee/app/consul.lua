@@ -248,7 +248,9 @@ function Session_mt:create(options)
 
 	return self.agent:request("PUT", "session/create", {data=data},
 		function(res)
-			assert(res.code == 200)
+			if res.code ~= 200 then
+				assert(res.code == 200, ("%s: %s"):format(res.code, res:tostring()))
+			end
 			local err, data = res:json()
 			if err then return err end
 			return nil, data["ID"]
@@ -259,7 +261,9 @@ end
 function Session_mt:list()
 	return self.agent:request("GET", "session/list", {},
 		function(res)
-			assert(res.code == 200)
+			if res.code ~= 200 then
+				assert(res.code == 200, ("%s: %s"):format(res.code, res:tostring()))
+			end
 			local err, data = res:json()
 			if err then return err end
 			return nil, res.headers["X-Consul-Index"], data
@@ -279,7 +283,9 @@ end
 function Session_mt:info(session_id)
 	return self.agent:request("GET", "session/info/"..session_id, {},
 		function(res)
-			assert(res.code == 200)
+			if res.code ~= 200 then
+				return res:tostring()
+			end
 			local err, session = res:json()
 			if err then return err end
 			if session then session = session[1] end
@@ -295,7 +301,9 @@ function Session_mt:renew(session_id)
 				res:discard()
 				return nil, false
 			end
-			assert(res.code == 200)
+			if res.code ~= 200 then
+				return res:tostring()
+			end
 			local err, data = res:json()
 			if err then return err end
 			return nil, data[1]
@@ -310,7 +318,9 @@ Agent_mt.__index = Agent_mt
 function Agent_mt:self()
 	return self.agent:request("GET", "agent/self", {},
 		function(res)
-			assert(res.code == 200)
+			if res.code ~= 200 then
+				assert(res.code == 200, ("%s: %s"):format(res.code, res:tostring()))
+			end
 			return res:json()
 		end)
 end
@@ -319,7 +329,9 @@ end
 function Agent_mt:services()
 	return self.agent:request("GET", "agent/services", {},
 		function(res)
-			assert(res.code == 200)
+			if res.code ~= 200 then
+				assert(res.code == 200, ("%s: %s"):format(res.code, res:tostring()))
+			end
 			return res:json()
 		end)
 end

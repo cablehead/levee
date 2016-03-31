@@ -126,7 +126,7 @@ return {
 		assert.equal(session["ID"], session_id)
 
 		local err, session = c.session:renew("foo")
-		assert.same(session, false)
+		assert(err)
 		local err, session = c.session:renew(session_id)
 		assert.equal(session["ID"], session_id)
 
