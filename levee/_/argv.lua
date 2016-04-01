@@ -57,6 +57,17 @@ function Argv_mt:next(fn, msg)
 end
 
 
+function Argv_mt:is_option()
+	if not self:more() then return end
+	local arg = self.args[self.idx]
+	-- match long option: --long-value
+	if arg:match("^%-%-(.*)") then return true end
+		-- match short options: -xyz
+	if arg:match("^%-(.+)") then return true end
+	return false
+end
+
+
 function Argv_mt:option()
 	local optrem = self.optrem
 	self.opt = nil

@@ -10,6 +10,7 @@
 * fix a file descriptor leak for io:open
 * fix escaping strings for JSON encode
 * add a binding for getrusage
+* add an is_option convenience to \_.argv
 
 
 ## 0.3.2 - 2016-02-24

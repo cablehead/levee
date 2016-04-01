@@ -91,4 +91,15 @@ return {
 		last_opt = nil
 		last_idx = nil
 	end,
+
+	test_is_option = function()
+		local argv = _.argv({"-xyz", "--long", "foo"})
+		assert.equal(argv:is_option(), true)
+		argv:next()
+		assert.equal(argv:is_option(), true)
+		argv:next()
+		assert.equal(argv:is_option(), false)
+		argv:next()
+		assert.equal(argv:is_option(), nil)
+	end,
 }
