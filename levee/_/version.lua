@@ -97,18 +97,17 @@ function Version_mt:_bump_major(val)
 end
 
 
-function Version_mt:bump(field)
+function Version_mt:bump(field, val)
 	local new = copy(self)
-	if field then
-		new["_bump_"..field](new)
-	else
+	if not field then
 		for i,key in ipairs{"pre_release", "patch", "minor", "major"} do
 			if new[key] then
-				new["_bump_"..key](new)
+				field = key
 				break
 			end
 		end
 	end
+	new["_bump_"..field](new, val)
 	return new
 end
 
