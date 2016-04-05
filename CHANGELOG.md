@@ -11,6 +11,8 @@
 * fix escaping strings for JSON encode
 * add a binding for getrusage
 * add an is_option convenience to \_.argv
+* add \_.version to parse semver strings
+* add -v/--version to restrict build
 
 
 ## 0.3.2 - 2016-02-24

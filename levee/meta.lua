@@ -1,3 +1,5 @@
+local Version = require("levee._.version")
+
 local date = {
 	year = 2016,
 	month = 2,
@@ -9,16 +11,16 @@ date.string = string.format(
 	date.year, date.month, date.day
 )
 
-local version = {
+local version = Version{
 	major = 0,
 	minor = 3,
 	patch = 3,
-	pre_release = "-alpha",
-	date = date, }
+	pre_release_name = "alpha",
+	pre_release_version = 1,
+}
 
-version.string = string.format(
-	"%d.%d.%d%s",
-	version.major, version.minor, version.patch, version.pre_release)
+version.date = date
+version.string = tostring(version)
 
 return {
 	name = "levee",

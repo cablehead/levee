@@ -108,6 +108,9 @@ Options:
 
 			elseif opt == "n" or opt == "name" then
 				options.name = argv:next()
+
+			elseif opt == "v" or opt == "version" then
+				options.version = argv:next()
 			end
 		end
 
@@ -129,6 +132,20 @@ Options:
 
 			if st:is_reg() then
 				options.file = options.modules[1]
+			end
+		end
+
+
+		if options.version then
+			local v = _.version(options.version)
+			if not v then
+				io.stderr:write("invalid version string\n")
+				os.exit(1)
+			end
+
+			if not meta.version:is_compatible(v) then
+				io.stderr:write("required version is not compatible\n")
+				os.exit(1)
 			end
 		end
 
