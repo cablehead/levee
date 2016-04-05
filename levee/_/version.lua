@@ -133,6 +133,7 @@ end
 return function(v)
 	local out
 	if type(v) == "table" then
+		return copy(v)
 	elseif type(v) == "string" then
 		return parse(v)
 	end
