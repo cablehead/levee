@@ -47,6 +47,7 @@ end
 function Version_mt:is_compatible(v)
 	if type(v) == "string" then
 		v = parse(v)
+		if not v then return false end
 	end
 	if self.pre_release_name ~= v.pre_release_name then
 		return false
