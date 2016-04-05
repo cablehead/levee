@@ -16,11 +16,15 @@ local Version_mt = {}
 Version_mt.__index = Version_mt
 
 
+local function make_pre_release(t)
+	return ("-%s.%s"):format(
+		t.pre_release_name,
+		t.pre_release_version or "x")
+end
+
 local function make(t)
 	if t.pre_release_name and not t.pre_release then
-		t.pre_release = ("-%s.%s"):format(
-			t.pre_release_name,
-			t.pre_release_version or "x")
+		t.pre_release = make_pre_release(t)
 	end
 	return setmetatable(t, Version_mt)
 end
@@ -58,6 +62,54 @@ function Version_mt:is_compatible(v)
 		end
 	end
 	return true
+end
+
+
+function Version_mt:_bump_pre_release(val)
+	if not self.pre_release_name then
+		self.patch = self.patch + 1
+		self.pre_release_name = "alpha"
+		self.pre_release_version = 1 or val
+	else
+		self.pre_release_version = val or self.pre_release_version + 1
+	end
+	self.pre_release = make_pre_release(self)
+end
+
+
+function Version_mt:_bump_patch(val)
+	self.patch = val or self.patch + 1
+	self.pre_release = ""
+	self.pre_release_name = nil
+	self.pre_release_version = nil
+end
+
+
+function Version_mt:_bump_minor(val)
+	self:_bump_patch(0)
+	self.minor = val or self.minor + 1
+end
+
+
+function Version_mt:_bump_major(val)
+	self:_bump_minor(0)
+	self.major = val or self.major + 1
+end
+
+
+function Version_mt:bump(field)
+	local new = copy(self)
+	if field then
+		new["_bump_"..field](new)
+	else
+		for i,key in ipairs{"pre_release", "patch", "minor", "major"} do
+			if new[key] then
+				new["_bump_"..key](new)
+				break
+			end
+		end
+	end
+	return new
 end
 
 

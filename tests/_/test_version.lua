@@ -45,4 +45,22 @@ return {
 		assert.same("v1.2.3-beta.x", tostring(_.version("v1.2.3-beta.x")))
 		assert.same("v1.2.3-beta.1", tostring(_.version("v1.2.3-beta.1")))
 	end,
+
+	test_bump = function()
+		local v = _.version("v1.2.3")
+		assert.same("v1.2.4-alpha.1", tostring(v:bump("pre_release")))
+		assert.same("v1.2.4", tostring(v:bump("patch")))
+		assert.same("v1.3.0", tostring(v:bump("minor")))
+		assert.same("v2.0.0", tostring(v:bump("major")))
+		assert.same("v1.2.4", tostring(v:bump()))
+	end,
+
+	test_bump_pre_release = function()
+		local v = _.version("v1.2.3-foo.4")
+		assert.same("v1.2.3-foo.5", tostring(v:bump("pre_release")))
+		assert.same("v1.2.4", tostring(v:bump("patch")))
+		assert.same("v1.3.0", tostring(v:bump("minor")))
+		assert.same("v2.0.0", tostring(v:bump("major")))
+		assert.same("v1.2.3-foo.5", tostring(v:bump()))
+	end
 }
