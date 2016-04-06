@@ -66,7 +66,7 @@ local TCP_mt = {}
 TCP_mt.__index = TCP_mt
 
 
-function TCP_mt:connect(port, host, timeout)
+function TCP_mt:dial(port, host, timeout)
 	if not self.dialer then
 		self.dialer = self.hub:pool(function()
 			return Dialer(self.hub, C.SOCK_STREAM)
@@ -79,6 +79,9 @@ function TCP_mt:connect(port, host, timeout)
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:rw(no, timeout)
 end
+
+
+TCP_mt.connect = TCP_mt.dial
 
 
 function TCP_mt:listen(port, host, timeout)
