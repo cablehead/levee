@@ -20,7 +20,7 @@ local levee = require("levee")
 
 local h = levee.Hub()
 
-local err, serve = h.tcp:listen(9000)
+local err, serve = h.stream:listen(9000)
 
 for conn in serve do
   h:spawn(function()
