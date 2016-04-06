@@ -7,8 +7,8 @@ return {
 
 		local buf = levee.d.Buffer(4096)
 
-		local err, s = h.udp:listen(9000)
-		local err, c = h.udp:dial(9000)
+		local err, s = h.dgram:listen(9000)
+		local err, c = h.dgram:dial(9000)
 
 		c:write("123")
 		s:readinto(buf)

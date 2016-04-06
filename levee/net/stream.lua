@@ -3,7 +3,7 @@ local C = ffi.C
 
 local errors = require("levee.errors")
 local _ = require("levee._")
-local Dialer = require("levee.core.dialer")
+local Dialer = require("levee.net.dialer")
 
 
 local Listener_mt = {}
