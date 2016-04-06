@@ -2,17 +2,17 @@
 -- Background thread to resolve connections
 --
 
-local Connector_mt = {}
-Connector_mt.__index = Connector_mt
+local Dialer_mt = {}
+Dialer_mt.__index = Dialer_mt
 
 
-function Connector_mt:connect(host, port)
+function Dialer_mt:dial(host, port)
 	self.child:send({host, port})
 	return self.child:recv()
 end
 
 
-local function stream_thread(h)
+local function dial_stream(h)
 	local _ = require("levee._")
 	while true do
 		local err, req = h.parent:recv()
@@ -23,7 +23,7 @@ local function stream_thread(h)
 end
 
 
-local function dgram_thread(h)
+local function dial_dgram(h)
 	local _ = require("levee._")
 	while true do
 		local err, req = h.parent:recv()
@@ -37,12 +37,12 @@ end
 return function(hub, stype)
 	local fn
 	if stype == C.SOCK_DGRAM then
-		fn = dgram_thread
+		fn = dial_dgram
 	else
-		fn = stream_thread
+		fn = dial_stream
 	end
 	return setmetatable({
 		hub = hub,
 		child = hub.thread:spawn(fn)
-	}, Connector_mt)
+	}, Dialer_mt)
 end

@@ -3,7 +3,7 @@ local C = ffi.C
 
 local errors = require("levee.errors")
 local _ = require("levee._")
-local Connector = require("levee.core.connector")
+local Dialer = require("levee.core.dialer")
 
 
 local Listener_mt = {}
@@ -67,13 +67,13 @@ TCP_mt.__index = TCP_mt
 
 
 function TCP_mt:connect(port, host, timeout)
-	if not self.connector then
-		self.connector = self.hub:pool(function()
-			return Connector(self.hub, C.SOCK_STREAM)
+	if not self.dialer then
+		self.dialer = self.hub:pool(function()
+			return Dialer(self.hub, C.SOCK_STREAM)
 		end, 1)
 	end
-	local err, no = self.connector:run(function(connector)
-		return connector:connect(host, port)
+	local err, no = self.dialer:run(function(dialer)
+		return dialer:dial(host, port)
 	end)
 	if err then return err end
 	_.fcntl_nonblock(no)
