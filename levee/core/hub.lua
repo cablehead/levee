@@ -334,6 +334,7 @@ local function Hub()
 	self.process = require("levee.core.process")(self)
 	self.thread = require("levee.core.thread")(self)
 	self.tcp = require("levee.core.tcp")(self)
+	self.udp = require("levee.core.udp")(self)
 
 	self.http = require("levee.p.http")(self)
 
