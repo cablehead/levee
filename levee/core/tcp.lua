@@ -3,18 +3,19 @@ local C = ffi.C
 
 local errors = require("levee.errors")
 local _ = require("levee._")
+local Dialer = require("levee.core.dialer")
 
 
 local Listener_mt = {}
 Listener_mt.__index = Listener_mt
 
 
-Listener_mt.recv = function(self)
+function Listener_mt:recv()
 	return self.recver:recv()
 end
 
 
-Listener_mt.__call = function(self)
+function Listener_mt:__call()
 	local err, value = self.recver:recv()
 	if not err then return value end
 end
@@ -58,35 +59,6 @@ end
 
 
 --
--- Background thread to resolve connections
---
-
-local Connector_mt = {}
-Connector_mt.__index = Connector_mt
-
-
-function Connector_mt:connect(host, port)
-	self.child:send({host, port})
-	return self.child:recv()
-end
-
-
-local function Connector(hub)
-	local self = setmetatable({hub=hub}, Connector_mt)
-	self.child = hub.thread:spawn(function(h)
-		local _ = require("levee._")
-		while true do
-			local err, req = h.parent:recv()
-			if err then break end
-			local host, port = unpack(req)
-			h.parent:pass(_.connect(host, port))
-		end
-	end)
-	return self
-end
-
-
---
 -- TCP module interface
 --
 
@@ -94,19 +66,22 @@ local TCP_mt = {}
 TCP_mt.__index = TCP_mt
 
 
-function TCP_mt:connect(port, host, timeout)
-	if not self.connector then
-		self.connector = self.hub:pool(function()
-			return Connector(self.hub)
+function TCP_mt:dial(port, host, timeout)
+	if not self.dialer then
+		self.dialer = self.hub:pool(function()
+			return Dialer(self.hub, C.SOCK_STREAM)
 		end, 1)
 	end
-	local err, no = self.connector:run(function(connector)
-		return connector:connect(host, port)
+	local err, no = self.dialer:run(function(dialer)
+		return dialer:dial(host, port)
 	end)
 	if err then return err end
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:rw(no, timeout)
 end
+
+
+TCP_mt.connect = TCP_mt.dial
 
 
 function TCP_mt:listen(port, host, timeout)
