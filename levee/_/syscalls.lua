@@ -364,8 +364,8 @@ _.listen = function(domain, type_, host, port)
 end
 
 
-_.connect = function(host, port)
-	local no = C.socket(C.PF_INET, C.SOCK_STREAM, 0)
+_.connect = function(host, port, stype)
+	local no = C.socket(C.PF_INET, stype or C.SOCK_STREAM, 0)
 	if no < 0 then return errors.get(ffi.errno()) end
 
 	local err, info, ptr
