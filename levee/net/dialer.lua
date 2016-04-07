@@ -52,7 +52,38 @@ function Dialer_mt:__dial(family, socktype, node, service)
 end
 
 
+function Dialer_mt:init()
+	if not self.state then
+		self.state = C.levee_dialer_init()
+		if self.state.rc ~= 0 then return errors.get(self.state.rc) end
+
+		self.r, self.w = _.pipe()
+
+		self.req = Request()
+		self.req.no = self.w
+
+		self.res = ffi.new("struct LeveeDialerResponse")
+
+		-- Note we leave sender as blocking
+		self.sender = self.hub.io:w(self.state.io[1])
+		_.fcntl_nonblock(self.r)
+		self.recver = self.hub.io:r(self.r)
+
+		-- setup a loop to process requests in series
+		self.q_sender, self.q_recver = self.hub:queue()
+		self.hub:spawn(function()
+			for req in self.q_recver do
+				local sender, family, socktype, node, service = unpack(req)
+				sender:pass(self:__dial(family, socktype, node, service))
+				sender:close()
+			end
+		end)
+	end
+end
+
+
 function Dialer_mt:dial(family, socktype, node, service)
+	self:init()
 	local sender, recver = self.hub:pipe()
 	self.q_sender:send({sender, family, socktype, node, service})
 	return recver
@@ -60,33 +91,5 @@ end
 
 
 return function(hub)
-	local self = setmetatable({}, Dialer_mt)
-
-	self.state = C.levee_dialer_init()
-	if self.state.rc ~= 0 then return errors.get(self.state.rc) end
-
-	self.hub = hub
-	self.r, self.w = _.pipe()
-
-	self.req = Request()
-	self.req.no = self.w
-
-	self.res = ffi.new("struct LeveeDialerResponse")
-
-	-- Note we leave sender as blocking
-	self.sender = hub.io:w(self.state.io[1])
-	_.fcntl_nonblock(self.r)
-	self.recver = hub.io:r(self.r)
-
-	-- setup a loop to process requests in series
-	self.q_sender, self.q_recver = hub:queue()
-	hub:spawn(function()
-		for req in self.q_recver do
-			local sender, family, socktype, node, service = unpack(req)
-			sender:pass(self:__dial(family, socktype, node, service))
-			sender:close()
-		end
-	end)
-
-	return nil, self
+	return setmetatable({hub = hub}, Dialer_mt)
 end

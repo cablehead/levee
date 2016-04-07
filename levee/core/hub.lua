@@ -336,6 +336,7 @@ local function Hub()
 
 	self.stream = require("levee.net.stream")(self)
 	self.dgram = require("levee.net.dgram")(self)
+	self.dialer = require("levee.net.dialer")(self)
 	self.tcp = self.stream
 
 	self.http = require("levee.p.http")(self)
