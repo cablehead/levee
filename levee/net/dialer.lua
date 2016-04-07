@@ -87,7 +87,7 @@ function Dialer_mt:dial(family, socktype, node, service)
 	self:init()
 	local sender, recver = self.hub:pipe()
 	self.q_sender:send({sender, family, socktype, node, service})
-	return recver
+	return recver:recv()
 end
 
 

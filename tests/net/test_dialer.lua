@@ -12,17 +12,17 @@ return {
 		local err, addr = s:addr()
 		local port = addr:port()
 
-		local err, no = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "127.0.0.1", port):recv()
+		local err, no = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "127.0.0.1", port)
 		assert(not err)
 		assert(no > 0)
 		C.close(no)
 
 		s:close()
-		local err, no = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "localhost", port):recv()
+		local err, no = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "localhost", port)
 		assert.equal(err, errors.system.ECONNREFUSED)
 		assert(not no)
 
-		local err, no = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "kdkd", port):recv()
+		local err, no = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "kdkd", port)
 		assert.equal(err, errors.addr.ENONAME)
 	end,
 }
