@@ -36,8 +36,8 @@ levee_dialer_loop(void *arg) {
 	struct LeveeDialerRequest req;
 	struct LeveeDialerResponse res;
 
-	char node[8096];
-	char service[1024];
+	char node[256];
+	char service[32];
 
 	struct addrinfo hints, *info, *ptr;
 
@@ -53,6 +53,8 @@ levee_dialer_loop(void *arg) {
 
 		rc = read(levee_dialer_fds[0], &req, sizeof(req));
 		assert(rc == sizeof(req));
+		assert(req.node_len < sizeof(node));
+		assert(req.service_len < sizeof(service));
 
 		rc = read(levee_dialer_fds[0], node, req.node_len);
 		assert(rc == req.node_len);
