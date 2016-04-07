@@ -10,7 +10,7 @@ return {
 
 		local err, serve = h.stream:listen(nil, nil, 20)
 		local err, addr = serve:addr()
-		local err, c1 = h.stream:connect(addr:port())
+		local err, c1 = h.stream:dial(addr:port())
 		local err, s1 = serve:recv()
 
 		assert.equal(s1:readinto(buf), levee.errors.TIMEOUT)
@@ -19,7 +19,7 @@ return {
 		s1:readinto(buf)
 		assert.equal(buf:take(), "m1.1")
 
-		local err, c2 = h.stream:connect(addr:port())
+		local err, c2 = h.stream:dial(addr:port())
 		local err, s2 = serve:recv()
 
 		c2:write("m2.1")
@@ -54,10 +54,10 @@ return {
 		assert.same(h.registered, {})
 
 		-- attempt to connect once, to start connector thread
-		local err, c = h.stream:connect(port)
+		local err, c = h.stream:dial(port)
 		assert(err)
 
-		local err, c = h.stream:connect(port)
+		local err, c = h.stream:dial(port)
 		assert(err)
 		assert.same(h.registered, {})
 	end,
