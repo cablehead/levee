@@ -1,48 +1,92 @@
+local ffi = require("ffi")
+
+local levee = require("levee")
+
+local _ = levee._
+local errors = levee.errors
+
+
 --
--- Background thread to resolve connections
+-- Dialer Request
+
+local Request_mt = {}
+Request_mt.__index = Request_mt
+
+
+function Request_mt:value()
+	return ffi.cast("char*", self), ffi.sizeof(self)
+end
+
+
+function Request_mt:__len()
+	return ffi.sizeof(self)
+end
+
+
+local Request = ffi.metatype("struct LeveeDialerRequest", Request_mt)
+
+
 --
+-- Dialer
 
 local Dialer_mt = {}
 Dialer_mt.__index = Dialer_mt
 
 
-function Dialer_mt:dial(host, port)
-	self.child:send({host, port})
-	return self.child:recv()
+function Dialer_mt:__dial(family, socktype, node, service)
+	self.req.family = family
+	self.req.socktype = socktype
+	self.req.node_len = #node
+	self.req.service_len = #service
+
+	self.sender:send(self.req)
+	self.sender:send(node)
+	self.sender:send(service)
+
+	self.recver:read(self.res)
+
+	if self.res.err ~= 0 then return errors.get(self.res.err) end
+	if self.res.eai ~= 0 then return errors.get_eai(self.res.eai) end
+
+	return nil, self.res.no
 end
 
 
-local function dial_stream(h)
-	local _ = require("levee._")
-	while true do
-		local err, req = h.parent:recv()
-		if err then break end
-		local host, port = unpack(req)
-		h.parent:pass(_.connect(host, port, C.SOCK_STREAM))
-	end
+function Dialer_mt:dial(family, socktype, node, service)
+	local sender, recver = self.hub:pipe()
+	self.q_sender:send({sender, family, socktype, node, service})
+	return recver
 end
 
 
-local function dial_dgram(h)
-	local _ = require("levee._")
-	while true do
-		local err, req = h.parent:recv()
-		if err then break end
-		local host, port = unpack(req)
-		h.parent:pass(_.connect(host, port, C.SOCK_DGRAM))
-	end
-end
+return function(hub)
+	local self = setmetatable({}, Dialer_mt)
 
+	self.state = C.levee_dialer_init()
+	if self.state.rc ~= 0 then return errors.get(self.state.rc) end
 
-return function(hub, stype)
-	local fn
-	if stype == C.SOCK_DGRAM then
-		fn = dial_dgram
-	else
-		fn = dial_stream
-	end
-	return setmetatable({
-		hub = hub,
-		child = hub.thread:spawn(fn)
-	}, Dialer_mt)
+	self.hub = hub
+	self.r, self.w = _.pipe()
+
+	self.req = Request()
+	self.req.no = self.w
+
+	self.res = ffi.new("struct LeveeDialerResponse")
+
+	-- Note we leave sender as blocking
+	self.sender = hub.io:w(self.state.io[1])
+	_.fcntl_nonblock(self.r)
+	self.recver = hub.io:r(self.r)
+
+	-- setup a loop to process requests in series
+	self.q_sender, self.q_recver = hub:queue()
+	hub:spawn(function()
+		for req in self.q_recver do
+			local sender, family, socktype, node, service = unpack(req)
+			sender:pass(self:__dial(family, socktype, node, service))
+			sender:close()
+		end
+	end)
+
+	return nil, self
 end
