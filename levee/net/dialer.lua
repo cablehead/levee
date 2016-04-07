@@ -37,6 +37,7 @@ function Dialer_mt:__dial(family, socktype, node, service)
 	self.req.family = family
 	self.req.socktype = socktype
 	self.req.node_len = #node
+	service = tostring(service)
 	self.req.service_len = #service
 
 	self.sender:send(self.req)
