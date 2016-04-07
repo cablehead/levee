@@ -30,7 +30,7 @@ struct LeveeDialerResponse {
 
 
 void *
-levee_dialer_loop(void *arg) {
+levee_dialer_loop (void *arg) {
 	int rc;
 
 	struct LeveeDialerRequest req;
@@ -44,45 +44,45 @@ levee_dialer_loop(void *arg) {
 	int no;
 	int err;
 
-	memset(&hints, 0, sizeof(hints));
+	memset (&hints, 0, sizeof (hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 
-	while(1) {
-		memset(&res, 0, sizeof(res));
+	while (1) {
+		memset (&res, 0, sizeof (res));
 
-		rc = read(levee_dialer_fds[0], &req, sizeof(req));
-		assert(rc == sizeof(req));
-		assert(req.node_len < sizeof(node));
-		assert(req.service_len < sizeof(service));
+		rc = read (levee_dialer_fds[0], &req, sizeof (req));
+		assert (rc == sizeof (req));
+		assert (req.node_len < sizeof (node));
+		assert (req.service_len < sizeof (service));
 
-		rc = read(levee_dialer_fds[0], node, req.node_len);
-		assert(rc == req.node_len);
+		rc = read (levee_dialer_fds[0], node, req.node_len);
+		assert (rc == req.node_len);
 		node[req.node_len] = 0;
 
-		rc = read(levee_dialer_fds[0], service, req.service_len);
-		assert(rc == req.service_len);
+		rc = read (levee_dialer_fds[0], service, req.service_len);
+		assert (rc == req.service_len);
 		service[req.service_len] = 0;
 
-		rc = getaddrinfo(node, service, &hints, &info);
+		rc = getaddrinfo (node, service, &hints, &info);
 		if (rc != 0) {
 			res.eai = rc;
 			goto respond;
 		}
 
 		for (ptr = info; ptr; ptr = ptr->ai_next) {
-			no = socket(PF_INET, req.type, 0);
+			no = socket (PF_INET, req.type, 0);
 			if (no < 0) {
 				res.err = -errno;
 				goto respond;
 			}
-			rc = connect(no, ptr->ai_addr, ptr->ai_addrlen);
+			rc = connect (no, ptr->ai_addr, ptr->ai_addrlen);
 			if (rc == 0) break;
-			close(no);
+			close (no);
 			err = -errno;
 		}
 
-		freeaddrinfo(info);
+		freeaddrinfo (info);
 
 		if (ptr == NULL) {
 			res.err = err;
@@ -91,18 +91,18 @@ levee_dialer_loop(void *arg) {
 		}
 
 		respond:
-		rc = write(req.no, &res, sizeof(res));
-		assert(rc == sizeof(res));
+		rc = write (req.no, &res, sizeof (res));
+		assert (rc == sizeof (res));
 	}
 }
 
 
-int levee_dialer_boot(void) {
+int levee_dialer_boot (void) {
 	pthread_t thr;
 	pthread_attr_t attr;
 	int rc;
 
-	rc = pipe(levee_dialer_fds);
+	rc = pipe (levee_dialer_fds);
 	if (rc != 0) return -errno;
 
 	rc = pthread_attr_init (&attr);
@@ -119,56 +119,56 @@ int levee_dialer_boot(void) {
 pthread_once_t levee_dialer_once = PTHREAD_ONCE_INIT;
 
 
-void levee_dialer_run_once(void) {
-	levee_dialer_rc = levee_dialer_boot();
+void levee_dialer_run_once (void) {
+	levee_dialer_rc = levee_dialer_boot ();
 }
 
 
-int levee_dialer_init(void) {
-	pthread_once(&levee_dialer_once, levee_dialer_run_once);
+int levee_dialer_init (void) {
+	pthread_once (&levee_dialer_once, levee_dialer_run_once);
 	return levee_dialer_rc;
 }
 
 
 int
-writer(const char *node, const char *service) {
+writer (const char *node, const char *service) {
 	int rc;
 
 	struct LeveeDialerRequest req;
 	struct LeveeDialerResponse res;
 
 	int fds[2];
-	rc = pipe(fds);
+	rc = pipe (fds);
 	if (rc != 0) return -errno;
 
-	req.node_len = (uint16_t) strlen(node);
-	req.service_len = (uint16_t) strlen(service);
+	req.node_len = (uint16_t) strlen (node);
+	req.service_len = (uint16_t) strlen (service);
 	req.type = SOCK_STREAM;
 	req.no = fds[1];
 
-	rc = write(levee_dialer_fds[1], &req, sizeof(req));
-	assert(rc == sizeof(req));
+	rc = write (levee_dialer_fds[1], &req, sizeof (req));
+	assert (rc == sizeof (req));
 
-	rc = write(levee_dialer_fds[1], node, strlen(node));
-	assert(rc == strlen(node));
+	rc = write (levee_dialer_fds[1], node, strlen (node));
+	assert (rc == strlen (node));
 
-	rc = write(levee_dialer_fds[1], service, strlen(service));
-	assert(rc == strlen(service));
+	rc = write (levee_dialer_fds[1], service, strlen (service));
+	assert (rc == strlen (service));
 
-	rc = read(fds[0], &res, sizeof(res));
-	assert(rc == sizeof(res));
+	rc = read (fds[0], &res, sizeof (res));
+	assert (rc == sizeof (res));
 
-	printf("%s \\ %s \\ %d\n", gai_strerror(res.eai), strerror(res.err), res.no);
+	printf ("%s \\ %s \\ %d\n", gai_strerror (res.eai), strerror (res.err), res.no);
 	return 0;
 }
 
 
-int main(int argc, char **argv)
+int main (int argc, char **argv)
 {
-	levee_dialer_init();
-	writer("localhost", "8000");
-	writer("localhost", "8080");
-	writer("ldld", "8080");
+	levee_dialer_init ();
+	writer ("localhost", "8000");
+	writer ("localhost", "8080");
+	writer ("ldld", "8080");
 	return 0;
 }
 
