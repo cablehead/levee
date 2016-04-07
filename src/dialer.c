@@ -9,30 +9,14 @@
 #include <string.h>
 #include <errno.h>
 
-
-int levee_dialer_fds[2];
-int levee_dialer_rc;
+#include "dialer.h"
 
 
-struct LeveeDialerRequest {
-	uint16_t node_len;
-	uint16_t service_len;
-	uint16_t family;
-	uint16_t socktype;
-	uint8_t is_listening;
-	int no;
-};
-
-
-struct LeveeDialerResponse {
-	int err;
-	int eai;
-	int no;
-};
+struct LeveeDialerState levee_dialer_state;
 
 
 void *
-levee_dialer_loop (void *arg) {
+levee_dialer_loop () {
 	int rc;
 
 	struct LeveeDialerRequest req;
@@ -50,16 +34,16 @@ levee_dialer_loop (void *arg) {
 		memset (&res, 0, sizeof (res));
 		memset (&hints, 0, sizeof (hints));
 
-		rc = read (levee_dialer_fds[0], &req, sizeof (req));
+		rc = read (levee_dialer_state.io[0], &req, sizeof (req));
 		assert (rc == sizeof (req));
 		assert (req.node_len < sizeof (node));
 		assert (req.service_len < sizeof (service));
 
-		rc = read (levee_dialer_fds[0], node, req.node_len);
+		rc = read (levee_dialer_state.io[0], node, req.node_len);
 		assert (rc == req.node_len);
 		node[req.node_len] = 0;
 
-		rc = read (levee_dialer_fds[0], service, req.service_len);
+		rc = read (levee_dialer_state.io[0], service, req.service_len);
 		assert (rc == req.service_len);
 		service[req.service_len] = 0;
 
@@ -99,12 +83,13 @@ levee_dialer_loop (void *arg) {
 }
 
 
-int levee_dialer_boot (void) {
+int
+levee_dialer_boot (void) {
 	pthread_t thr;
 	pthread_attr_t attr;
 	int rc;
 
-	rc = pipe (levee_dialer_fds);
+	rc = pipe (levee_dialer_state.io);
 	if (rc != 0) return -errno;
 
 	rc = pthread_attr_init (&attr);
@@ -121,14 +106,16 @@ int levee_dialer_boot (void) {
 pthread_once_t levee_dialer_once = PTHREAD_ONCE_INIT;
 
 
-void levee_dialer_run_once (void) {
-	levee_dialer_rc = levee_dialer_boot ();
+void
+levee_dialer_run_once (void) {
+	levee_dialer_state.rc = levee_dialer_boot ();
 }
 
 
-int levee_dialer_init (void) {
+struct LeveeDialerState
+levee_dialer_init (void) {
 	pthread_once (&levee_dialer_once, levee_dialer_run_once);
-	return levee_dialer_rc;
+	return levee_dialer_state;
 }
 
 
@@ -151,12 +138,12 @@ writer (const char *node, const char *service) {
 	req.no = fds[1];
 
 	// Note: call should use writev to ensure the write is atomic
-	rc = write (levee_dialer_fds[1], &req, sizeof (req));
+	rc = write (levee_dialer_state.io[1], &req, sizeof (req));
 	assert (rc == sizeof (req));
-	rc = write (levee_dialer_fds[1], node, strlen (node));
-	assert (rc == strlen (node));
-	rc = write (levee_dialer_fds[1], service, strlen (service));
-	assert (rc == strlen (service));
+	rc = write (levee_dialer_state.io[1], node, strlen (node));
+	assert (rc == (int) strlen (node));
+	rc = write (levee_dialer_state.io[1], service, strlen (service));
+	assert (rc == (int) strlen (service));
 
 	rc = read (fds[0], &res, sizeof (res));
 	assert (rc == sizeof (res));
@@ -166,6 +153,7 @@ writer (const char *node, const char *service) {
 }
 
 
+/*
 int main (int argc, char **argv)
 {
 	printf ("%lu\n", sizeof (struct LeveeDialerRequest));
@@ -175,3 +163,4 @@ int main (int argc, char **argv)
 	writer ("ldld", "8080");
 	return 0;
 }
+*/

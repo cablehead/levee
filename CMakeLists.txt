@@ -43,6 +43,7 @@ add_library(
 	src/chan.c
 	src/heap.c
 	src/levee.c
+	src/dialer.c
 	src/list.c
 	src/lpeg/lpcap.c
 	src/lpeg/lpcode.c
