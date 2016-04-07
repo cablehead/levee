@@ -293,20 +293,6 @@ _.fcntl_block = function(no)
 end
 
 
-_.getaddrinfo = function(host, port)
-	local hints = ffi.new("struct addrinfo")
-	hints.ai_family = C.AF_INET
-	-- TODO: do we really want SOCK_STREAM as a hint here
-	hints.ai_socktype = C.SOCK_STREAM
-	local info = ffi.new("struct addrinfo *[1]")
-
-	local rc = C.getaddrinfo(host, port, hints, info)
-	if rc ~= 0 then return errors.get_eai(rc) end
-
-	return nil, info[0], ffi.new("struct addrinfo *", info[0])
-end
-
-
 _.getsockname = function(no)
 	local ep = Endpoint()
 	local rc = C.getsockname(no, ep.addr.sa, ep.len)
@@ -361,35 +347,6 @@ _.listen = function(domain, type_, host, port)
 	end
 
 	return nil, no
-end
-
-
-_.connect = function(host, port, stype)
-	local no = C.socket(C.PF_INET, stype or C.SOCK_STREAM, 0)
-	if no < 0 then return errors.get(ffi.errno()) end
-
-	local err, info, ptr
-
-	err, info, ptr = _.getaddrinfo(host, tostring(port))
-	if err then goto __close end
-
-	while ptr ~= nil do
-		local rc = C.connect(no, ptr.ai_addr, ptr.ai_addrlen)
-		if rc == 0 then break end
-		err = ffi.errno()
-		ptr = ptr.ai_next
-	end
-
-	C.freeaddrinfo(info)
-
-	if ptr ~= nil then
-		return nil, no
-	end
-	err = errors.get(err)
-
-	::__close::
-	_.close(no)
-	return err
 end
 
 
