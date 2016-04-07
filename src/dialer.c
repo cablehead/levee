@@ -70,14 +70,14 @@ levee_dialer_loop(void *arg) {
 
 		no = socket(PF_INET, req.type, 0);
 		if (no < 0) {
-			res.err = errno;
+			res.err = -errno;
 			goto respond;
 		}
 
 		for (ptr = info; ptr; ptr = ptr->ai_next) {
 			rc = connect(no, ptr->ai_addr, ptr->ai_addrlen);
 			if (rc == 0) break;
-			err = errno;
+			err = -errno;
 		}
 
 		freeaddrinfo(info);
@@ -101,14 +101,14 @@ int levee_dialer_boot(void) {
 	int rc;
 
 	rc = pipe(levee_dialer_fds);
-	if (rc != 0) return errno;
+	if (rc != 0) return -errno;
 
 	rc = pthread_attr_init (&attr);
-	if (rc != 0) return errno;
+	if (rc != 0) return -errno;
 	rc = pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
-	if (rc != 0) return errno;
+	if (rc != 0) return -errno;
 	rc = pthread_create (&thr, &attr, &levee_dialer_loop, NULL);
-	if (rc != 0) return errno;
+	if (rc != 0) return -errno;
 
 	return 0;
 }
@@ -137,7 +137,7 @@ writer(const char *node, const char *service) {
 
 	int fds[2];
 	rc = pipe(fds);
-	if (rc != 0) return errno;
+	if (rc != 0) return -errno;
 
 	req.node_len = (uint16_t) strlen(node);
 	req.service_len = (uint16_t) strlen(service);
