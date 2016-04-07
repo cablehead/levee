@@ -34,10 +34,12 @@ Dialer_mt.__index = Dialer_mt
 
 
 function Dialer_mt:__dial(family, socktype, node, service)
+	node = node or "127.0.0.1"
+	service = service and tostring(service) or "0"
+
 	self.req.family = family
 	self.req.socktype = socktype
 	self.req.node_len = #node
-	service = tostring(service)
 	self.req.service_len = #service
 
 	self.sender:send(self.req)

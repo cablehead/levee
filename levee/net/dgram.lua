@@ -1,27 +1,12 @@
-local ffi = require("ffi")
-local C = ffi.C
-
-local errors = require("levee.errors")
 local _ = require("levee._")
-local Dialer = require("levee.net.dialer")
 
 
---
--- UDP module interface
---
 local UDP_mt = {}
 UDP_mt.__index = UDP_mt
 
 
 function UDP_mt:dial(port, host)
-	if not self.dialer then
-		self.dialer = self.hub:pool(function()
-			return Dialer(self.hub, C.SOCK_DGRAM)
-		end, 1)
-	end
-	local err, no = self.dialer:run(function(dialer)
-		return dialer:dial(host, port)
-	end)
+	local err, no = self.hub.dialer:dial(C.AF_INET, C.SOCK_DGRAM, host, port)
 	if err then return err end
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:w(no)
