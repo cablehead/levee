@@ -149,6 +149,8 @@ return {
 			"" ..
 			"GET /some/path HTTP/1.1\r\n" ..
 			"H1: one\r\n" ..
+			"Repeat: first\r\n" ..
+			"Repeat: second\r\n" ..
 			"\r\n")
 
 		local err, s = serve:recv()
@@ -156,7 +158,7 @@ return {
 
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/some/path")
-		assert.same(req.headers, {H1 = "one"})
+		assert.same(req.headers, {H1 = "one", Repeat = { "first", "second" }})
 
 		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
 
@@ -179,7 +181,10 @@ return {
 		local err, addr = serve:addr()
 
 		local err, c = h.http:connect(addr:port())
-		local err, response = c:get("/path")
+		local err, response = c:get("/path", { headers = {
+			H1 = "one",
+			Repeat = { "first", "second" }
+		}})
 
 		local err, s = serve:recv()
 		local err, req = s:recv()
@@ -188,10 +193,14 @@ return {
 		assert(req.headers["Host"])
 		assert(req.headers["User-Agent"])
 		assert(req.headers["Accept"])
-		req.response:send({levee.HTTPStatus(200), {}, "Hello world\n"})
+		assert.same(req.headers["H1"], "one")
+		assert.same(req.headers["Repeat"], { "first", "second" })
+		req.response:send({levee.HTTPStatus(200), { H1 = "one", Repeat = { "first", "second" }}, "Hello world\n"})
 
 		local err, response = response:recv()
 		assert.equal(response.code, 200)
+		assert.same(response.headers["H1"], "one")
+		assert.same(response.headers["Repeat"], { "first", "second" })
 		assert.equal(response.body:tostring(), "Hello world\n")
 
 		-- make another request on the same connection

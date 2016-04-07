@@ -13,6 +13,7 @@
 * add an is_option convenience to \_.argv
 * add \_.version to parse semver strings
 * add -v/--version to restrict build
+* support repeat headers in http requests and responses
 
 
 ## 0.3.2 - 2016-02-24

@@ -512,8 +512,16 @@ function Client_mt:reader(responses)
 		while true do
 			err, value = self.parser:stream_next(self.stream)
 			if err then goto __cleanup end
-			if not value[1] then break end
-			res.headers[value[1]] = value[2]
+			local key = value[1]
+			if not key then break end
+			local current = res.headers[key]
+			if type(current) == "string" then
+				res.headers[key] = {current,value[2]}
+			elseif type(current) == "table" then
+				table.insert(res.headers[key], value[2])
+			else
+				res.headers[key] = value[2]
+			end
 		end
 
 		if not value[2] then
@@ -599,8 +607,15 @@ function Client_mt:request(method, path, params, headers, data)
 	end
 
 	for k, v in pairs(headers) do
-		local err = self.conn:send(k, FIELD_SEP, v, EOL)
-		if err then return err end
+		if type(v) == "table" then
+			for _,item in pairs(v) do
+				local err = self.conn:send(k, FIELD_SEP, item, EOL)
+				if err then return err end
+			end
+		else
+			local err = self.conn:send(k, FIELD_SEP, v, EOL)
+			if err then return err end
+		end
 	end
 	self.conn:send(EOL)
 
@@ -719,8 +734,15 @@ function Server_mt:_response(response)
 	end
 
 	for k, v in pairs(headers) do
-		local err = self.conn:send(k, FIELD_SEP, v, EOL)
-		if err then return err end
+		if type(v) == "table" then
+			for _, item in pairs(v) do
+				local err = self.conn:send(k, FIELD_SEP, item, EOL)
+				if err then return err end
+			end
+		else
+			local err = self.conn:send(k, FIELD_SEP, v, EOL)
+			if err then return err end
+		end
 	end
 	self.conn:send(EOL)
 
@@ -793,8 +815,16 @@ function Server_mt:reader(requests, responses)
 		while true do
 			err, value = self.parser:stream_next(self.stream)
 			if err then goto __cleanup end
-			if not value[1] then break end
-			req.headers[value[1]] = value[2]
+			local key = value[1]
+			if not key then break end
+			local current = req.headers[key]
+			if type(current) == "string" then
+				req.headers[key] = {current,value[2]}
+			elseif type(current) == "table" then
+				table.insert(req.headers[key], value[2])
+			else
+				req.headers[key] = value[2]
+			end
 		end
 
 		if value[2] then error("TODO: chunked") end
