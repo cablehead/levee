@@ -70,15 +70,15 @@ levee_dialer_loop(void *arg) {
 			goto respond;
 		}
 
-		no = socket(PF_INET, req.type, 0);
-		if (no < 0) {
-			res.err = -errno;
-			goto respond;
-		}
-
 		for (ptr = info; ptr; ptr = ptr->ai_next) {
+			no = socket(PF_INET, req.type, 0);
+			if (no < 0) {
+				res.err = -errno;
+				goto respond;
+			}
 			rc = connect(no, ptr->ai_addr, ptr->ai_addrlen);
 			if (rc == 0) break;
+			close(no);
 			err = -errno;
 		}
 
