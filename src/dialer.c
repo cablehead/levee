@@ -46,12 +46,9 @@ levee_dialer_loop (void *arg) {
 	int no;
 	int err;
 
-	memset (&hints, 0, sizeof (hints));
-	hints.ai_family = req.family;
-	hints.ai_socktype = req.socktype;
-
 	while (1) {
 		memset (&res, 0, sizeof (res));
+		memset (&hints, 0, sizeof (hints));
 
 		rc = read (levee_dialer_fds[0], &req, sizeof (req));
 		assert (rc == sizeof (req));
@@ -65,6 +62,9 @@ levee_dialer_loop (void *arg) {
 		rc = read (levee_dialer_fds[0], service, req.service_len);
 		assert (rc == req.service_len);
 		service[req.service_len] = 0;
+
+		hints.ai_family = req.family;
+		hints.ai_socktype = req.socktype;
 
 		rc = getaddrinfo (node, service, &hints, &info);
 		if (rc != 0) {
