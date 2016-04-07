@@ -129,10 +129,11 @@ return {
 		assert(not err)
 		assert.equal(no, -1)
 
+		assert(h:in_use())
 		h:unregister(r, true)
 		h:unregister(w, false, true)
+		assert(not h:in_use())
 
-		assert.same(h.registered, {})
 		local err, sender, no = r_ev:recv()
 		assert(not err)
 		assert.equal(no, -1)

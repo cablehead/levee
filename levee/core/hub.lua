@@ -251,6 +251,17 @@ function Hub_mt:unregister(no)
 end
 
 
+function Hub_mt:in_use()
+	for no in pairs(self.registered) do
+		if not self.dialer.state or
+				(no ~= self.dialer.r and no ~= self.dialer.state.io[1]) then
+			return true
+		end
+	end
+	return false
+end
+
+
 function Hub_mt:pump()
 	local num = #self.ready
 	for _ = 1, num do

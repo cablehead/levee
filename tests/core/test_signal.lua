@@ -28,7 +28,7 @@ return {
 		assert.same({r2:recv()}, {nil, C.SIGALRM})
 
 		r2:close()
-		assert.same(h.signal.registered, {})
+		assert(not h:in_use())
 		assert.same(h.signal.reverse, {})
 
 		-- C.kill(pid, C.SIGALRM)

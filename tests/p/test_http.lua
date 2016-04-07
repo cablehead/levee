@@ -169,7 +169,7 @@ return {
 		s:close()
 		serve:close()
 		c:readinto(buf)
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_core = function()
@@ -217,7 +217,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_post = function()
@@ -244,7 +244,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_content_length = function()
@@ -271,7 +271,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_chunk_transfer = function()
@@ -312,7 +312,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_proxy = function()
@@ -374,7 +374,7 @@ return {
 		proxy:close()
 		origin:close()
 		h:sleep(100)
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_sendfile = function()
@@ -407,7 +407,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_connect_fail = function()
@@ -464,7 +464,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_conveniences_chunk_transfer = function()
@@ -518,8 +518,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
-		if true then return end
+		assert(not h:in_use())
 	end,
 
 	test_chunk_spanning = function()
@@ -559,7 +558,7 @@ return {
 
 		c:close()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_connection_dropped = function()

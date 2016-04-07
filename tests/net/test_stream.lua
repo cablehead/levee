@@ -40,7 +40,7 @@ return {
 
 		s1:readinto(buf)
 		c2:readinto(buf)
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 
 	test_conn_refused = function()
@@ -51,7 +51,7 @@ return {
 		local err, addr = serve:addr()
 		local port = addr:port()
 		serve:close()
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 
 		-- attempt to connect once, to start connector thread
 		local err, c = h.stream:dial(port)
@@ -59,6 +59,6 @@ return {
 
 		local err, c = h.stream:dial(port)
 		assert(err)
-		assert.same(h.registered, {})
+		assert(not h:in_use())
 	end,
 }

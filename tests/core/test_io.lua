@@ -29,7 +29,7 @@ return {
 			w:close()
 			local err = r:read(buf:tail())
 			assert.equal(err, levee.errors.CLOSED)
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_close_reader = function()
@@ -99,7 +99,7 @@ return {
 
 			local err, n = r:read(buf:tail())
 			assert(err)
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_readn = function()
@@ -161,7 +161,7 @@ return {
 			w:close()
 			local err = r:readinto(buf)
 			assert.equal(err, levee.errors.CLOSED)
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_reads = function()
@@ -172,7 +172,7 @@ return {
 			assert.equal(r:reads(), "foo")
 			w:close()
 			assert.equal(r:reads(), nil)
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_writev = function()
@@ -283,7 +283,7 @@ return {
 			r:close()
 
 			os.remove(tmp)
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 	},
 
@@ -557,7 +557,7 @@ return {
 			p2.r:close()
 			p2.w:close()
 
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_tcp = function()
@@ -599,7 +599,7 @@ return {
 			serve:close()
 			h:sleep(10)
 
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 	},
 
@@ -645,7 +645,7 @@ return {
 			t2.r:close()
 			t2.w:close()
 
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_small_spliced = function()
@@ -686,7 +686,7 @@ return {
 			t3.r:close()
 			t3.w:close()
 
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_big_spawned = function()
@@ -755,7 +755,7 @@ return {
 			t2.r:close()
 			t2.w:close()
 
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 
 		test_big_splice = function()
@@ -820,7 +820,7 @@ return {
 			t3.r:close()
 			t3.w:close()
 
-			assert.same(h.registered, {})
+			assert(not h:in_use())
 		end,
 	},
 }
