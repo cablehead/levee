@@ -17,7 +17,9 @@ int levee_dialer_rc;
 struct LeveeDialerRequest {
 	uint16_t node_len;
 	uint16_t service_len;
-	int type;
+	uint16_t family;
+	uint16_t socktype;
+	uint8_t is_listening;
 	int no;
 };
 
@@ -45,8 +47,8 @@ levee_dialer_loop (void *arg) {
 	int err;
 
 	memset (&hints, 0, sizeof (hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_family = req.family;
+	hints.ai_socktype = req.socktype;
 
 	while (1) {
 		memset (&res, 0, sizeof (res));
@@ -71,7 +73,7 @@ levee_dialer_loop (void *arg) {
 		}
 
 		for (ptr = info; ptr; ptr = ptr->ai_next) {
-			no = socket (PF_INET, req.type, 0);
+			no = socket (ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 			if (no < 0) {
 				res.err = -errno;
 				goto respond;
@@ -141,17 +143,18 @@ writer (const char *node, const char *service) {
 	rc = pipe (fds);
 	if (rc != 0) return -errno;
 
+	memset (&req, 0, sizeof (req));
 	req.node_len = (uint16_t) strlen (node);
 	req.service_len = (uint16_t) strlen (service);
-	req.type = SOCK_STREAM;
+	req.socktype = SOCK_STREAM;
+	req.family = AF_INET;
 	req.no = fds[1];
 
+	// Note: call should use writev to ensure the write is atomic
 	rc = write (levee_dialer_fds[1], &req, sizeof (req));
 	assert (rc == sizeof (req));
-
 	rc = write (levee_dialer_fds[1], node, strlen (node));
 	assert (rc == strlen (node));
-
 	rc = write (levee_dialer_fds[1], service, strlen (service));
 	assert (rc == strlen (service));
 
@@ -165,10 +168,10 @@ writer (const char *node, const char *service) {
 
 int main (int argc, char **argv)
 {
+	printf ("%lu\n", sizeof (struct LeveeDialerRequest));
 	levee_dialer_init ();
 	writer ("localhost", "8000");
 	writer ("localhost", "8080");
 	writer ("ldld", "8080");
 	return 0;
 }
-
