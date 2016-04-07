@@ -14,7 +14,7 @@ int levee_dialer_fds[2];
 int levee_dialer_rc;
 
 
-struct levee_dialer_request {
+struct LeveeDialerRequest {
 	uint16_t node_len;
 	uint16_t service_len;
 	int type;
@@ -22,7 +22,7 @@ struct levee_dialer_request {
 };
 
 
-struct levee_dialer_response {
+struct LeveeDialerResponse {
 	int err;
 	int eai;
 	int no;
@@ -33,8 +33,8 @@ void *
 levee_dialer_loop(void *arg) {
 	int rc;
 
-	struct levee_dialer_request req;
-	struct levee_dialer_response res;
+	struct LeveeDialerRequest req;
+	struct LeveeDialerResponse res;
 
 	char node[8096];
 	char service[1024];
@@ -132,8 +132,8 @@ int
 writer(const char *node, const char *service) {
 	int rc;
 
-	struct levee_dialer_request req;
-	struct levee_dialer_response res;
+	struct LeveeDialerRequest req;
+	struct LeveeDialerResponse res;
 
 	int fds[2];
 	rc = pipe(fds);
