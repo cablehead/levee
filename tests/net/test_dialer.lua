@@ -45,7 +45,7 @@ function Dialer_mt:dial(family, socktype, node, service)
 	self.recver:read(self.res)
 
 	if self.res.err ~= 0 then return errors.get(self.res.err) end
-	if self.res.eai ~= 0 then return errors.get_eai(self.res.err) end
+	if self.res.eai ~= 0 then return errors.get_eai(self.res.eai) end
 
 	return nil, self.res.no
 end
@@ -85,5 +85,6 @@ return {
 
 		print(dialer:dial(C.AF_INET, C.SOCK_STREAM, "localhost", "8000"))
 		print(dialer:dial(C.AF_INET, C.SOCK_STREAM, "localhost", "8080"))
+		print(dialer:dial(C.AF_INET, C.SOCK_STREAM, "kdkd", "8080"))
 	end,
 }
