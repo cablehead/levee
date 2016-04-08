@@ -57,11 +57,5 @@ struct LeveeDialerRequest {
 };
 
 
-struct LeveeDialerResponse {
-	int err;
-	int eai;
-	int no;
-};
-
 extern const struct LeveeDialerState
 levee_dialer_init ();

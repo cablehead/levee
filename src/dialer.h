@@ -3,6 +3,7 @@ struct LeveeDialerState {
 	int io[2];
 };
 
+
 struct LeveeDialerRequest {
 	uint16_t node_len;
 	uint16_t service_len;
@@ -12,12 +13,6 @@ struct LeveeDialerRequest {
 	int no;
 };
 
-
-struct LeveeDialerResponse {
-	int err;
-	int eai;
-	int no;
-};
 
 extern struct LeveeDialerState
 levee_dialer_init ();

@@ -2,12 +2,14 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
 #include <errno.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <siphon/error.h>
 
 #include "dialer.h"
 
@@ -20,18 +22,16 @@ levee_dialer_loop () {
 	int rc;
 
 	struct LeveeDialerRequest req;
-	struct LeveeDialerResponse res;
+	int err;
+	int no;
+	int res;
 
 	char node[256];
 	char service[32];
 
 	struct addrinfo hints, *info, *ptr;
 
-	int no;
-	int err;
-
 	while (1) {
-		memset (&res, 0, sizeof (res));
 		memset (&hints, 0, sizeof (hints));
 
 		rc = read (levee_dialer_state.io[0], &req, sizeof (req));
@@ -52,7 +52,7 @@ levee_dialer_loop () {
 
 		rc = getaddrinfo (node, service, &hints, &info);
 		if (rc != 0) {
-			res.eai = rc;
+			res = SP_EAI_CODE(rc);
 			goto respond;
 		}
 
@@ -70,9 +70,9 @@ levee_dialer_loop () {
 		}
 
 		if (ptr == NULL) {
-			res.err = err;
+			res = err;
 		} else {
-			res.no = no;
+			res = no;
 		}
 
 		respond:

@@ -48,10 +48,9 @@ function Dialer_mt:__dial(family, socktype, node, service)
 
 	self.recver:read(self.res)
 
-	if self.res.err ~= 0 then return errors.get(self.res.err) end
-	if self.res.eai ~= 0 then return errors.get_eai(self.res.eai) end
-
-	return nil, self.res.no
+	local res = self.res[0]
+	if res < 0 then return errors.get(res) end
+	return nil, res
 end
 
 
@@ -65,7 +64,7 @@ function Dialer_mt:init()
 		self.req = Request()
 		self.req.no = self.w
 
-		self.res = ffi.new("struct LeveeDialerResponse")
+		self.res = ffi.new("int[1]")
 
 		-- Note we leave sender as blocking
 		self.sender = self.hub.io:w(self.state.io[1])
