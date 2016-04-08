@@ -320,6 +320,22 @@ _.gethostname = function()
 end
 
 
+_.connect = function(domain, socktype, host, port)
+	local no = C.socket(domain, socktype, 0)
+	if no < 0 then return errors.get(ffi.errno()) end
+
+	local addr = sockaddr_in()
+	addr.sin_family = domain
+	addr.sin_port = C.htons(port);
+	C.inet_aton(host, addr.sin_addr)
+
+	local rc = C.connect(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
+	if rc < 0 then C.close(no) ; return errors.get(ffi.errno()) end
+
+	return nil, no
+end
+
+
 _.listen = function(domain, type_, host, port)
 	local BACKLOG = 256
 	-- TODO: should we be using getaddrinfo here?

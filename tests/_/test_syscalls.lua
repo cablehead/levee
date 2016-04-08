@@ -89,15 +89,9 @@ return {
 
 	test_net = function()
 		-- basic errors
-		local err = _.getaddrinfo("foo")
-		assert(err)
 		local err = _.listen(-3, C.SOCK_STREAM)
 		assert(err)
 		local err = _.accept(-3, C.SOCK_STREAM)
-		assert(err)
-		local err = _.connect("foo")
-		assert(err)
-		local err = _.connect("127.0.0.1", 63529)
 		assert(err)
 		local err = _.getsockname(-3)
 		assert(err)
@@ -118,7 +112,7 @@ return {
 		assert(err)
 
 		-- connect
-		local err, c_no = _.connect("127.0.0.1", port)
+		local err, c_no = _.connect(C.AF_INET, C.SOCK_STREAM, "127.0.0.1", port)
 		assert(not err)
 
 		local err, c_ep = _.getsockname(c_no)
