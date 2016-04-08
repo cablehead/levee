@@ -14,7 +14,11 @@
 * add \_.version to parse semver strings
 * add -v/--version to restrict build
 * support repeat headers in http requests and responses
-
+* hub.tcp renamed to hub.stream.
+* udp support added as hub.dgram.
+* background thread to run getaddrinfo reworked to not require a lua state. the
+  same background thread is now shared by all other levee threads in a single
+  process.
 
 ## 0.3.2 - 2016-02-24
 
