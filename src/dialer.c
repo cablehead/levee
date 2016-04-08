@@ -59,13 +59,14 @@ levee_dialer_loop () {
 		for (ptr = info; ptr; ptr = ptr->ai_next) {
 			no = socket (ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 			if (no < 0) {
-				res.err = -errno;
-				goto respond;
+				err = -errno;
+				ptr = NULL;
+				break;
 			}
 			rc = connect (no, ptr->ai_addr, ptr->ai_addrlen);
 			if (rc == 0) break;
-			close (no);
 			err = -errno;
+			close (no);
 		}
 
 		if (ptr == NULL) {
