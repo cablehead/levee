@@ -68,8 +68,6 @@ levee_dialer_loop () {
 			err = -errno;
 		}
 
-		freeaddrinfo (info);
-
 		if (ptr == NULL) {
 			res.err = err;
 		} else {
@@ -77,6 +75,7 @@ levee_dialer_loop () {
 		}
 
 		respond:
+		freeaddrinfo (info);
 		rc = write (req.no, &res, sizeof (res));
 		assert (rc == sizeof (res));
 	}
