@@ -57,14 +57,22 @@ function Log_mt:error(...)
 end
 
 
-return {
-	Log = function(name)
-		return setmetatable({name=name, lvl=LEVELS["INFO"]}, Log_mt)
-	end,
+local M = {}
 
-	patch = function(f)
-		local ret = Log_mt.__log
-		Log_mt.__log = f
-		return ret
-	end,
-}
+
+M.default_level = LEVELS["INFO"]
+
+
+M.Log = function(name)
+	return setmetatable({name=name, lvl=M.default_level}, Log_mt)
+end
+
+
+M.patch = function(f)
+	local ret = Log_mt.__log
+	Log_mt.__log = f
+	return ret
+end
+
+
+return M
