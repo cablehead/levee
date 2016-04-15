@@ -75,8 +75,9 @@ levee_dialer_loop () {
 			res = no;
 		}
 
-		respond:
 		freeaddrinfo (info);
+
+		respond:
 		rc = write (req.no, &res, sizeof (res));
 		assert (rc == sizeof (res));
 	}
