@@ -22,7 +22,7 @@ levee_dialer_loop () {
 	int rc;
 
 	struct LeveeDialerRequest req;
-	int err;
+	int err = 0;
 	int no;
 	int res;
 
