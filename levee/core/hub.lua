@@ -129,18 +129,13 @@ end
 
 
 function Hub_mt:_coresume(co, err, sender, value)
-	local target
 	if co ~= self._pcoro then
-		local status
-		status, target, err, sender, value = coroutine.resume(co, err, sender, value)
+		local status, target = coroutine.resume(co, err, sender, value)
 		if not status then
 			error(debug.traceback(co) .. "\n\n" .. target)
 		end
 	else
-		target, err, sender, value = coroutine.yield(err, sender, value)
-	end
-	if target then
-		self:_coresume(target, err, sender, value)
+		coroutine.yield(err, sender, value)
 	end
 end
 
@@ -200,12 +195,6 @@ end
 function Hub_mt:continue()
 	self.ready:push({coroutine.running()})
 	self:_coyield()
-end
-
-
-function Hub_mt:switch_to(co, err, sender, value)
-	self.ready:push({coroutine.running()})
-	self:_coyield(co, err, sender, value)
 end
 
 

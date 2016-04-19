@@ -45,6 +45,16 @@ return {
 			{"m", 3}, })
 	end,
 
+	test_spawn_return_value = function()
+		local h = levee.Hub()
+		local check
+		h:spawn(function()
+			check = 1
+			return check
+		end)
+		assert.equal(check, 1)
+	end,
+
 	test_coro = function()
 		local h = levee.Hub()
 
@@ -68,7 +78,7 @@ return {
 		h:spawn(f, 2)
 
 		table.insert(trace, {"m", 3})
-		h:switch_to(coros[2], "e2", "s2", "v2")
+		h:resume(coros[2], "e2", "s2", "v2")
 
 		table.insert(trace, {"m", 4})
 		h:resume(coros[1], "e1", "s1", "v1")
@@ -82,9 +92,9 @@ return {
 			{"m", 2},
 			{"f", 2, 1},
 			{"m", 3},
-			{"f", 2, 2, "e2", "s2", "v2"},
 			{"m", 4},
 			{"m", 5},
+			{"f", 2, 2, "e2", "s2", "v2"},
 			{"f", 1, 2, "e1", "s1", "v1"},
 			{"m", 6}, })
 
