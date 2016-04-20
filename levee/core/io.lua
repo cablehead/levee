@@ -579,15 +579,24 @@ end
 --
 -- Splice
 
-function Chunk_mt:_splice(conn)
+function Chunk_mt:_splice(target)
 	local n = self.len
 
+	local err
 	while self.len > 0 do
-		local err = self:readin(1)
-		if err then return err end
-		local err, n = conn:write(self:value())
-		if err then return err end
+		err = self:readin(1)
+		if err then goto cleanup end
+		err = target:write(self:value())
+		if err then goto cleanup end
 		self:trim()
+	end
+
+	::cleanup::
+
+	if err then
+		self.stream.conn:close()
+		target:close()
+		return err
 	end
 
 	return nil, n
