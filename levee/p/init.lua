@@ -1,9 +1,14 @@
 local ffi = require("ffi")
 
+local errors = require("levee.errors")
+
 local StringStream_mt = {}
 StringStream_mt.__index = StringStream_mt
 
 function StringStream_mt:readin()
+	if self.n <= 0 then
+		return errors.CLOSED
+	end
 end
 
 function StringStream_mt:value()

@@ -15,7 +15,6 @@ return {
 	end,
 
 	test_stream = function()
-
 		local h = levee.Hub()
 
 		local r, w = h.io:pipe()
@@ -61,5 +60,20 @@ return {
 		local err, buf = levee.p.msgpack.encode(want)
 		local err, got = levee.p.msgpack.decoder():stream(buf)
 		assert.same(got, want)
+	end,
+
+	test_string_stream = function()
+		local want = {
+			params = {
+							h = "50",
+							w = "100" }, }
+		local err, buf = levee.p.msgpack.encode(want)
+		local s = buf:take()
+
+		local err, got = levee.p.msgpack.decode(s)
+		assert.same(want, got)
+
+		local err, got = levee.p.msgpack.decode(s, #s - 5)
+		assert.equal(err, levee.errors.CLOSED)
 	end,
 }
