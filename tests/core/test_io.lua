@@ -560,7 +560,7 @@ return {
 			assert(not h:in_use())
 		end,
 
-		test_error = function()
+		test_error_on_read = function()
 			local val = CHARS64:rep(4096)
 			local crc = C.sp_crc32c(0ULL, val, #val)
 			local N = 64 * 4096

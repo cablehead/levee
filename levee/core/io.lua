@@ -590,11 +590,11 @@ function Chunk_mt:_splice(target)
 			return err
 		end
 		local err = target:write(self:value())
+		self:trim()
 		if err then
 			target:close()
 			return err
 		end
-		self:trim()
 	end
 
 	return nil, n
@@ -609,14 +609,11 @@ function Chunk_mt:_splice_0copy(target)
 		return self:_splice(target)
 	end
 
-	local remain = self.len
-
 	-- transfer any pending bytes from the buffer
 	if buflen > 0 then
 		local err = target:write(buf, buflen)
 		if err then return err end
 		self:trim()
-		remain = remain - buflen
 	end
 
 	local r, w = self.hub.io:pipe()
@@ -633,22 +630,23 @@ function Chunk_mt:_splice_0copy(target)
 	end
 
 	local err, rn, wn
-	while remain > 0 do
-		err, rn = source:_splice(w, remain)
+	while self.len > 0 do
+		err, rn = source:_splice(w, self.len)
 		if err then
 			self.stream.conn:close()
 			target:close()
 			goto cleanup
 		end
 
+		self.len = self.len - rn
+
 		while rn > 0 do
-			err, wn = r:_splice(target, remain)
+			err, wn = r:_splice(target, rn)
 			if err then
 				target:close()
 				goto cleanup
 			end
 			rn = rn - wn
-			remain = remain - wn
 		end
 	end
 
