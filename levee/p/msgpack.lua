@@ -178,6 +178,16 @@ function Msgpack_mt:__tostring()
 end
 
 
+function Msgpack_mt:reset()
+	C.sp_msgpack_reset(self)
+end
+
+
+function Msgpack_mt:is_done()
+	return C.sp_msgpack_is_done(self)
+end
+
+
 function Msgpack_mt:next(buf, len, eof)
 	local rc = C.sp_msgpack_next(self, buf, len, eof)
 	if rc >= 0 then return nil, rc end

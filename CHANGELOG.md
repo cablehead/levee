@@ -19,6 +19,7 @@
 * background thread to run getaddrinfo reworked to not require a lua state. the
   same background thread is now shared by all other levee threads in a single
   process.
+* fix msgpack decode via siphon
 
 ## 0.3.2 - 2016-02-24
 
