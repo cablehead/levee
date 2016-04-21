@@ -612,7 +612,8 @@ return {
 			end)
 
 			p1.c = p1.s:chunk(N)
-			assert.equal(p1.c:splice(p2.w), levee.errors.CLOSED)
+			local err = p1.c:splice(p2.w)
+			assert(err)
 			p2.w:close()
 
 			h:continue()
