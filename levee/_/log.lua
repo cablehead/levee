@@ -5,6 +5,7 @@
 
 local time = require("levee._.time")
 
+local PID = (" %5d "):format(C.getpid())
 
 local LEVELS = {
 	DEBUG = 10,
@@ -19,10 +20,9 @@ Log_mt.__index = Log_mt
 
 
 function Log_mt:__log(lvl, f, ...)
-	io.write(("%-5s"):format(lvl))
-	io.write(" ")
+	io.write(("%-5s "):format(lvl))
 	io.write(time.now():localdate():iso8601())
-	io.write(" ")
+	io.write(PID)
 	io.write(("%-21s"):format(self.name:sub(1,20)))
 	io.write(f:format(...))
 	io.write("\n")
