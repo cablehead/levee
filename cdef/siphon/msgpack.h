@@ -34,10 +34,9 @@ typedef struct {
 	SpMsgpackTag tag;    // value enum
 	SpMsgpackType type;  // type of the current parsed value
 	unsigned cs;         // current scanner state
-	uint8_t key;         // is parsing a map key
+	uint32_t counts[24]; // map/array entry remaining counts
 	uint8_t depth;       // stack entry size
 	uint8_t stack[3];    // map/array bit stack
-	uint32_t counts[24]; // map/array entry remaining counts
 } SpMsgpack;
 
 void
