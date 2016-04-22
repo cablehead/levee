@@ -20,6 +20,7 @@
   same background thread is now shared by all other levee threads in a single
   process.
 * fix msgpack decode via siphon
+* fix timeout when recv-ing from a thread channel
 
 ## 0.3.2 - 2016-02-24
 

@@ -68,13 +68,13 @@ function Recver_mt:pump(node)
 end
 
 
-function Recver_mt:recv()
-	return self.queue:recv()
+function Recver_mt:recv(ms)
+	return self.queue:recv(ms)
 end
 
 
 function Recver_mt:__call()
-	return self.queue:recv()
+	return self.queue()
 end
 
 

@@ -121,4 +121,19 @@ return {
 		collectgarbage("collect")
 		assert.equal(buf:take(), "foobar123")
 	end,
+
+	test_timeout = function()
+		local function f(h)
+			h:sleep(50)
+			h.parent:send("ok")
+		end
+
+		local h = levee.Hub()
+		local child = h.thread:spawn(f)
+		local err, ok = child:recv(20)
+		assert.equal(err, levee.errors.TIMEOUT)
+		local err, ok = child:recv(50)
+		assert(not err)
+		assert.equal(ok, "ok")
+	end,
 }
