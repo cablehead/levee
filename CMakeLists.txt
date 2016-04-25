@@ -5,7 +5,7 @@ set(INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 set(CMAKE_C_FLAGS "-std=c99 -Wall -Wextra -Werror -pedantic -I${INCLUDE_DIR}")
 set(CMAKE_C_FLAGS_DEBUG "-g")
-set(CMAKE_C_FLAGS_RELEASE "-O2 -fomit-frame-pointer -march=native")
+set(CMAKE_C_FLAGS_RELEASE "-g -O2 -fomit-frame-pointer -march=native")
 
 include(cmake/Siphon.cmake)
 include(cmake/LuaJIT.cmake)
