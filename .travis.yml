@@ -12,4 +12,4 @@ install:
   - ./.travis/install.${TRAVIS_OS_NAME}.sh
 
 script:
-  - levee test -v tests/
+  - ./.travis/run.${TRAVIS_OS_NAME}.sh
