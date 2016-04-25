@@ -7,7 +7,8 @@ if [[ $? -eq 139 ]]; then
 		if [[ ! -z "$REPORTS" ]]; then
 			cat $REPORTS
 			rm $REPORTS
-			exit
+			exit 139
 		fi
 	done
+	exit 139
 fi
