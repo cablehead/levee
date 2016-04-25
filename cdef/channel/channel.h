@@ -47,18 +47,17 @@ typedef struct {
 } LeveeChanNode;
 
 struct LeveeChan {
-	LeveeList msg;
-	LeveeChanSender *send_head;
-	uint64_t ref;
+	LeveeList msg, senders;
+	int64_t ref;
 	int64_t recv_id;
+	int64_t chan_id;
 	int loopfd;
-	uint64_t chan_id;
 };
 
 struct LeveeChanSender {
-	LeveeChanSender *next;
+	LeveeNode node;
 	LeveeChan **chan;
-	uint64_t ref;
+	int64_t ref;
 	int64_t recv_id;
 	bool eof;
 };

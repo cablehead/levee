@@ -208,7 +208,7 @@ levee_chan_unref (LeveeChan **self)
 
 again:
 	__atomic_load (self, &ch, __ATOMIC_SEQ_CST);
-	if (ch == NULL) {
+	if (ch == NULL || ch->chan_id < 0) {
 		return;
 	}
 	__atomic_load (&ch->ref, &ref, __ATOMIC_SEQ_CST);

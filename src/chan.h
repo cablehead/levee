@@ -57,8 +57,8 @@ struct LeveeChan {
 	LeveeList msg, senders;
 	int64_t ref;
 	int64_t recv_id;
+	int64_t chan_id;
 	int loopfd;
-	uint64_t chan_id;
 };
 
 struct LeveeChanSender {
