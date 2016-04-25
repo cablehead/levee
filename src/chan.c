@@ -176,18 +176,17 @@ levee_chan_ref (LeveeChan **self)
 		return NULL;
 	}
 
-	LeveeChan *ch;
-	uint64_t ref;
+	LeveeChan *ch = NULL;
+	int64_t ref;
 
 again:
-	__sync_synchronize ();
-	ch = *self;
+	__atomic_load (self, &ch, __ATOMIC_SEQ_CST);
 	if (ch == NULL) {
 		errno = ECONNREFUSED;
 		return NULL;
 	}
-	ref = ch->ref;
-	if (ref == 0) {
+	__atomic_load (&ch->ref, &ref, __ATOMIC_SEQ_CST);
+	if (ref <= 0) {
 		errno = ECONNREFUSED;
 		return NULL;
 	}
@@ -204,16 +203,15 @@ levee_chan_unref (LeveeChan **self)
 		return;
 	}
 
-	LeveeChan *ch;
-	uint64_t ref;
+	LeveeChan *ch = NULL;
+	int64_t ref = 0;
 
 again:
-	__sync_synchronize ();
-	ch = *self;
+	__atomic_load (self, &ch, __ATOMIC_SEQ_CST);
 	if (ch == NULL) {
 		return;
 	}
-	ref = ch->ref;
+	__atomic_load (&ch->ref, &ref, __ATOMIC_SEQ_CST);
 	if (ref == 0) {
 		return;
 	}
@@ -293,7 +291,6 @@ levee_chan_next_recv_id (LeveeChan **self)
 	int64_t id = -1;
 	LeveeChan *ch = levee_chan_ref (self);
 	if (ch != NULL) {
-		__sync_synchronize ();
 		id = __sync_fetch_and_add (&ch->recv_id, 1);
 		levee_chan_unref (self);
 	}
