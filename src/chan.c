@@ -234,7 +234,7 @@ again:
 	}
 
 	final (ch);
-	free (ch);
+	//free (ch);
 }
 
 void
