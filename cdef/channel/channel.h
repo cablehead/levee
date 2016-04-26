@@ -1,3 +1,5 @@
+typedef volatile struct LeveeRef LeveeRef;
+
 typedef struct LeveeChan LeveeChan;
 typedef struct LeveeChanSender LeveeChanSender;
 
@@ -47,85 +49,83 @@ typedef struct {
 } LeveeChanNode;
 
 struct LeveeChan {
-	LeveeList msg;
-	LeveeChanSender *send_head;
-	uint64_t ref;
+	LeveeList msg, senders;
 	int64_t recv_id;
+	int64_t chan_id;
 	int loopfd;
-	uint64_t chan_id;
 };
 
 struct LeveeChanSender {
-	LeveeChanSender *next;
-	LeveeChan **chan;
-	uint64_t ref;
+	LeveeNode node;
+	LeveeRef *chan;
+	int64_t ref;
 	int64_t recv_id;
 	bool eof;
 };
 
-extern int
-levee_chan_create (LeveeChan **chan, int loopfd);
+LeveeRef *
+levee_chan_create (int loopfd);
 
-extern LeveeChan *
-levee_chan_ref (LeveeChan **self);
+LeveeChan *
+levee_chan_ref (LeveeRef *self);
 
-extern void
-levee_chan_unref (LeveeChan **self);
+void
+levee_chan_unref (LeveeRef *self);
 
-extern void
-levee_chan_close (LeveeChan **self);
+void
+levee_chan_close (LeveeRef *self);
 
-extern uint64_t
-levee_chan_event_id (LeveeChan **self);
+uint64_t
+levee_chan_event_id (LeveeRef *self);
 
-extern int64_t
-levee_chan_next_recv_id (LeveeChan **self);
+int64_t
+levee_chan_next_recv_id (LeveeRef *self);
 
-extern LeveeChanSender *
-levee_chan_sender_create (LeveeChan **self, int64_t recv_id);
+LeveeChanSender *
+levee_chan_sender_create (LeveeRef *self, int64_t recv_id);
 
-extern LeveeChanSender *
+LeveeChanSender *
 levee_chan_sender_ref (LeveeChanSender *self);
 
-extern void
+void
 levee_chan_sender_unref (LeveeChanSender *self);
 
-extern int
+int
 levee_chan_sender_close (LeveeChanSender *self);
 
-extern int
+int
 levee_chan_send_nil (LeveeChanSender *self, int err);
 
-extern int
+int
 levee_chan_send_ptr (LeveeChanSender *self, int err,
 		const void *val, uint32_t len,
 		LeveeChanFormat fmt);
 
-extern int
+int
 levee_chan_send_buf (LeveeChanSender *self, int err,
 		LeveeBuffer *buf);
 
-extern int
+int
 levee_chan_send_obj (LeveeChanSender *self, int err,
 		void *obj, void (*free)(void *obj));
 
-extern int
+int
 levee_chan_send_dbl (LeveeChanSender *self, int err, double val);
 
-extern int
+int
 levee_chan_send_i64 (LeveeChanSender *self, int err, int64_t val);
 
-extern int
+int
 levee_chan_send_u64 (LeveeChanSender *self, int err, uint64_t val);
 
-extern int
+int
 levee_chan_send_bool (LeveeChanSender *self, int err, bool val);
 
-extern int64_t
-levee_chan_connect (LeveeChanSender *self, LeveeChan **chan);
+int64_t
+levee_chan_connect (LeveeChanSender *self, LeveeRef *chan);
 
-extern LeveeChanNode *
-levee_chan_recv (LeveeChan **self);
+LeveeChanNode *
+levee_chan_recv (LeveeRef *self);
 
-extern LeveeChanNode *
-levee_chan_recv_next (LeveeChanNode *self);
+LeveeChanNode *
+levee_chan_recv_next (LeveeChanNode *node);

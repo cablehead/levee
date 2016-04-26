@@ -145,87 +145,53 @@ send_node (LeveeChanSender *self, LeveeChanNode *node)
 	return -1;
 }
 
-int
-levee_chan_create (LeveeChan **chan, int loopfd)
+LeveeRef *
+levee_chan_create (int loopfd)
 {
 	LeveeChan *self = malloc (sizeof *self);
 	if (self == NULL) {
-		return -1;
+		return NULL;
 	}
 
 	levee_list_init (&self->msg);
 	levee_list_init (&self->senders);
-	self->ref = 1;
 	self->recv_id = 0;
 	self->loopfd = loopfd;
 
 	if (init (self) < 0) {
 		free (self);
-		return -1;
+		return NULL;
 	}
 
-	*chan = self;
-	return 0;
+	LeveeRef *ref = levee_ref_make (self);
+	if (ref == NULL) {
+		final (self);
+		free (self);
+	}
+	return ref;
 }
 
 LeveeChan *
-levee_chan_ref (LeveeChan **self)
+levee_chan_ref (LeveeRef *self)
 {
 	if (self == NULL) {
 		errno = ECONNREFUSED;
 		return NULL;
 	}
 
-	LeveeChan *ch;
-	uint64_t ref;
-
-again:
-	__sync_synchronize ();
-	ch = *self;
-	if (ch == NULL) {
-		errno = ECONNREFUSED;
-		return NULL;
-	}
-	ref = ch->ref;
-	if (ref == 0) {
-		errno = ECONNREFUSED;
-		return NULL;
-	}
-	if (!__sync_bool_compare_and_swap (&ch->ref, ref, ref+1)) {
-		goto again;
-	}
-	return ch;
+	return levee_ref (self);
 }
 
 void
-levee_chan_unref (LeveeChan **self)
+levee_chan_unref (LeveeRef *self)
 {
 	if (self == NULL) {
 		return;
 	}
 
-	LeveeChan *ch;
-	uint64_t ref;
-
-again:
-	__sync_synchronize ();
-	ch = *self;
-	if (ch == NULL) {
+	LeveeChan *ch = levee_unref (self);
+	if (ch == NULL || ch->chan_id < 0) {
 		return;
-	}
-	ref = ch->ref;
-	if (ref == 0) {
-		return;
-	}
-	if (!__sync_bool_compare_and_swap (&ch->ref, ref, ref-1)) {
-		goto again;
-	}
-	if (ref > 1) {
-		return;
-	}
-	if (!__sync_bool_compare_and_swap (self, ch, NULL)) {
-		// this should never happen
-		fprintf (stderr, "failed deallocation CAS for channel (%s:%d)\n", __FILE__, __LINE__-2);
 	}
 
 	LeveeNode *node = levee_list_drain (&ch->msg, false);
@@ -240,7 +206,7 @@ again:
 }
 
 void
-levee_chan_close (LeveeChan **self)
+levee_chan_close (LeveeRef *self)
 {
 	assert (self != NULL);
 
@@ -272,7 +238,7 @@ out:
 }
 
 uint64_t
-levee_chan_event_id (LeveeChan **self)
+levee_chan_event_id (LeveeRef *self)
 {
 	assert (self != NULL);
 
@@ -286,14 +252,13 @@ levee_chan_event_id (LeveeChan **self)
 }
 
 int64_t
-levee_chan_next_recv_id (LeveeChan **self)
+levee_chan_next_recv_id (LeveeRef *self)
 {
 	assert (self != NULL);
 
 	int64_t id = -1;
 	LeveeChan *ch = levee_chan_ref (self);
 	if (ch != NULL) {
-		__sync_synchronize ();
 		id = __sync_fetch_and_add (&ch->recv_id, 1);
 		levee_chan_unref (self);
 	}
@@ -301,7 +266,7 @@ levee_chan_next_recv_id (LeveeChan **self)
 }
 
 LeveeChanSender *
-levee_chan_sender_create (LeveeChan **self, int64_t recv_id)
+levee_chan_sender_create (LeveeRef *self, int64_t recv_id)
 {
 	assert (self != NULL);
 
@@ -444,7 +409,7 @@ levee_chan_send_bool (LeveeChanSender *self, int err, bool val)
 }
 
 int64_t
-levee_chan_connect (LeveeChanSender *self, LeveeChan **chan)
+levee_chan_connect (LeveeChanSender *self, LeveeRef *chan)
 {
 	assert (self != NULL);
 
@@ -491,7 +456,7 @@ out:
 }
 
 LeveeChanNode *
-levee_chan_recv (LeveeChan **self)
+levee_chan_recv (LeveeRef *self)
 {
 	assert (self != NULL);
 

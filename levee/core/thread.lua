@@ -228,8 +228,8 @@ end
 
 
 local function Channel(hub)
-	local chan = ffi.new('LeveeChan *[1]')
-	if C.levee_chan_create(chan, hub.poller.fd) < 0 then
+	local chan = C.levee_chan_create(hub.poller.fd)
+	if chan == nil then
 		error("levee_chan_create")
 	end
 	ffi.gc(chan, C.levee_chan_unref)

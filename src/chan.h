@@ -7,6 +7,7 @@ typedef struct LeveeChanSender LeveeChanSender;
 #include "levee.h"
 #include "buffer.h"
 #include "list.h"
+#include "ref.h"
 
 typedef enum {
 	LEVEE_CHAN_EOF,
@@ -55,40 +56,39 @@ typedef struct {
 
 struct LeveeChan {
 	LeveeList msg, senders;
-	int64_t ref;
 	int64_t recv_id;
+	int64_t chan_id;
 	int loopfd;
-	uint64_t chan_id;
 };
 
 struct LeveeChanSender {
 	LeveeNode node;
-	LeveeChan **chan;
+	LeveeRef *chan;
 	int64_t ref;
 	int64_t recv_id;
 	bool eof;
 };
 
-extern int
-levee_chan_create (LeveeChan **chan, int loopfd);
+extern LeveeRef *
+levee_chan_create (int loopfd);
 
 extern LeveeChan *
-levee_chan_ref (LeveeChan **self);
+levee_chan_ref (LeveeRef *self);
 
 extern void
-levee_chan_unref (LeveeChan **self);
+levee_chan_unref (LeveeRef *self);
 
 extern void
-levee_chan_close (LeveeChan **self);
+levee_chan_close (LeveeRef *self);
 
 extern uint64_t
-levee_chan_event_id (LeveeChan **self);
+levee_chan_event_id (LeveeRef *self);
 
 extern int64_t
-levee_chan_next_recv_id (LeveeChan **self);
+levee_chan_next_recv_id (LeveeRef *self);
 
 extern LeveeChanSender *
-levee_chan_sender_create (LeveeChan **self, int64_t recv_id);
+levee_chan_sender_create (LeveeRef *self, int64_t recv_id);
 
 extern LeveeChanSender *
 levee_chan_sender_ref (LeveeChanSender *self);
@@ -128,10 +128,10 @@ extern int
 levee_chan_send_bool (LeveeChanSender *self, int err, bool val);
 
 extern int64_t
-levee_chan_connect (LeveeChanSender *self, LeveeChan **chan);
+levee_chan_connect (LeveeChanSender *self, LeveeRef *chan);
 
 extern LeveeChanNode *
-levee_chan_recv (LeveeChan **self);
+levee_chan_recv (LeveeRef *self);
 
 extern LeveeChanNode *
 levee_chan_recv_next (LeveeChanNode *node);
