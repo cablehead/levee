@@ -1,5 +1,6 @@
 levee test -v tests/
-if [[ $? -eq 139 ]]; then
+CODE=$?
+if [[ $CODE -eq 139 ]]; then
 	GLOB="/Library/Logs/DiagnosticReports/levee*"
 	for i in {1..10}; do
 		sleep 1
@@ -12,3 +13,4 @@ if [[ $? -eq 139 ]]; then
 	done
 	exit 139
 fi
+exit $CODE
