@@ -41,6 +41,7 @@ add_library(
 	libleveebase
 	STATIC
 	src/chan.c
+	src/ref.c
 	src/heap.c
 	src/levee.c
 	src/dialer.c
