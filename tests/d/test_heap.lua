@@ -1,5 +1,6 @@
 local ffi = require('ffi')
 
+local REFS = require("levee.d.heap").REFS
 local d = require("levee").d
 
 
@@ -24,16 +25,22 @@ return {
 	end,
 
 	test_push_pop = function()
+		print()
+		print()
 		local h = d.Heap()
 		math.randomseed(0)
-		for i=1,10 do
+		local want = {}
+		for i = 1, 10 do
 			local pri = math.random(1000)
-			h:push(pri, i)
+			local item = h:push(pri, i)
+			assert(not want[pri])
+			want[pri] = {tonumber(item.value), pri, i}
 		end
 		assert.equals(10, #h)
 		local last = -1
 		for pri, i in h:popiter() do
 			assert(pri >= last)
+			print("WANT", repr(want[tonumber(pri)]))
 			last = pri
 		end
 	end,
@@ -55,6 +62,12 @@ return {
 			table.insert(check, {h:pop()})
 		end
 		assert.same(check, {{90ULL, "4"}, {95ULL, "1"}, {100ULL, "3"}})
+		print()
+		print()
+
+		for k, v in pairs(h.refs) do
+			print(k, v)
+		end
 	end,
 
 	test_clear = function()

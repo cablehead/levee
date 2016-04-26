@@ -78,7 +78,7 @@ levee_heap_count (const LeveeHeap *self)
 }
 
 LeveeHeapItem *
-levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
+levee_heap_add (LeveeHeap *self, int64_t pri)
 {
 	assert (self != NULL);
 	assert (self->capacity >= self->next);
@@ -98,8 +98,8 @@ levee_heap_add (LeveeHeap *self, int64_t pri, uintptr_t val)
 	key = self->next++;
 
 	item->heap = self;
-	item->value = val;
 	item->key = key;
+	item->value = self->value++;
 
 	ENTRY (self, key).priority = pri;
 	ENTRY (self, key).item = item;
@@ -146,17 +146,16 @@ levee_heap_priority (const LeveeHeap *self, uint32_t key, int64_t def)
 	return ENTRY (self, key).priority;
 }
 
-uintptr_t
-levee_heap_remove (LeveeHeap *self, uint32_t key, uintptr_t def)
+void
+levee_heap_remove (LeveeHeap *self, uint32_t key)
 {
 	assert (self != NULL);
 	assert (self->next > LEVEE_HEAP_ROOT_KEY);
 
 	if (key == 0 || key >= self->next) {
-		return def;
+		return;
 	}
 
-	def = ENTRY (self, key).item->value;
 	free (ENTRY (self, key).item);
 
 	if (key != --self->next) {
@@ -174,7 +173,7 @@ levee_heap_remove (LeveeHeap *self, uint32_t key, uintptr_t def)
 		ROW (self, self->capacity - 1) = NULL;
 		self->capacity -= ROW_WIDTH;
 	}
-	return def;
+	return;
 }
 
 void
