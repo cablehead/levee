@@ -25,8 +25,6 @@ return {
 	end,
 
 	test_push_pop = function()
-		print()
-		print()
 		local h = d.Heap()
 		math.randomseed(0)
 		local want = {}
@@ -43,6 +41,9 @@ return {
 			assert.equal(want[tonumber(pri)], i)
 			last = pri
 		end
+		h = nil
+		collectgarbage("collect")
+		assert.same(REFS, {})
 	end,
 
 	test_update_remove = function()

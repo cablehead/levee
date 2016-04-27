@@ -93,7 +93,7 @@ end
 function Heap_mt:peek()
 	local entry = C.levee_heap_get(self, C.LEVEE_HEAP_ROOT_KEY)
 	if entry ~= nil then
-		return entry.priority, REFS[castptr(self)][val]
+		return entry.priority, REFS[castptr(self)][castptr(entry.item)]
 	end
 end
 
@@ -134,7 +134,6 @@ end
 
 
 function Heap_mt:__gc()
-	print("__GC")
 	C.levee_heap_destroy(self)
 	REFS[castptr(self)] = nil
 end
@@ -149,6 +148,7 @@ return {
 	Heap = function()
 		local self = C.levee_heap_create()
 		if self == nil then error("levee_heap_create") end
+		ffi.gc(self, Heap_mt.__gc)
 		REFS[castptr(self)] = {}
 		return self
 	end,
