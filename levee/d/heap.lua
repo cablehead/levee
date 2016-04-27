@@ -80,12 +80,11 @@ end
 function Heap_mt:pop()
 	local entry = C.levee_heap_get(self, C.LEVEE_HEAP_ROOT_KEY)
 	if entry ~= nil then
-		local ptr = castptr(entry.item)
-		local prio = entry.priority
+		local pri = entry.priority
+		local val = REFS[castptr(self)][castptr(entry.item)]
+		REFS[castptr(self)][castptr(entry.item)] = nil
 		C.levee_heap_remove(self, C.LEVEE_HEAP_ROOT_KEY)
-		local val = REFS[castptr(self)][ptr]
-		REFS[castptr(self)][ptr] = nil
-		return prio, val
+		return pri, val
 	end
 end
 
