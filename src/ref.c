@@ -1,10 +1,49 @@
 #include "ref.h"
+
 #include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
+#include <stdio.h>
 
 struct LeveeRef {
 	int64_t ref;
-	void *ptr;
+	union {
+		void *ptr;
+		LeveeRef *next;
+	} as;
 } __attribute__ ((aligned (16)));
+
+static LeveeRef sentinel = { -INT64_MAX, { NULL } };
+
+static struct {
+	LeveeRef *head, *tail;
+} stale = { &sentinel, &sentinel };
+
+static pthread_mutex_t stale_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static void
+discard (LeveeRef *r)
+{
+	pthread_mutex_lock (&stale_lock);
+	stale.tail->as.next = r;
+	stale.tail = r;
+	pthread_mutex_unlock (&stale_lock);
+}
+
+static LeveeRef *
+restore (void)
+{
+	LeveeRef *ref = NULL;
+	int64_t n = -time (NULL);
+	if (n <= stale.head->ref && pthread_mutex_trylock (&stale_lock) == 0) {
+		if (n <= stale.head->ref) {
+			ref = stale.head;
+			stale.head = ref->as.next;
+		}
+		pthread_mutex_unlock (&stale_lock);
+	}
+	return ref;
+}
 
 inline static bool
 cas (LeveeRef *r, LeveeRef cmp, LeveeRef new)
@@ -15,9 +54,9 @@ cas (LeveeRef *r, LeveeRef cmp, LeveeRef new)
 		 "setz %0"
 		 : "=q" ( out )
 		 , "+m" ( *r )
-		 , "+d" ( cmp.ptr )
+		 , "+d" ( cmp.as.ptr )
 		 , "+a" ( cmp.ref )
-		 : "c" ( new.ptr )
+		 : "c" ( new.as.ptr )
 		 , "b" ( new.ref )
 		 : "cc", "memory"
 	);
@@ -27,11 +66,15 @@ cas (LeveeRef *r, LeveeRef cmp, LeveeRef new)
 LeveeRef *
 levee_ref_make (void *ptr)
 {
-	LeveeRef *r = malloc (sizeof *r);
-	if (r != NULL) {
-		r->ref = 1;
-		r->ptr = ptr;
+	LeveeRef *r = restore ();
+	if (r == NULL) {
+		r = malloc (sizeof *r);
+		if (r == NULL) {
+			return NULL;
+		}
 	}
+	r->ref = 1;
+	r->as.ptr = ptr;
 	return r;
 }
 
@@ -42,11 +85,14 @@ levee_ref (LeveeRef *r)
 
 	do {
 		cmp = *r;
+		if (cmp.ref < 1) {
+			return NULL;
+		}
 		new.ref = cmp.ref + 1;
-		new.ptr = cmp.ptr;
+		new.as.ptr = cmp.as.ptr;
 	} while (!cas (r, cmp, new));
 
-	return new.ptr;
+	return new.as.ptr;
 }
 
 void *
@@ -57,16 +103,21 @@ levee_unref (LeveeRef *r)
 
 	do {
 		cmp = *r;
-		new.ref = cmp.ref - 1;
-		if (new.ref < 1) {
-			out = cmp.ptr;
-			new.ptr = NULL;
+		if (cmp.ref <= 1) {
+			out = cmp.as.ptr;
+			new.ref = -30 - time (NULL);
+			new.as.ptr = NULL;
 		}
 		else {
 			out = NULL;
-			new.ptr = cmp.ptr;
+			new.ref = cmp.ref - 1;
+			new.as.ptr = cmp.as.ptr;
 		}
 	} while (!cas (r, cmp, new));
+
+	if (out != NULL) {
+		discard (r);
+	}
 
 	return out;
 }
