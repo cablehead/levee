@@ -25,31 +25,8 @@ end
 
 
 function HeapItem_mt:remove()
+	REFS[castptr(self.heap)][castptr(self)] = nil
 	C.levee_heap_remove(self.heap, self.key)
-
-	local entry = C.levee_heap_get(self.heap, self.key)
-
-	print()
-	print()
-	print(ffi.sizeof(self.heap))
-	local i = tonumber(ffi.cast("uintptr_t", self.heap))
-	print(i)
-	print(i)
-	print(i)
-	print(i)
-
-	local m = {}
-	m[i] = "foo"
-	do return end
-	if entry == nil then return false end
-
-	local id = tonumber(entry.item.value)
-	print(id)
-
-	self.heap.refs[id] = false
-	table.insert(self.heap.avail, id)
-	return true
-
 end
 
 
@@ -98,8 +75,8 @@ end
 
 
 function Heap_mt:clear()
+	REFS[castptr(self)] = {}
 	C.levee_heap_clear(self)
-	assert(false)
 end
 
 

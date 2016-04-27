@@ -63,12 +63,9 @@ return {
 			table.insert(check, {h:pop()})
 		end
 		assert.same(check, {{90ULL, "4"}, {95ULL, "1"}, {100ULL, "3"}})
-		print()
-		print()
-
-		for k, v in pairs(h.refs) do
-			print(k, v)
-		end
+		h = nil
+		collectgarbage("collect")
+		assert.same(REFS, {})
 	end,
 
 	test_clear = function()
@@ -86,6 +83,10 @@ return {
 		h:clear()
 		collectgarbage("collect")
 		assert(freed)
+		assert.same(h:refs(), {})
+		h = nil
+		collectgarbage("collect")
+		assert.same(REFS, {})
 	end,
 
 	test_final = function()
