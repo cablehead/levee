@@ -10,7 +10,6 @@ struct LeveeHeapEntry {
 struct LeveeHeapItem {
 	LeveeHeap *heap;
 	uint32_t key;    /* reverse map to our entry in the heap */
-	uint32_t value;  /* user value */
 };
 
 static const int LEVEE_HEAP_NO_KEY = 0;

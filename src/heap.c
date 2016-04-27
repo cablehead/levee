@@ -99,7 +99,6 @@ levee_heap_add (LeveeHeap *self, int64_t pri)
 
 	item->heap = self;
 	item->key = key;
-	item->value = self->value++;
 
 	ENTRY (self, key).priority = pri;
 	ENTRY (self, key).item = item;

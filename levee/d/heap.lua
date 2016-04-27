@@ -6,7 +6,7 @@ local REFS = {}
 
 
 local function castptr(cdata)
-	return ("0x%08x"):format(tonumber(ffi.cast("uintptr_t", cdata)))
+	return tonumber(ffi.cast("uintptr_t", cdata))
 end
 
 
@@ -15,7 +15,7 @@ HeapItem_mt.__index = HeapItem_mt
 
 
 function HeapItem_mt:__tostring()
-	return string.format("levee.HeapItem: value=%d key=%d", self.value, self.key)
+	return string.format("levee.HeapItem: key=%d", self.key)
 end
 
 
@@ -72,22 +72,19 @@ end
 
 function Heap_mt:push(pri, val)
 	local item = C.levee_heap_add(self, pri)
-	REFS[castptr(self)][tonumber(item.value)] = val
+	REFS[castptr(self)][castptr(item)] = val
 	return item
 end
 
 
 function Heap_mt:pop()
 	local entry = C.levee_heap_get(self, C.LEVEE_HEAP_ROOT_KEY)
-	local value = tonumber(entry.item.value)
 	if entry ~= nil then
+		local ptr = castptr(entry.item)
 		local prio = entry.priority
 		C.levee_heap_remove(self, C.LEVEE_HEAP_ROOT_KEY)
-		local val = REFS[castptr(self)][value]
-		REFS[castptr(self)][value] = nil
-		print()
-		print("POP", value, prio, val)
-		print()
+		local val = REFS[castptr(self)][ptr]
+		REFS[castptr(self)][ptr] = nil
 		return prio, val
 	end
 end

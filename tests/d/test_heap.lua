@@ -34,13 +34,13 @@ return {
 			local pri = math.random(1000)
 			local item = h:push(pri, i)
 			assert(not want[pri])
-			want[pri] = {tonumber(item.value), pri, i}
+			want[pri] = i
 		end
 		assert.equals(10, #h)
 		local last = -1
 		for pri, i in h:popiter() do
 			assert(pri >= last)
-			print("WANT", repr(want[tonumber(pri)]))
+			assert.equal(want[tonumber(pri)], i)
 			last = pri
 		end
 	end,

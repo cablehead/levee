@@ -9,7 +9,7 @@ typedef struct LeveeHeapItem LeveeHeapItem;
 
 struct LeveeHeap {
 	LeveeHeapEntry **entries;
-	uint32_t rows, capacity, next, value;
+	uint32_t rows, capacity, next;
 };
 
 struct LeveeHeapEntry {
@@ -20,7 +20,6 @@ struct LeveeHeapEntry {
 struct LeveeHeapItem {
 	LeveeHeap *heap;
 	uint32_t key;    /* reverse map to our entry in the heap */
-	uint32_t value;  /* user value */
 };
 
 
