@@ -1,5 +1,6 @@
 local ffi = require('ffi')
 
+local REFS = require("levee.d.heap").REFS
 local d = require("levee").d
 
 
@@ -26,16 +27,23 @@ return {
 	test_push_pop = function()
 		local h = d.Heap()
 		math.randomseed(0)
-		for i=1,10 do
+		local want = {}
+		for i = 1, 10 do
 			local pri = math.random(1000)
-			h:push(pri, i)
+			local item = h:push(pri, i)
+			assert(not want[pri])
+			want[pri] = i
 		end
 		assert.equals(10, #h)
 		local last = -1
 		for pri, i in h:popiter() do
 			assert(pri >= last)
+			assert.equal(want[tonumber(pri)], i)
 			last = pri
 		end
+		h = nil
+		collectgarbage("collect")
+		assert.same(REFS, {})
 	end,
 
 	test_update_remove = function()
@@ -55,6 +63,9 @@ return {
 			table.insert(check, {h:pop()})
 		end
 		assert.same(check, {{90ULL, "4"}, {95ULL, "1"}, {100ULL, "3"}})
+		h = nil
+		collectgarbage("collect")
+		assert.same(REFS, {})
 	end,
 
 	test_clear = function()
@@ -72,9 +83,13 @@ return {
 		h:clear()
 		collectgarbage("collect")
 		assert(freed)
+		assert.same(h:refs(), {})
+		h = nil
+		collectgarbage("collect")
+		assert.same(REFS, {})
 	end,
 
-	test_final = function()
+	test_destroy = function()
 		local ffi = require('ffi')
 		local freed = false
 		local val = ffi.gc(ffi.C.malloc(8), function(val)
@@ -89,25 +104,8 @@ return {
 		assert(not freed)
 		h = nil
 		collectgarbage("collect")
+		collectgarbage("collect")
+		assert.same(REFS, {})
 		assert(freed)
-	end,
-
-	test_dense = function()
-		local h = d.Heap()
-
-		h:push(80, "1")
-		h:push(70, "2")
-		h:push(60, "3")
-		h:push(90, "4")
-		assert.equal(#h.refs, 4)
-		assert.equal(#h.avail, 0)
-
-		h:pop()
-		assert.equal(#h.refs, 4)
-		assert.equal(#h.avail, 1)
-
-		h:push(50, "5")
-		assert.equal(#h.refs, 4)
-		assert.equal(#h.avail, 0)
 	end,
 }
