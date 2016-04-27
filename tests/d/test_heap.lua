@@ -89,7 +89,7 @@ return {
 		assert.same(REFS, {})
 	end,
 
-	test_final = function()
+	test_destroy = function()
 		local ffi = require('ffi')
 		local freed = false
 		local val = ffi.gc(ffi.C.malloc(8), function(val)
@@ -104,6 +104,8 @@ return {
 		assert(not freed)
 		h = nil
 		collectgarbage("collect")
+		collectgarbage("collect")
+		assert.same(REFS, {})
 		assert(freed)
 	end,
 

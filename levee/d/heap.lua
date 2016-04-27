@@ -110,8 +110,8 @@ end
 
 
 function Heap_mt:__gc()
-	C.levee_heap_destroy(self)
 	REFS[castptr(self)] = nil
+	C.levee_heap_destroy(self)
 end
 
 
