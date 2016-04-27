@@ -80,6 +80,7 @@ install(TARGETS levee RUNTIME DESTINATION bin)
 install(FILES ${LEVEE_LIB} DESTINATION lib)
 install(FILES
 	src/chan.h
+	src/ref.h
 	src/heap.h
 	src/levee.h
 	src/buffer.h
