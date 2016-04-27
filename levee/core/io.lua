@@ -323,6 +323,7 @@ function W_mt:iov(size)
 
 				local err, n = self:writev(iov.iov, iov.n)
 				if err then
+					q.fifo:remove(#q.fifo)   -- this should be handled in stalk
 					self:close()
 					return
 				end

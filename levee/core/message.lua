@@ -475,7 +475,7 @@ function Stalk_mt:iter()
 	local f = self.fifo:iter()
 	return function()
 		while true do
-			item = f()
+			local item = f()
 			if not item then return end
 			local err, sender, value = unpack(item)
 			if err then return end
