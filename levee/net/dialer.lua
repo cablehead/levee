@@ -32,6 +32,25 @@ local Request = ffi.metatype("struct LeveeDialerRequest", Request_mt)
 
 
 --
+-- Message
+
+local Message_mt = {}
+Message_mt.__index = Message_mt
+
+
+function Message_mt:writeinto_iovec(iov)
+	iov:write(self[1])
+	iov:write(self[2])
+	iov:write(self[3])
+end
+
+
+local function Message(req, node, service)
+	return setmetatable({ req, node, service }, Message_mt)
+end
+
+
+--
 -- Dialer
 
 local Dialer_mt = {}
@@ -47,9 +66,7 @@ function Dialer_mt:__dial(family, socktype, node, service)
 	self.req.node_len = #node
 	self.req.service_len = #service
 
-	self.sender:send(self.req)
-	self.sender:send(node)
-	self.sender:send(service)
+	self.sender:send(Message(self.req, node, service))
 
 	self.recver:read(self.res)
 
