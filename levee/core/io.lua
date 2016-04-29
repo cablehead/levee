@@ -3,7 +3,6 @@ local C = ffi.C
 
 local message = require("levee.core.message")
 local errors = require("levee.errors")
-local Iovec = require("levee.d.iovec")
 
 local _ = require("levee._")
 local d = require("levee.d")
@@ -257,7 +256,7 @@ function W_mt:iov(size)
 		self.empty = q.empty
 
 		self.hub:spawn(function()
-			local iov = Iovec(size)
+			local iov = d.Iovec(size)
 
 			while true do
 				local err = q:recv()
@@ -905,7 +904,7 @@ function IO_mt:open(name, ...)
 end
 
 
-IO_mt.iovec = Iovec
+IO_mt.iovec = d.Iovec
 IO_mt.R_mt = R_mt
 
 
