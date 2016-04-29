@@ -190,6 +190,11 @@ function Buffer_mt:push(s)
 end
 
 
+function Buffer_mt:writeinto_iovec(iov)
+	iov:writeraw(self:value())
+end
+
+
 local function cleanup(buf)
 	C.free(buf.buf)
 	C.free(buf)

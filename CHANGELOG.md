@@ -23,6 +23,7 @@
 * fix timeout when recv-ing from a thread channel
 * wrap main event loop with an xpcall to capture a traceback if it should
   unexpectedly crash
+* refactor iovec
 
 ## 0.3.2 - 2016-02-24
 
