@@ -327,7 +327,12 @@ local function Hub()
 	self.closing = {}
 
 	self._pcoro = coroutine.running()
-	self.loop = coroutine.create(function() self:main() end)
+	self.loop = coroutine.create(function()
+		local status = xpcall(
+			function() return self:main() end,
+			function(err) return debug.traceback() .. "\n\n" .. err end)
+		assert(status, "main loop crashed")
+	end)
 
 	self.io = require("levee.core.io")(self)
 	self.signal = require("levee.core.signal")(self)
