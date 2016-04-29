@@ -18,6 +18,11 @@ function Request_mt:value()
 end
 
 
+function Request_mt:writeinto_iovec(iov)
+	iov:writeraw(self:value())
+end
+
+
 function Request_mt:__len()
 	return ffi.sizeof(self)
 end
