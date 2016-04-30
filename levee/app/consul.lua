@@ -415,6 +415,9 @@ function Health_mt:service(name, options)
 	params.passing = options.passing and "1"
 	params.tag = options.tag
 
+	params.consistent = params.consistent and "1"
+	params.stale = params.stale and "1"
+
 	return self.agent:request("GET", "health/service/"..name, {params=params},
 		function(res)
 			local err, data
