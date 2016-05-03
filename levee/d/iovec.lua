@@ -14,8 +14,8 @@ Iovec_mt.__index = Iovec_mt
 
 function Iovec_mt:__tostring()
 	return string.format(
-		"levee.d.Iovec: n=%u, len=%u, size=%u",
-		self.n, self.len, self.size)
+		"levee.d.Iovec: n=%d, len=%d, size=%d",
+		tonumber(self.n), tonumber(self.len), tonumber(self.size))
 end
 
 
