@@ -2,10 +2,14 @@ local ffi = require('ffi')
 local C = ffi.C
 
 local errors = require("levee.errors")
+local Buffer = require("levee.d.buffer")
 
 
 local iovec_size = ffi.sizeof("struct iovec")
 local iovecp = ffi.typeof("struct iovec *")
+
+
+local tmp_buf = Buffer()
 
 
 local Iovec_mt = {}
@@ -20,7 +24,19 @@ end
 
 
 function Iovec_mt:__len()
-	return self.len
+	return tonumber(self.len)
+end
+
+
+function Iovec_mt:string()
+	tmp_buf:ensure(self.len)
+	local buf = tmp_buf:tail()
+	for i=0,tonumber(self.n)-1 do
+		C.memcpy(buf, self.iov[i].iov_base, self.iov[i].iov_len)
+		buf = buf + self.iov[i].iov_len
+	end
+	tmp_buf:bump(self.len)
+	return tmp_buf:take(self.len)
 end
 
 
