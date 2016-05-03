@@ -41,6 +41,11 @@ function Data_mt:value()
 end
 
 
+function Data_mt:writeinto_iovec(iov)
+	iov:writeraw(self:value())
+end
+
+
 function Data_mt:string()
 	return ffi.string(self.val, self.len)
 end
