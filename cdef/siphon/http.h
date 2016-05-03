@@ -47,6 +47,9 @@ typedef enum {
 	SP_HTTP_TRAILER_END  // complete request or response
 } SpHttpType;
 
+typedef struct SpHttpMap SpHttpMap;
+typedef struct SpHttpEntry SpHttpEntry;
+
 typedef struct {
 	// public
 	uint16_t max_method; // max size for a request method
@@ -66,20 +69,67 @@ typedef struct {
 	unsigned cs;         // current scanner state
 	size_t off;          // internal offset mark
 	size_t body_len;     // content length or current chunk size
+	SpHttpMap *headers;  // map reference to capture headers
 } SpHttp;
 
-extern void
-sp_http_init_request (SpHttp *p);
+void
+sp_http_init_request (SpHttp *p, bool capture);
 
-extern void
-sp_http_init_response (SpHttp *p);
+void
+sp_http_init_response (SpHttp *p, bool capture);
 
-extern void
+void
+sp_http_final (SpHttp *p);
+
+void
 sp_http_reset (SpHttp *p);
 
-extern ssize_t
+ssize_t
 sp_http_next (SpHttp *p, const void *restrict buf, size_t len);
 
-extern bool
+bool
 sp_http_is_done (const SpHttp *p);
+
+
+
+SpHttpMap *
+sp_http_map_new (void);
+
+void
+sp_http_map_free (SpHttpMap *m);
+
+int
+sp_http_map_put (SpHttpMap *m,
+		const void *name, uint16_t nlen,
+		const void *value, uint16_t vlen);
+
+bool
+sp_http_map_del (SpHttpMap *m, const void *name, uint16_t nlen);
+
+void
+sp_http_map_clear (SpHttpMap *m);
+
+const SpHttpEntry *
+sp_http_map_get (const SpHttpMap *m, const void *name, uint16_t nlen);
+
+size_t
+sp_http_map_encode_size (const SpHttpMap *m);
+
+void
+sp_http_map_encode (const SpHttpMap *m, void *buf);
+
+size_t
+sp_http_map_scatter_count (const SpHttpMap *m);
+
+void
+sp_http_map_scatter (const SpHttpMap *m, struct iovec *iov);
+
+void
+sp_http_entry_name (const SpHttpEntry *e, struct iovec *iov);
+
+size_t
+sp_http_entry_count (const SpHttpEntry *e);
+
+bool
+sp_http_entry_value (const SpHttpEntry *e, size_t idx, struct iovec *iov);
 
