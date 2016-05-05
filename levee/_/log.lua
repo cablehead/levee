@@ -8,10 +8,12 @@ local time = require("levee._.time")
 local PID = (" %5d "):format(C.getpid())
 
 local LEVELS = {
+	TRACE = 0,
 	DEBUG = 10,
 	INFO = 20,
 	WARN = 30,
 	ERROR = 40,
+	FATAL = 50,
 }
 
 
@@ -37,6 +39,11 @@ function Log_mt:log(lvl, f, ...)
 end
 
 
+function Log_mt:trace(...)
+	return self:log("TRACE", ...)
+end
+
+
 function Log_mt:debug(...)
 	return self:log("DEBUG", ...)
 end
@@ -54,6 +61,12 @@ end
 
 function Log_mt:error(...)
 	return self:log("ERROR", ...)
+end
+
+
+function Log_mt:fatal(...)
+	self:log("FATAL", ...)
+	os.exit(1)
 end
 
 
