@@ -10,6 +10,9 @@ local d = require("levee.d")
 local message = require("levee.core.message")
 
 
+local log = _.log.Log("levee.core.hub")
+
+
 local State_mt = {}
 State_mt.__index = State_mt
 
@@ -132,7 +135,7 @@ function Hub_mt:_coresume(co, err, sender, value)
 	if co ~= self._pcoro then
 		local status, target = coroutine.resume(co, err, sender, value)
 		if not status then
-			error(debug.traceback(co) .. "\n\n" .. target)
+			log:fatal(debug.traceback(co) .. "\n\n" .. target)
 		end
 	else
 		coroutine.yield(err, sender, value)
@@ -147,7 +150,7 @@ function Hub_mt:_coyield(co, err, sender, value)
 	local status, err, sender, value = coroutine.resume(
 		self.loop, co, err, sender, value)
 	if not status then
-		error(("%s\n\n%s"):format(debug.traceback(self.loop), err))
+		log:fatal(("%s\n\n%s"):format(debug.traceback(self.loop), err))
 	end
 	return err, sender, value
 end
@@ -332,7 +335,7 @@ local function Hub()
 			function() return self:main() end,
 			function(err) return debug.traceback() .. "\n\n" .. err end)
 		if not status then
-			error(err .. "\n\nmain loop crashed")
+			log:fatal(err .. "\n\nmain loop crashed")
 		end
 	end)
 
