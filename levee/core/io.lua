@@ -305,7 +305,10 @@ function W_mt:close()
 	end
 
 	self.closed = true
-	if self.iovec then self.iovec:close() end
+	if self.iovec then
+		self.iovec:close()
+		self.iovec.empty:send(true)
+	end
 	self.hub:unregister(self.no, false, true)
 	self.hub:continue()
 	return
@@ -339,7 +342,10 @@ function RW_mt:close()
 	end
 
 	self.closed = true
-	if self.iovec then self.iovec:close() end
+	if self.iovec then
+		self.iovec:close()
+		self.iovec.empty:send(true)
+	end
 	self.hub:unregister(self.no, true, true)
 	self.hub:continue()
 	return true
