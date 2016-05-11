@@ -216,8 +216,10 @@ Value_mt.__index = Value_mt
 function Value_mt:send(value)
 	if self.closed then return errors.CLOSED end
 	self.value = value
-	local err, continued = self.recver:_give(nil, self, value)
-	if continued == UNBUFFERED then self.hub:continue() end
+	if value ~= nil then
+		local err, continued = self.recver:_give(nil, self, value)
+		if continued == UNBUFFERED then self.hub:continue() end
+	end
 end
 
 
