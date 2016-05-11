@@ -339,6 +339,7 @@ function RW_mt:close()
 	end
 
 	self.closed = true
+	if self.iovec then self.iovec:close() end
 	self.hub:unregister(self.no, true, true)
 	self.hub:continue()
 	return true
