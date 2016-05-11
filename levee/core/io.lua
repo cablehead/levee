@@ -285,6 +285,10 @@ end
 
 
 function W_mt:send(...)
+	if self.closed then
+		return errors.CLOSED
+	end
+
 	local err, iov = self:iov()
 	if err then return err end
 	local arg = {...}
