@@ -24,6 +24,7 @@
 * wrap main event loop with an xpcall to capture a traceback if it should
   unexpectedly crash
 * refactor iovec
+* improve handling of HEAD HTTP requests
 
 ## 0.3.2 - 2016-02-24
 
