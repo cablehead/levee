@@ -582,8 +582,10 @@ end
 
 function Client_mt:reader(responses)
 	for response in responses do
-		local err, value
+		local request = self.response_to_request[response]
+		self.response_to_request[response] = nil
 
+		local err, value
 		err, value = self.parser:stream_next(self.stream)
 		if err then goto __cleanup end
 		assert(self.parser.type == C.SP_HTTP_RESPONSE)
@@ -611,45 +613,52 @@ function Client_mt:reader(responses)
 			end
 		end
 
-		if not value[2] then
-			-- content-length
-			local len = tonumber(value[3])
-			if len > 0 then res.body = self.stream:chunk(len) end
+		-- handle body
+		if request.method == "HEAD" then
 			response:send(res)
-			if len > 0 then res.body.done:recv() end
+			self.parser:reset()
 
 		else
-			-- chunked tranfer
-			local chunks
-			chunks, res.chunks = self.hub:pipe()
-			response:send(res)
+			if not value[2] then
+				-- content-length
+				local len = tonumber(value[3])
+				if len > 0 then res.body = self.stream:chunk(len) end
+				response:send(res)
+				if len > 0 then res.body.done:recv() end
 
-			while true do
+			else
+				-- chunked tranfer
+				local chunks
+				chunks, res.chunks = self.hub:pipe()
+				response:send(res)
+
+				while true do
+					err, value = self.parser:stream_next(self.stream)
+					if err then goto __cleanup end
+					if not value[1] then break end
+
+					local len = tonumber(value[2])
+
+					if self.stream.buf.sav > 0 then
+						len = len + self.stream.buf.sav
+						self.stream.buf:thaw()
+					end
+
+					local chunk = self.stream:chunk(len)
+					chunks:send(chunk)
+					-- TODO: still need to package this up better
+					chunk.done:recv()
+					if chunk.len > 0 then
+						chunk:readin(chunk.len)
+						self.stream.buf:freeze(chunk.len)
+					end
+				end
 				err, value = self.parser:stream_next(self.stream)
 				if err then goto __cleanup end
-				if not value[1] then break end
-
-				local len = tonumber(value[2])
-
-				if self.stream.buf.sav > 0 then
-					len = len + self.stream.buf.sav
-					self.stream.buf:thaw()
-				end
-
-				local chunk = self.stream:chunk(len)
-				chunks:send(chunk)
-				-- TODO: still need to package this up better
-				chunk.done:recv()
-				if chunk.len > 0 then
-					chunk:readin(chunk.len)
-					self.stream.buf:freeze(chunk.len)
-				end
+				-- TODO: trailing headers
+				assert(not value[1])
+				chunks:close()
 			end
-			err, value = self.parser:stream_next(self.stream)
-			if err then goto __cleanup end
-			-- TODO: trailing headers
-			assert(not value[1])
-			chunks:close()
 		end
 	end
 
@@ -712,6 +721,8 @@ function Client_mt:request(method, path, params, headers, data)
 	end
 
 	local sender, recver = self.hub:pipe()
+	local request = {method=method}
+	self.response_to_request[sender] = request
 	self.responses:send(sender)
 	return nil, recver
 end
@@ -797,7 +808,7 @@ function Server_mt:__call()
 end
 
 
-function Server_mt:_response(response)
+function Server_mt:_response(request, response)
 	local err, value = response:recv()
 	if err then return err end
 	local status, headers, body = unpack(value)
@@ -833,8 +844,8 @@ function Server_mt:_response(response)
 	end
 	self.conn:send(EOL)
 
-	if no_content then
-		return self.conn:send()
+	if no_content or request.method == "HEAD" then
+		return
 	end
 	if type(body) == "string" then
 		return self.conn:send(body)
@@ -868,10 +879,13 @@ function Server_mt:_response(response)
 end
 
 
-function Server_mt:writer(responses)
+function Server_mt:writer(responses, response_to_request)
 	for response in responses do
-		local err = self:_response(response)
+		local request = response_to_request[response]
+		response_to_request[response] = nil
+		local err = self:_response(request, response)
 		response:close()
+		self.parser:reset()
 		if err then
 			self:close()
 			return
@@ -880,7 +894,7 @@ function Server_mt:writer(responses)
 end
 
 
-function Server_mt:reader(requests, responses)
+function Server_mt:reader(requests, responses, response_to_request)
 	while true do
 		local err, value
 
@@ -918,6 +932,7 @@ function Server_mt:reader(requests, responses)
 
 		local len = tonumber(value[3])
 		if len > 0 then req.body = self.stream:chunk(len) end
+		response_to_request[res_recver] = req
 		requests:send(req)
 		responses:send(res_recver)
 		if len > 0 then req.body.done:recv() end
@@ -951,8 +966,9 @@ local function Server(hub, conn, config)
 	local res_sender, res_recver = hub:pipe()
 	self.requests = req_recver
 
-	hub:spawn(function() self:reader(req_sender, res_sender) end)
-	hub:spawn(function() self:writer(res_recver) end)
+	local response_to_request = {}
+	hub:spawn(function() self:reader(req_sender, res_sender, response_to_request) end)
+	hub:spawn(function() self:writer(res_recver, response_to_request) end)
 
 	return self
 end
@@ -1033,6 +1049,7 @@ function HTTP_mt:connect(port, host, config)
 	m.stream = m.conn:stream()
 	m.parser = parser.Response(config)
 
+	m.response_to_request = {}
 	local res_sender, res_recver = self.hub:pipe()
 	self.hub:spawn(function() m:reader(res_recver) end)
 	m.responses = res_sender
