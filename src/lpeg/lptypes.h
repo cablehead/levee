@@ -9,10 +9,6 @@
 #define lptypes_h
 
 
-#if !defined(LPEG_DEBUG)
-#define NDEBUG
-#endif
-
 #include <assert.h>
 #include <limits.h>
 
