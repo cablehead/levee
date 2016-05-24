@@ -14,7 +14,9 @@ date.string = string.format(
 local version = Version{
 	major = 0,
 	minor = 3,
-	patch = 3,
+	patch = 4,
+	pre_release_name = "alpha",
+	pre_release_version = 1,
 }
 
 version.date = date

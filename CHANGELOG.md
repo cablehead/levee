@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.3.3 - 2016-5-21
+## 0.3.4-alpha
+
+
+## 0.3.3 - 2016-05-21
 
 * default pdeathsig to TERM. allow the signal to be configurable
 * clear sigmask when spawning threads on Linux
