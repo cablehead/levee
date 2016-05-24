@@ -80,7 +80,7 @@ end
 return {
 	usage = function()
     return ([[
-Usage: %s build [-o <exe] [-n <name>]
+Usage: %s build [-o <exe] [-n <name>] [--debug]
                    (<module> [module...] | -e <script>)
 
 Options:
@@ -99,6 +99,9 @@ Options:
 			if opt == nil then
 				local path = argv:next():gsub("/$", "")
 				table.insert(options.modules, path)
+
+			elseif opt == "debug" then
+				options.debug = true
 
 			elseif opt == "e" then
 				options.script = argv:next()
@@ -176,10 +179,6 @@ Options:
 			"cc",
 			"-std=c99", "-Wall", "-Wextra", "-Werror", "-pedantic",
 
-			-- TODO: make switchable with release
-			-- debug
-			-- "-g",
-
 			--release
 			"-O2", "-fomit-frame-pointer", "-march=native",
 
@@ -187,6 +186,8 @@ Options:
 			main, bundle,
 			"-o", options.exe,
 		}
+
+		if options.debug then table.insert(build, "-g") end
 
 		local platform = {
 			linux = {
