@@ -364,7 +364,7 @@ return {
 			w:write(("."):rep(5))
 
 			local check
-			h:spawn(function() check = {s:readn(buf:tail(), 20)} end)
+			h:spawn(function() check = {s:readn(buf:tail(), 20, 20)} end)
 			assert.equal(check, nil)
 
 			w:write(("."):rep(10))

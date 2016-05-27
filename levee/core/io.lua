@@ -381,10 +381,10 @@ end
 
 
 function Stream_mt:readn(buf, n, len)
+	len = len or n
 	local read = self.buf:move(buf, n)
-
 	if read < n then
-		local err, more = self.conn:readn(buf + read, n - read, len)
+		local err, more = self.conn:readn(buf + read, n - read, len - read)
 		if err then return err end
 		read = read + more
 	end

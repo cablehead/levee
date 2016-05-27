@@ -2,6 +2,7 @@
 
 ## 0.3.4-alpha
 
+* fix bug in stream:readn that could allow data to be over read
 
 ## 0.3.3 - 2016-05-21
 
