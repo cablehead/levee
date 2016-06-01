@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <signal.h>
 #include <sysexits.h>
 #include <err.h>
@@ -17,10 +18,19 @@ pmain (lua_State *L)
 	return 0;
 }
 
+static void
+cleanup (void)
+{
+	levee_destroy (state);
+	state = NULL;
+}
+
 int
 main (int argc, const char *argv[])
 {
 	signal (SIGPIPE, SIG_IGN);
+
+	atexit (cleanup);
 
 	state = levee_create ();
 	levee_set_arg (state, argc-1, argv+1);
@@ -31,6 +41,7 @@ main (int argc, const char *argv[])
 		rc = EX_DATAERR;
 	}
 	levee_destroy (state);
+	state = NULL;
 	return rc;
 }
 
