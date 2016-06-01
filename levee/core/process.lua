@@ -77,6 +77,8 @@ end
 
 function M_mt:spawn(name, options)
 	options = options or {}
+	options.pdeathsig = options.pdeathsig or C.SIGTERM
+
 	local io = options.io or {}
 
 	self:poweron()  -- boot child reaper
@@ -97,6 +99,12 @@ function M_mt:spawn(name, options)
 	if pid > 0 then
 		-- parent
 		local child = Process(self.hub, pid)
+
+		child.__gc = ffi.new("int[1]")
+		child.__gc[0] = pid
+		ffi.gc(child.__gc, function(pids)
+			C.kill(pids[0], options.pdeathsig)
+		end)
 
 		if not io.STDIN then
 			_.close(in_r)
@@ -173,5 +181,5 @@ end
 
 
 return function(hub)
-	return setmetatable({hub = hub, children = {}}, M_mt)
+	return setmetatable({hub = hub, children = setmetatable({}, {__mode="v"})}, M_mt)
 end

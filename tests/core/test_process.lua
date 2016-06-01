@@ -64,6 +64,19 @@ return {
 		child.done:recv()
 	end,
 
+	test_gc = function()
+		local h = levee.Hub()
+
+		local child = h.process:spawn("cat")
+		local pid = child.pid
+		assert.same({_.waitpid(pid, C.WNOHANG)}, {nil, 0, 0, 0})
+
+		child = nil
+		collectgarbage("collect")
+		collectgarbage("collect")
+		assert.same({_.waitpid(pid, C.WNOHANG)}, {nil, pid, 0, 15})
+	end,
+
 	test_default = function()
 		-- test leaving child processes stdin/out mapped to the parents
 		-- skipping as it's not really practical to run automatically
