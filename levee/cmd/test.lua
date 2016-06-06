@@ -356,8 +356,9 @@ end
 --
 --
 
-local function scan(path)
-	local command = ('find %s -type f -name "*.lua"'):format(path)
+local function scan(paths)
+	local command = ('find %s -type f -name "*.lua"'
+		):format(table.concat(paths, " "))
 	return io.popen(command):lines()
 end
 
@@ -439,11 +440,12 @@ end
 return {
 	usage = function()
 		return (
-			"Usage: %s test [-v] [-x] [-k <match>] [--cov] <path>"):format(meta.name)
+			"Usage: %s test [-v] [-x] [-k <match>] [--cov] <path>..."):format(
+				meta.name)
 	end,
 
 	parse = function(argv)
-		local options = {}
+		local options = {paths={}}
 
 		options.verbose = 0
 
@@ -457,20 +459,16 @@ return {
 			elseif opt == "k" then options.match = argv:next()
 			elseif opt == "cov" then options.cov = 1
 			elseif opt == nil then
-				if options.path then
-					io.stderr:write("path already supplied\n")
-					os.exit(1)
-				end
-				options.path = argv:next()
+				local path = argv:next()
+				path = path:gsub("/$", "")
+				table.insert(options.paths, path)
 			else return end
 		end
 
-		if not options.path then
+		if #options.paths == 0 then
 			io.stderr:write("path required\n")
 			os.exit(1)
 		end
-
-		options.path = options.path:gsub("/$", "")
 
 		return options
 	end,
@@ -494,7 +492,7 @@ return {
 
 		local start = _.time.now()
 
-		local path = _.path.dirname(options.path)
+		local path = _.path.dirname(options.paths[1])
 		package.path = string.format(
 			'./?/init.lua;%s/?.lua;%s/?/init.lua;%s/../?/init.lua;%s',
 				path, path, path, package.path)
@@ -515,7 +513,7 @@ return {
 		options.w = Writer(options.verbose >= 1)
 		options.stats = setmetatable({}, {__index = function() return 0 end})
 
-		for suite in scan(options.path) do
+		for suite in scan(options.paths) do
 			cov:ignore(suite)
 			run_suite(options, suite)
 			if options.exitfirst and options.stats.FAIL > 0 then break end

@@ -25,6 +25,7 @@
   unexpectedly crash
 * refactor iovec
 * improve handling of HEAD HTTP requests
+* add ability to specify more than one path to the test command
 
 ## 0.3.2 - 2016-02-24
 
