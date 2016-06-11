@@ -419,6 +419,9 @@ local function run_suite(options, suite)
 		for __, f in ipairs(deferred) do f() end
 		deferred = {}
 
+		collectgarbage("collect")
+		collectgarbage("collect")
+
 		if success and extra ~= 'IGNORE' then
 			if not extra then extra = 'PASS' end
 			options.w(

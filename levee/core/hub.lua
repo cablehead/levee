@@ -157,6 +157,16 @@ end
 
 
 function Hub_mt:spawn(f, a)
+	local info = debug.getinfo(f)
+	local foo = {
+		n = info.linedefined,
+		f = info.short_src,
+		nups = info.nups,
+		np = info.nparams, }
+
+	print(repr(foo))
+
+	self.stats.spawned = self.stats.spawned + 1
 	local co = coroutine.create(f)
 	self.ready:push({co, a})
 	self:continue()
@@ -321,6 +331,16 @@ end
 
 local function Hub()
 	local self = setmetatable({}, Hub_mt)
+
+	local stats = {}
+	stats.spawned = 0
+
+	self.__gc = ffi.new("int[1]")
+	ffi.gc(self.__gc, function()
+		print(repr(stats))
+	end)
+
+	self.stats = stats
 
 	self.ready = d.Fifo()
 	self.scheduled = d.Heap()
