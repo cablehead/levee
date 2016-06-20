@@ -5,6 +5,8 @@
 * fix bug in stream:readn that could allow data to be over read
 * use atexit to attempt to ensure main Lua state is destroyed so gcs run
 * setup a gc to kill spawned child processes
+* fix bug where HTTP client requests weren't notified on connection error
+
 
 ## 0.3.3 - 2016-05-21
 
