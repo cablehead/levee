@@ -619,6 +619,10 @@ return {
 		req.response:send({levee.HTTPStatus(200), {}, nil})
 		local err = req.response:send(17)
 		assert(err)
+
+		-- assert client is signaled
+		local err = res:recv()
+		assert(err)
 	end,
 
 	test_large_value = function()

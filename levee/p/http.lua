@@ -581,7 +581,9 @@ end
 
 
 function Client_mt:reader(responses)
+	local inprogress
 	for response in responses do
+		inprogress = response
 		local request = self.response_to_request[response]
 		self.response_to_request[response] = nil
 
@@ -660,9 +662,12 @@ function Client_mt:reader(responses)
 				chunks:close()
 			end
 		end
+		inprogress = nil
 	end
 
 	::__cleanup::
+	if inprogress then inprogress:close() end
+	for response in responses do responses:close() end
 	self:close()
 end
 
