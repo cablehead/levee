@@ -132,6 +132,9 @@ end
 
 
 function Hub_mt:_coresume(co, err, sender, value)
+	self.threads[co].n = self.threads[co].n + 1
+	local took = _.time.Timer()
+
 	if co ~= self._pcoro then
 		local status, target = coroutine.resume(co, err, sender, value)
 		if not status then
@@ -140,6 +143,9 @@ function Hub_mt:_coresume(co, err, sender, value)
 	else
 		coroutine.yield(err, sender, value)
 	end
+
+	took:finish()
+	self.threads[co].took = self.threads[co].took + took:nanoseconds()
 end
 
 
@@ -157,17 +163,21 @@ end
 
 
 function Hub_mt:spawn(f, a)
-	local info = debug.getinfo(f)
-	local foo = {
-		n = info.linedefined,
-		f = info.short_src,
-		nups = info.nups,
-		np = info.nparams, }
-
-	print(repr(foo))
-
-	self.stats.spawned = self.stats.spawned + 1
 	local co = coroutine.create(f)
+
+	local info = debug.getinfo(f)
+	self.threads[coroutine.running()].tree[co] = 1
+	self.threads[co] = {
+		info = {
+			n = info.linedefined,
+			f = info.short_src,
+			nups = info.nups,
+			np = info.nparams, },
+		n = 0,
+		took = 0,
+		tree = {}, }
+	self.stats.spawned = self.stats.spawned + 1
+
 	self.ready:push({co, a})
 	self:continue()
 end
@@ -335,12 +345,35 @@ local function Hub()
 	local stats = {}
 	stats.spawned = 0
 
+	local threads = {}
+	local main = coroutine.running()
+
 	self.__gc = ffi.new("int[1]")
 	ffi.gc(self.__gc, function()
-		print(repr(stats))
+		local function d(i, thread)
+			print(("%s%-50s %3s %10.2f"):format(
+				(" "):rep(i*4),
+				("%s:%s"):format(thread.info.f, thread.info.n),
+				thread.n,
+				tonumber(thread.took)/1000))
+		end
+
+		local function p(co, i)
+			i = i or 0
+
+			local thread = self.threads[co]
+			d(i, thread)
+
+			for co in pairs(thread.tree) do
+				p(co, i + 1)
+			end
+		end
+		print("---")
+		p(main)
 	end)
 
 	self.stats = stats
+	self.threads = threads
 
 	self.ready = d.Fifo()
 	self.scheduled = d.Heap()
@@ -358,6 +391,18 @@ local function Hub()
 			log:fatal(err .. "\n\nmain loop crashed")
 		end
 	end)
+
+	self.threads = {}
+	local info = debug.getinfo(2)
+	self.threads[self._pcoro] = {
+		info = {
+			n = info.linedefined,
+			f = info.short_src,
+			nups = info.nups,
+			np = info.nparams, },
+		n = 0,
+		took = 0,
+		tree = {}, }
 
 	self.io = require("levee.core.io")(self)
 	self.signal = require("levee.core.signal")(self)
