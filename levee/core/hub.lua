@@ -376,7 +376,7 @@ local function Hub()
 	ffi.gc(self.__gc, function()
 		local function d(stack, i)
 			print(("%s%-50s %3s %3s %3s %10.2f"):format(
-				(" "):rep(i*4),
+				("|       "):rep(i),
 				stack.f,
 				stack.spawned,
 				stack.term,
