@@ -147,7 +147,7 @@ function Hub_mt:_coresume(co, err, sender, value)
 
 	local stack = self.trace.threads[co]
 	stack.n = stack.n + 1
-	stack.took = stack.took + took:nanoseconds()
+	stack.took = stack.took + tonumber(took:nanoseconds())
 	-- clean up when a thread completes
 	if coroutine.status(co) == "dead" then
 		stack.term = stack.term + 1
@@ -381,7 +381,7 @@ local function Hub()
 				stack.spawned,
 				stack.term,
 				stack.n,
-				tonumber(stack.took)/1000))
+				stack.took/1000))
 		end
 
 		local function p(stack, i)
@@ -407,8 +407,13 @@ local function Hub()
 
 		print()
 		print("----")
+
 		p(trace.stacks[trace.main])
 		print(trace.spawned, trace.term)
+
+		local p = require("levee.p")
+		local err, buf = p.json.encode(trace.stacks)
+		print(buf:take())
 	end)
 
 	self.trace = trace
