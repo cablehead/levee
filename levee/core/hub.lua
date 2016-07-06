@@ -132,7 +132,6 @@ end
 
 
 function Hub_mt:_coresume(co, err, sender, value)
-	self.threads[co].n = self.threads[co].n + 1
 	local took = _.time.Timer()
 
 	if co ~= self._pcoro then
@@ -145,7 +144,9 @@ function Hub_mt:_coresume(co, err, sender, value)
 	end
 
 	took:finish()
-	self.threads[co].took = self.threads[co].took + took:nanoseconds()
+	local stack = self:stack(co)
+	stack.n = stack.n + 1
+	stack.took = stack.took + took:nanoseconds()
 end
 
 
@@ -162,17 +163,27 @@ function Hub_mt:_coyield(co, err, sender, value)
 end
 
 
+function Hub_mt:stack(co)
+	return self.trace.stacks[self.trace.threads[co]]
+end
+
+
 function Hub_mt:spawn(f, a)
+	local info = debug.getinfo(f)
+	local source = ("%s:%s"):format(info.short_src, info.linedefined)
+
 	local co = coroutine.create(f)
 
-	local info = debug.getinfo(f)
-	self.threads[coroutine.running()].tree[co] = 1
-	self.threads[co] = {
-		f = ("%s:%s"):format(info.short_src, info.linedefined),
+	self.trace.threads[co] = source
+	self:stack(coroutine.running()).tree[source] = 1
+	self.trace.stacks[source] = self.trace.stacks[source] or {
+		f = source,
+		spawned = 0,
 		n = 0,
 		took = 0,
 		tree = {}, }
-	self.stats.spawned = self.stats.spawned + 1
+	self.trace.stacks[source].spawned = self.trace.stacks[source].spawned + 1
+	self.trace.spawned = self.trace.spawned + 1
 
 	self.ready:push({co, a})
 	self:continue()
@@ -338,36 +349,45 @@ end
 local function Hub()
 	local self = setmetatable({}, Hub_mt)
 
-	local stats = {}
-	stats.spawned = 0
+	local trace = {}
+	trace.spawned = 0
+	trace.threads = {}
+	trace.stacks = {}
 
-	local threads = {}
-	local main = coroutine.running()
+	local info = debug.getinfo(2)
+	trace.main = ("%s:%s"):format(info.short_src, info.linedefined)
+	trace.threads[coroutine.running()] = trace.main
+	trace.stacks[trace.main] = {
+		f = trace.main,
+		spawned = 1,
+		n = 0,
+		took = 0,
+		tree = {}, }
 
 	self.__gc = ffi.new("int[1]")
 	ffi.gc(self.__gc, function()
-		local function d(i, thread)
-			print(("%s%-50s %3s %10.2f"):format(
+		local function d(stack, i)
+			print(("%s%-50s %3s %3s %10.2f"):format(
 				(" "):rep(i*4),
-				thread.f,
-				thread.n,
-				tonumber(thread.took)/1000))
+				stack.f,
+				stack.spawned,
+				stack.n,
+				tonumber(stack.took)/1000))
 		end
 
-		local function p(co, i)
+		local function p(name, i)
 			i = i or 0
-			local thread = self.threads[co]
-			d(i, thread)
-			for co in pairs(thread.tree) do
-				p(co, i + 1)
-			end
+			local stack = trace.stacks[name]
+			d(stack, i)
+			for name in pairs(stack.tree) do p(name, i + 1) end
 		end
 
-		p(main)
+		print()
+		print("----")
+		p(trace.main)
 	end)
 
-	self.stats = stats
-	self.threads = threads
+	self.trace = trace
 
 	self.ready = d.Fifo()
 	self.scheduled = d.Heap()
@@ -385,14 +405,6 @@ local function Hub()
 			log:fatal(err .. "\n\nmain loop crashed")
 		end
 	end)
-
-	self.threads = {}
-	local info = debug.getinfo(2)
-	self.threads[self._pcoro] = {
-		f = ("%s:%s"):format(info.short_src, info.linedefined),
-		n = 0,
-		took = 0,
-		tree = {}, }
 
 	self.io = require("levee.core.io")(self)
 	self.signal = require("levee.core.signal")(self)
