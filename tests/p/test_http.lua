@@ -361,61 +361,67 @@ return {
 
 		local h = levee.Hub()
 
-		-- origin
-		local err, origin = h.http:listen()
-		local err, origin_addr = origin:addr()
-		h:spawn(function()
-			for conn in origin do
-				h:spawn(function()
-					for req in conn do
-						req.response:send({levee.HTTPStatus(200), {}, 10000})
-						for i = 1, 10 do
-							req.conn:write(("."):rep(1000))
-							h:continue()
+		local function run()
+			-- origin
+			local err, origin = h.http:listen()
+			local err, origin_addr = origin:addr()
+			h:spawn(function()
+				for conn in origin do
+					h:spawn(function()
+						for req in conn do
+							req.response:send({levee.HTTPStatus(200), {}, 10000})
+							for i = 1, 10 do
+								req.conn:write(("."):rep(1000))
+								h:continue()
+							end
+							req.response:close()
 						end
-						req.response:close()
-					end
-				end)
-			end
-		end)
+					end)
+				end
+			end)
 
-		-- proxy
-		local err, proxy = h.http:listen()
-		local err, proxy_addr = proxy:addr()
-		h:spawn(function()
-			for conn in proxy do
-				h:spawn(function()
-					local err, backend = h.http:connect(origin_addr:port())
-					for req in conn do
-						local err, res = backend:get(req.path)
-						local err, res = res:recv()
-						req.response:send({levee.HTTPStatus(res.code), {}, #res.body})
-						res.body:splice(req.conn)
-						req.response:close()
-					end
-					backend:close()
-				end)
-			end
-		end)
+			-- proxy
+			local err, proxy = h.http:listen()
+			local err, proxy_addr = proxy:addr()
+			h:spawn(function()
+				for conn in proxy do
+					h:spawn(function()
+						local err, backend = h.http:connect(origin_addr:port())
+						for req in conn do
+							local err, res = backend:get(req.path)
+							local err, res = res:recv()
+							req.response:send({levee.HTTPStatus(res.code), {}, #res.body})
+							res.body:splice(req.conn)
+							req.response:close()
+						end
+						backend:close()
+					end)
+				end
+			end)
 
-		-- client
-		local err, c = h.http:connect(proxy_addr:port())
+			-- client
+			local err, c = h.http:connect(proxy_addr:port())
 
-		local err, response = c:get("/")
-		local err, response = response:recv()
-		assert.equal(response.code, 200)
-		assert(#response.body:tostring() == 10000)
+			local err, response = c:get("/")
+			local err, response = response:recv()
+			assert.equal(response.code, 200)
+			assert(#response.body:tostring() == 10000)
 
-		local err, response = c:get("/")
-		local err, response = response:recv()
-		assert.equal(response.code, 200)
-		assert(#response.body:tostring() == 10000)
+			local err, response = c:get("/")
+			local err, response = response:recv()
+			assert.equal(response.code, 200)
+			assert(#response.body:tostring() == 10000)
 
-		c:close()
-		proxy:close()
-		origin:close()
-		h:sleep(100)
-		assert(not h:in_use())
+			c:close()
+			proxy:close()
+			origin:close()
+			h:sleep(100)
+			assert(not h:in_use())
+		end
+
+		for i = 1, 3 do
+			run()
+		end
 	end,
 
 	test_sendfile = function()
