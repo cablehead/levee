@@ -151,6 +151,7 @@ function Hub_mt:_coresume(co, err, sender, value)
 	-- clean up when a thread completes
 	if coroutine.status(co) == "dead" then
 		stack.term = stack.term + 1
+		self.trace.term = self.trace.term + 1
 		self.trace.threads[co] = nil
 	end
 end
@@ -356,6 +357,7 @@ local function Hub()
 
 	local trace = {}
 	trace.spawned = 0
+	trace.term = 0
 	trace.threads = {}
 	trace.stacks = {}
 
@@ -385,28 +387,28 @@ local function Hub()
 		local function p(stack, i)
 			i = i or 0
 			d(stack, i)
+
+			local totals = {f = "-"}
+			for k, v in pairs(stack) do
+				if k ~= "f" and k ~= "tree" then totals[k] = v end
+			end
+
 			if next(stack.tree) then
-				local totals = {
-					f = "-",
-					spawned=stack.spawned,
-					term=stack.term,
-					n=stack.n,
-					took=stack.took,
-					}
 				for name, substack in pairs(stack.tree) do
-					p(substack, i + 1)
-					totals.spawned = totals.spawned + substack.spawned
-					totals.term = totals.term + substack.term
-					totals.n = totals.n + substack.n
-					totals.took = totals.took + substack.took
+					local subtotals = p(substack, i + 1)
+					for k, v in pairs(subtotals) do
+						if k ~= "f" and k ~= "tree" then totals[k] = totals[k] + v end
+					end
 				end
 				d(totals, i)
 			end
+			return totals
 		end
 
 		print()
 		print("----")
 		p(trace.stacks[trace.main])
+		print(trace.spawned, trace.term)
 	end)
 
 	self.trace = trace
