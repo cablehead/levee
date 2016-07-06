@@ -168,11 +168,7 @@ function Hub_mt:spawn(f, a)
 	local info = debug.getinfo(f)
 	self.threads[coroutine.running()].tree[co] = 1
 	self.threads[co] = {
-		info = {
-			n = info.linedefined,
-			f = info.short_src,
-			nups = info.nups,
-			np = info.nparams, },
+		f = ("%s:%s"):format(info.short_src, info.linedefined),
 		n = 0,
 		took = 0,
 		tree = {}, }
@@ -353,22 +349,20 @@ local function Hub()
 		local function d(i, thread)
 			print(("%s%-50s %3s %10.2f"):format(
 				(" "):rep(i*4),
-				("%s:%s"):format(thread.info.f, thread.info.n),
+				thread.f,
 				thread.n,
 				tonumber(thread.took)/1000))
 		end
 
 		local function p(co, i)
 			i = i or 0
-
 			local thread = self.threads[co]
 			d(i, thread)
-
 			for co in pairs(thread.tree) do
 				p(co, i + 1)
 			end
 		end
-		print("---")
+
 		p(main)
 	end)
 
@@ -395,11 +389,7 @@ local function Hub()
 	self.threads = {}
 	local info = debug.getinfo(2)
 	self.threads[self._pcoro] = {
-		info = {
-			n = info.linedefined,
-			f = info.short_src,
-			nups = info.nups,
-			np = info.nparams, },
+		f = ("%s:%s"):format(info.short_src, info.linedefined),
 		n = 0,
 		took = 0,
 		tree = {}, }
