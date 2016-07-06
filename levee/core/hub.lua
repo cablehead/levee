@@ -385,7 +385,23 @@ local function Hub()
 		local function p(stack, i)
 			i = i or 0
 			d(stack, i)
-			for name, substack in pairs(stack.tree) do p(substack, i + 1) end
+			if next(stack.tree) then
+				local totals = {
+					f = "-",
+					spawned=stack.spawned,
+					term=stack.term,
+					n=stack.n,
+					took=stack.took,
+					}
+				for name, substack in pairs(stack.tree) do
+					p(substack, i + 1)
+					totals.spawned = totals.spawned + substack.spawned
+					totals.term = totals.term + substack.term
+					totals.n = totals.n + substack.n
+					totals.took = totals.took + substack.took
+				end
+				d(totals, i)
+			end
 		end
 
 		print()
