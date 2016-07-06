@@ -144,7 +144,7 @@ function Hub_mt:_coresume(co, err, sender, value)
 	end
 
 	took:finish()
-	local stack = self:stack(co)
+	local stack = self.trace.threads[co]
 	stack.n = stack.n + 1
 	stack.took = stack.took + took:nanoseconds()
 end
@@ -163,26 +163,24 @@ function Hub_mt:_coyield(co, err, sender, value)
 end
 
 
-function Hub_mt:stack(co)
-	return self.trace.stacks[self.trace.threads[co]]
-end
-
-
 function Hub_mt:spawn(f, a)
+	local co = coroutine.create(f)
+
 	local info = debug.getinfo(f)
 	local source = ("%s:%s"):format(info.short_src, info.linedefined)
 
-	local co = coroutine.create(f)
-
-	self.trace.threads[co] = source
-	self:stack(coroutine.running()).tree[source] = 1
-	self.trace.stacks[source] = self.trace.stacks[source] or {
+	local parent = self.trace.threads[coroutine.running()]
+	local stack = parent.tree[source] or {
 		f = source,
 		spawned = 0,
 		n = 0,
 		took = 0,
 		tree = {}, }
-	self.trace.stacks[source].spawned = self.trace.stacks[source].spawned + 1
+
+	parent.tree[source] = stack
+	self.trace.threads[co] = stack
+
+	stack.spawned = stack.spawned + 1
 	self.trace.spawned = self.trace.spawned + 1
 
 	self.ready:push({co, a})
@@ -356,13 +354,13 @@ local function Hub()
 
 	local info = debug.getinfo(2)
 	trace.main = ("%s:%s"):format(info.short_src, info.linedefined)
-	trace.threads[coroutine.running()] = trace.main
 	trace.stacks[trace.main] = {
 		f = trace.main,
 		spawned = 1,
 		n = 0,
 		took = 0,
 		tree = {}, }
+	trace.threads[coroutine.running()] = trace.stacks[trace.main]
 
 	self.__gc = ffi.new("int[1]")
 	ffi.gc(self.__gc, function()
@@ -375,16 +373,15 @@ local function Hub()
 				tonumber(stack.took)/1000))
 		end
 
-		local function p(name, i)
+		local function p(stack, i)
 			i = i or 0
-			local stack = trace.stacks[name]
 			d(stack, i)
-			for name in pairs(stack.tree) do p(name, i + 1) end
+			for name, substack in pairs(stack.tree) do p(substack, i + 1) end
 		end
 
 		print()
 		print("----")
-		p(trace.main)
+		p(trace.stacks[trace.main])
 	end)
 
 	self.trace = trace
