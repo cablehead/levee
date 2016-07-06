@@ -144,9 +144,15 @@ function Hub_mt:_coresume(co, err, sender, value)
 	end
 
 	took:finish()
+
 	local stack = self.trace.threads[co]
 	stack.n = stack.n + 1
 	stack.took = stack.took + took:nanoseconds()
+	-- clean up when a thread completes
+	if coroutine.status(co) == "dead" then
+		stack.term = stack.term + 1
+		self.trace.threads[co] = nil
+	end
 end
 
 
@@ -173,6 +179,7 @@ function Hub_mt:spawn(f, a)
 	local stack = parent.tree[source] or {
 		f = source,
 		spawned = 0,
+		term = 0,
 		n = 0,
 		took = 0,
 		tree = {}, }
@@ -357,6 +364,7 @@ local function Hub()
 	trace.stacks[trace.main] = {
 		f = trace.main,
 		spawned = 1,
+		term = 0,
 		n = 0,
 		took = 0,
 		tree = {}, }
@@ -365,10 +373,11 @@ local function Hub()
 	self.__gc = ffi.new("int[1]")
 	ffi.gc(self.__gc, function()
 		local function d(stack, i)
-			print(("%s%-50s %3s %3s %10.2f"):format(
+			print(("%s%-50s %3s %3s %3s %10.2f"):format(
 				(" "):rep(i*4),
 				stack.f,
 				stack.spawned,
+				stack.term,
 				stack.n,
 				tonumber(stack.took)/1000))
 		end
