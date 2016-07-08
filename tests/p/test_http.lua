@@ -355,8 +355,6 @@ return {
 	end,
 
 	test_proxy = function()
-		print()
-		print()
 		local levee = require("levee")
 
 		local h = levee.Hub()

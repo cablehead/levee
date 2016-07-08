@@ -447,18 +447,15 @@ function Hub_mt:main()
 end
 
 
-local function Hub()
+local function Hub(options)
+	options = options or {}
+
 	local self = setmetatable({}, Hub_mt)
 
-	local trace = Trace(self)
-	self.trace = trace
-
-	self.__gc = ffi.new("int[1]")
-	ffi.gc(self.__gc, function()
-		print()
-		print("----")
-		trace:pprint()
-	end)
+	if options.trace then
+		local trace = Trace(self)
+		self.trace = trace
+	end
 
 	self.ready = d.Fifo()
 	self.scheduled = d.Heap()
