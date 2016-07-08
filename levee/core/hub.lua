@@ -53,7 +53,7 @@ local Trace_mt = {}
 Trace_mt.__index = Trace_mt
 
 
-function Trace_mt:pprint()
+function Trace_mt:pprint(state)
 		local function d(stack, i)
 			print(("%s%-50s %3s %3s %3s %10.2f"):format(
 				("|       "):rep(i),
@@ -84,6 +84,8 @@ function Trace_mt:pprint()
 			end
 			return totals
 		end
+
+		state = state or self
 		p(self.stacks[self.main])
 end
 
