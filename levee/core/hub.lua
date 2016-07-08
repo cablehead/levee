@@ -109,6 +109,17 @@ function Trace_mt:capture(f, co)
 end
 
 
+function Trace_mt:state()
+	local state = {}
+	for k, v in pairs(self) do
+		if k ~= "threads" and k ~= "hub" then
+			state[k] = v
+		end
+	end
+	return state
+end
+
+
 local function Trace(hub)
 	local self = setmetatable({hub=hub}, Trace_mt)
 
