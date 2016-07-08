@@ -66,6 +66,7 @@ end
 
 function Log_mt:fatal(...)
 	self:log("FATAL", ...)
+	C.sleep(1)
 	os.exit(1)
 end
 

@@ -24,5 +24,6 @@ int chdir(const char *path);
 char *getcwd(char *buf, size_t size);
 char *realpath(const char *restrict n, char *restrict r);
 
-
 void abort (void);
+
+unsigned int sleep(unsigned int seconds);
