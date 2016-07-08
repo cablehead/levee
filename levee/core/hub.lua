@@ -88,6 +88,27 @@ function Trace_mt:pprint()
 end
 
 
+function Trace_mt:capture(f, co)
+	local info = debug.getinfo(f)
+	local source = ("%s:%s"):format(info.short_src, info.linedefined)
+
+	local parent = self.threads[coroutine.running()]
+	local stack = parent.tree[source] or {
+		f = source,
+		spawned = 0,
+		term = 0,
+		n = 0,
+		took = 0,
+		tree = {}, }
+
+	parent.tree[source] = stack
+	self.threads[co] = stack
+
+	stack.spawned = stack.spawned + 1
+	self.spawned = self.spawned + 1
+end
+
+
 local function Trace(hub)
 	local self = setmetatable({hub=hub}, Trace_mt)
 
@@ -129,27 +150,16 @@ local function Trace(hub)
 
 	hub.spawn = function(hub, f, a)
 		local co = coroutine.create(f)
-
-		local info = debug.getinfo(f)
-		local source = ("%s:%s"):format(info.short_src, info.linedefined)
-
-		local parent = self.threads[coroutine.running()]
-		local stack = parent.tree[source] or {
-			f = source,
-			spawned = 0,
-			term = 0,
-			n = 0,
-			took = 0,
-			tree = {}, }
-
-		parent.tree[source] = stack
-		self.threads[co] = stack
-
-		stack.spawned = stack.spawned + 1
-		self.spawned = self.spawned + 1
-
+		self:capture(f, co)
 		hub.ready:push({co, a})
 		hub:continue()
+	end
+
+	hub.spawn_later = function (hub, ms, f)
+		local co = coroutine.create(f)
+		self:capture(f, co)
+		ms = hub.poller:abstime(ms)
+		hub.scheduled:push(ms, co)
 	end
 
 	return self
@@ -271,8 +281,8 @@ end
 
 
 function Hub_mt:spawn_later(ms, f)
-	ms = self.poller:abstime(ms)
 	local co = coroutine.create(f)
+	ms = self.poller:abstime(ms)
 	self.scheduled:push(ms, co)
 end
 
