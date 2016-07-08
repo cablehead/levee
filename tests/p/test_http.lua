@@ -354,10 +354,9 @@ return {
 		assert(not h:in_use())
 	end,
 
-	test_proxy = function()
+	test_proxy = function(h)
 		local levee = require("levee")
-
-		local h = levee.Hub()
+		local h = h or levee.Hub()
 
 		local function run()
 			-- origin

@@ -85,8 +85,8 @@ function Trace_mt:pprint(state)
 			return totals
 		end
 
-		state = state or self
-		p(self.stacks[self.main])
+		state = state or self.state
+		p(state.stacks[state.main])
 end
 
 
@@ -107,74 +107,95 @@ function Trace_mt:capture(f, co)
 	self.threads[co] = stack
 
 	stack.spawned = stack.spawned + 1
-	self.spawned = self.spawned + 1
+	self.state.spawned = self.state.spawned + 1
 end
 
 
-function Trace_mt:state()
-	local state = {}
-	for k, v in pairs(self) do
-		if k ~= "threads" and k ~= "hub" then
-			state[k] = v
-		end
-	end
-	return state
-end
-
-
-local function Trace(hub)
-	local self = setmetatable({hub=hub}, Trace_mt)
-
-	self.hub = hub
-	self.spawned = 0
-	self.term = 0
-	self.threads = {}
-	self.stacks = {}
-
-	local info = debug.getinfo(3)
-	self.main = ("%s:%s"):format(info.short_src, info.linedefined)
-
-	self.stacks[self.main] = {
-		f = self.main,
-		spawned = 1,
-		term = 0,
-		n = 0,
-		took = 0,
-		tree = {}, }
-	self.threads[coroutine.running()] = self.stacks[self.main]
-
-	-- patch Hub
-	local _coresume = hub._coresume
-	hub._coresume = function(hub, co, err, sender, value)
+function Trace_mt:patch()
+	self.hub._coresume = function(hub, co, err, sender, value)
 		local took = _.time.Timer()
-		_coresume(hub, co, err, sender, value)
+		self.save._coresume(hub, co, err, sender, value)
 		took:finish()
 
-		local stack = self.threads[co]
-		stack.n = stack.n + 1
-		stack.took = stack.took + tonumber(took:nanoseconds())
-		-- clean up when a thread completes
-		if coroutine.status(co) == "dead" then
-			stack.term = stack.term + 1
-			self.term = self.term + 1
-			self.threads[co] = nil
+		if self.state and self.threads[co] then
+			local stack = self.threads[co]
+			stack.n = stack.n + 1
+			stack.took = stack.took + tonumber(took:nanoseconds())
+			-- clean up when a thread completes
+			if coroutine.status(co) == "dead" then
+				stack.term = stack.term + 1
+				self.state.term = self.state.term + 1
+				self.threads[co] = nil
+			end
 		end
 	end
 
-	hub.spawn = function(hub, f, a)
+	self.hub.spawn = function(hub, f, a)
 		local co = coroutine.create(f)
 		self:capture(f, co)
 		hub.ready:push({co, a})
 		hub:continue()
 	end
 
-	hub.spawn_later = function (hub, ms, f)
+	self.hub.spawn_later = function (hub, ms, f)
 		local co = coroutine.create(f)
 		self:capture(f, co)
 		ms = hub.poller:abstime(ms)
 		hub.scheduled:push(ms, co)
 	end
+end
 
+
+function Trace_mt:restore()
+	for k, v in pairs(self.save) do self.hub[k] = v end
+end
+
+
+function Trace_mt:start()
+	assert(not self.state)
+
+	self.threads = {}
+
+	self.state = {}
+	self.state.spawned = 0
+	self.state.term = 0
+	self.state.stacks = {}
+	self.state.main = self.main
+
+	self.state.stacks[self.main] = {
+		f = self.main,
+		spawned = 1,
+		term = 0,
+		n = 0,
+		took = 0,
+		tree = {}, }
+
+	self.threads[coroutine.running()] = self.state.stacks[self.main]
+
+	self:patch()
+end
+
+
+function Trace_mt:stop()
+	self:restore()
+	self.threads = nil
+	self.state = nil
+end
+
+
+local function Trace(hub)
+	local self = setmetatable({}, Trace_mt)
+
+	self.hub = hub
+
+	self.save = {
+		_coresume = hub._coresume,
+		spawn = hub.spawn,
+		spawn_later = hub.spawn_later, }
+
+	local info = debug.getinfo(3)
+	self.main = ("%s:%s"):format(info.short_src, info.linedefined)
+	self.co = coroutine.running()
 	return self
 end
 
@@ -454,11 +475,6 @@ local function Hub(options)
 
 	local self = setmetatable({}, Hub_mt)
 
-	if options.trace then
-		local trace = Trace(self)
-		self.trace = trace
-	end
-
 	self.ready = d.Fifo()
 	self.scheduled = d.Heap()
 
@@ -489,6 +505,8 @@ local function Hub(options)
 	self.http = require("levee.p.http")(self)
 	self.consul = require("levee.app.consul")(self)
 
+	self.trace = Trace(self)
+	if options.trace then self.trace:start() end
 	return self
 end
 

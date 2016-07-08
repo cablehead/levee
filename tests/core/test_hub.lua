@@ -179,4 +179,22 @@ return {
 		end
 		h:spawn(function() foo() end)
 	end,
+
+	test_trace = function()
+		local filename = debug.getinfo(1, 'S').source:sub(2)
+		local M = loadfile(_.path.dirname(filename) .. "/../p/test_http.lua")()
+
+		local h = levee.Hub()
+
+		h.trace:start()
+		M.test_proxy(h)
+		-- h.trace:pprint()
+
+		h.trace:stop()
+		M.test_proxy(h)
+
+		h.trace:start()
+		M.test_proxy(h)
+		-- h.trace:pprint()
+	end,
 }
