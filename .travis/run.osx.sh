@@ -1,4 +1,4 @@
-levee test -v tests/
+levee test -vv tests/
 CODE=$?
 if [[ $CODE -eq 139 ]]; then
 	GLOB="/Library/Logs/DiagnosticReports/levee*"

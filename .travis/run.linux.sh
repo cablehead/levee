@@ -1,3 +1,3 @@
-levee test -v tests/
+levee test -vv tests/
 CODE=$?
 exit $CODE
