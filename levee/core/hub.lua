@@ -49,6 +49,113 @@ local function State(hub)
 end
 
 
+local Trace_mt = {}
+Trace_mt.__index = Trace_mt
+
+
+function Trace_mt:pprint()
+		local function d(stack, i)
+			print(("%s%-50s %3s %3s %3s %10.2f"):format(
+				("|       "):rep(i),
+				stack.f,
+				stack.spawned,
+				stack.term,
+				stack.n,
+				stack.took/1000))
+		end
+
+		local function p(stack, i)
+			i = i or 0
+			d(stack, i)
+
+			local totals = {f = "-"}
+			for k, v in pairs(stack) do
+				if k ~= "f" and k ~= "tree" then totals[k] = v end
+			end
+
+			if next(stack.tree) then
+				for name, substack in pairs(stack.tree) do
+					local subtotals = p(substack, i + 1)
+					for k, v in pairs(subtotals) do
+						if k ~= "f" and k ~= "tree" then totals[k] = totals[k] + v end
+					end
+				end
+				d(totals, i)
+			end
+			return totals
+		end
+		p(self.stacks[self.main])
+end
+
+
+local function Trace(hub)
+	local self = setmetatable({hub=hub}, Trace_mt)
+
+	self.hub = hub
+	self.spawned = 0
+	self.term = 0
+	self.threads = {}
+	self.stacks = {}
+
+	local info = debug.getinfo(3)
+	self.main = ("%s:%s"):format(info.short_src, info.linedefined)
+
+	self.stacks[self.main] = {
+		f = self.main,
+		spawned = 1,
+		term = 0,
+		n = 0,
+		took = 0,
+		tree = {}, }
+	self.threads[coroutine.running()] = self.stacks[self.main]
+
+	-- patch Hub
+	local _coresume = hub._coresume
+	hub._coresume = function(hub, co, err, sender, value)
+		local took = _.time.Timer()
+		_coresume(hub, co, err, sender, value)
+		took:finish()
+
+		local stack = self.threads[co]
+		stack.n = stack.n + 1
+		stack.took = stack.took + tonumber(took:nanoseconds())
+		-- clean up when a thread completes
+		if coroutine.status(co) == "dead" then
+			stack.term = stack.term + 1
+			self.term = self.term + 1
+			self.threads[co] = nil
+		end
+	end
+
+	hub.spawn = function(hub, f, a)
+		local co = coroutine.create(f)
+
+		local info = debug.getinfo(f)
+		local source = ("%s:%s"):format(info.short_src, info.linedefined)
+
+		local parent = self.threads[coroutine.running()]
+		local stack = parent.tree[source] or {
+			f = source,
+			spawned = 0,
+			term = 0,
+			n = 0,
+			took = 0,
+			tree = {}, }
+
+		parent.tree[source] = stack
+		self.threads[co] = stack
+
+		stack.spawned = stack.spawned + 1
+		self.spawned = self.spawned + 1
+
+		hub.ready:push({co, a})
+		hub:continue()
+	end
+
+	return self
+end
+
+
 local Hub_mt = {}
 Hub_mt.__index = Hub_mt
 
@@ -132,8 +239,6 @@ end
 
 
 function Hub_mt:_coresume(co, err, sender, value)
-	local took = _.time.Timer()
-
 	if co ~= self._pcoro then
 		local status, target = coroutine.resume(co, err, sender, value)
 		if not status then
@@ -141,18 +246,6 @@ function Hub_mt:_coresume(co, err, sender, value)
 		end
 	else
 		coroutine.yield(err, sender, value)
-	end
-
-	took:finish()
-
-	local stack = self.trace.threads[co]
-	stack.n = stack.n + 1
-	stack.took = stack.took + tonumber(took:nanoseconds())
-	-- clean up when a thread completes
-	if coroutine.status(co) == "dead" then
-		stack.term = stack.term + 1
-		self.trace.term = self.trace.term + 1
-		self.trace.threads[co] = nil
 	end
 end
 
@@ -172,25 +265,6 @@ end
 
 function Hub_mt:spawn(f, a)
 	local co = coroutine.create(f)
-
-	local info = debug.getinfo(f)
-	local source = ("%s:%s"):format(info.short_src, info.linedefined)
-
-	local parent = self.trace.threads[coroutine.running()]
-	local stack = parent.tree[source] or {
-		f = source,
-		spawned = 0,
-		term = 0,
-		n = 0,
-		took = 0,
-		tree = {}, }
-
-	parent.tree[source] = stack
-	self.trace.threads[co] = stack
-
-	stack.spawned = stack.spawned + 1
-	self.trace.spawned = self.trace.spawned + 1
-
 	self.ready:push({co, a})
 	self:continue()
 end
@@ -355,68 +429,15 @@ end
 local function Hub()
 	local self = setmetatable({}, Hub_mt)
 
-	local trace = {}
-	trace.spawned = 0
-	trace.term = 0
-	trace.threads = {}
-	trace.stacks = {}
-
-	local info = debug.getinfo(2)
-	trace.main = ("%s:%s"):format(info.short_src, info.linedefined)
-	trace.stacks[trace.main] = {
-		f = trace.main,
-		spawned = 1,
-		term = 0,
-		n = 0,
-		took = 0,
-		tree = {}, }
-	trace.threads[coroutine.running()] = trace.stacks[trace.main]
+	local trace = Trace(self)
+	self.trace = trace
 
 	self.__gc = ffi.new("int[1]")
 	ffi.gc(self.__gc, function()
-		local function d(stack, i)
-			print(("%s%-50s %3s %3s %3s %10.2f"):format(
-				("|       "):rep(i),
-				stack.f,
-				stack.spawned,
-				stack.term,
-				stack.n,
-				stack.took/1000))
-		end
-
-		local function p(stack, i)
-			i = i or 0
-			d(stack, i)
-
-			local totals = {f = "-"}
-			for k, v in pairs(stack) do
-				if k ~= "f" and k ~= "tree" then totals[k] = v end
-			end
-
-			if next(stack.tree) then
-				for name, substack in pairs(stack.tree) do
-					local subtotals = p(substack, i + 1)
-					for k, v in pairs(subtotals) do
-						if k ~= "f" and k ~= "tree" then totals[k] = totals[k] + v end
-					end
-				end
-				d(totals, i)
-			end
-			return totals
-		end
-
 		print()
 		print("----")
-
-		p(trace.stacks[trace.main])
-		print(trace.spawned, trace.term)
-
-		local p = require("levee.p")
-		local err, buf = p.json.encode(trace.stacks)
-		print(buf:take())
+		trace:pprint()
 	end)
-
-	self.trace = trace
 
 	self.ready = d.Fifo()
 	self.scheduled = d.Heap()
