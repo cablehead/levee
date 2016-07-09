@@ -190,10 +190,13 @@ return {
 		local err, serve = h.stream:listen()
 		serve:close()
 
-		h.trace:context(function()
+		local a, b = h.trace:context(function()
 			local err, serve = h.stream:listen()
 			serve:close()
+			return 1, 2
 		end)
+		assert.equal(a, 1)
+		assert.equal(b, 2)
 
 		-- h.trace:pprint()
 		-- print()
