@@ -181,20 +181,42 @@ return {
 	end,
 
 	test_trace = function()
+		-- print()
+		-- print()
+		local h = levee.Hub({trace=true})
+
+		for i = 1, 3 do h:spawn(function() C.usleep(50*1000) end) end
+
+		local err, serve = h.stream:listen()
+		serve:close()
+
+		h.trace:context(function()
+			local err, serve = h.stream:listen()
+			serve:close()
+		end)
+
+		-- h.trace:pprint()
+		-- print()
+		h.trace:stop()
+
 		local filename = debug.getinfo(1, 'S').source:sub(2)
 		local M = loadfile(_.path.dirname(filename) .. "/../p/test_http.lua")()
 
-		local h = levee.Hub()
-
 		h.trace:start()
 		M.test_proxy(h)
 		-- h.trace:pprint()
-
 		h.trace:stop()
-		M.test_proxy(h)
 
+		h.trace:context(function() M.test_proxy(h) end)
+
+		-- print()
 		h.trace:start()
-		M.test_proxy(h)
+		h.trace:context(function() M.test_proxy(h) end)
 		-- h.trace:pprint()
+		h.trace:stop()
+
+		h = nil
+		collectgarbage("collect")
+		collectgarbage("collect")
 	end,
 }

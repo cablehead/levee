@@ -61,7 +61,7 @@ function Trace_mt:pprint(state)
 				stack.spawned,
 				stack.term,
 				stack.n,
-				stack.took/1000))
+				stack.took / (1000 * 1000)))
 		end
 
 		local function p(stack, i)
@@ -108,6 +108,32 @@ function Trace_mt:capture(f, co)
 
 	stack.spawned = stack.spawned + 1
 	self.state.spawned = self.state.spawned + 1
+end
+
+
+function Trace_mt:context(f)
+	if not self.threads or not self.threads[coroutine.running()] then
+		return f()
+	end
+
+	local info = debug.getinfo(2)
+	local source = ("%s:%s"):format(info.short_src, info.currentline)
+	local parent = self.threads[coroutine.running()]
+	local stack = parent.tree[source] or {
+		f = source,
+		spawned = 0,
+		term = 0,
+		n = 0,
+		took = 0,
+		tree = {}, }
+	parent.tree[source] = stack
+	self.threads[coroutine.running()] = stack
+
+	local ret = {f()}
+
+	self.threads[coroutine.running()] = parent
+
+	return unpack(ret)
 end
 
 
@@ -194,7 +220,7 @@ local function Trace(hub)
 		spawn_later = hub.spawn_later, }
 
 	local info = debug.getinfo(3)
-	self.main = ("%s:%s"):format(info.short_src, info.linedefined)
+	self.main = ("%s:%s"):format(info.short_src, info.currentline)
 	self.co = coroutine.running()
 	return self
 end

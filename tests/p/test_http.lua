@@ -416,7 +416,7 @@ return {
 			assert(not h:in_use())
 		end
 
-		for i = 1, 3 do
+		for i = 1, 1 do
 			run()
 		end
 	end,
