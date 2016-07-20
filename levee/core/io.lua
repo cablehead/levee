@@ -85,14 +85,19 @@ end
 function R_mt:sendfile(to, len, off)
 	local remain = len
 	off = off or 0
+
 	while remain > 0 do
 		local err, n = _.sendfile(self.no, to.no, remain, off)
-		if err then return err end
+		if err and not err.is_system_EAGAIN then return err end
+		if err or n < 0 then n = 0 end
+
 		off = off + n
 		remain = remain - n
+
 		local err, ev = to.w_ev:recv()
 		if err then return err end
 	end
+
 	return nil, len
 end
 

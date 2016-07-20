@@ -502,7 +502,10 @@ levee_sendfile (int s, int fd, size_t off, size_t len)
 #if defined(__APPLE__)
 
 	off_t size = len;
-	rc = sendfile (fd, s, off, &size, NULL, 0) < 0 ? -1 : size;
+	rc = sendfile (fd, s, off, &size, NULL, 0);
+	if (size > 0) {
+		rc = size;
+	}
 
 #elif defined(BSD)
 

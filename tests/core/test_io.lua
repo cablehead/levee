@@ -2,6 +2,8 @@ local ffi = require('ffi')
 local C = ffi.C
 
 local levee = require("levee")
+local _ = levee._
+local d = levee.d
 
 
 local CHARS64 =
@@ -250,6 +252,34 @@ return {
 
 			assert.equal(#want, #buf)
 			assert.equal(want, buf:take())
+		end,
+
+		test_sendfile = function()
+			local h = levee.Hub()
+
+			local tmp = _.path.Path:tmpdir()
+			defer(function() tmp:remove(true) end)
+
+			local path = tostring(tmp("foo"))
+			tmp("foo"):write(("x"):rep(8192*1024))
+
+			local err, serve = h.stream:listen()
+			local err, addr = serve:addr()
+			local err, c = h.stream:dial(addr:port())
+			local err, s = serve:recv()
+
+			local err, r1 = h.io:open(path)
+			local err, st = r1:stat()
+
+			local buf = d.Buffer()
+			h:spawn(function() s:readinto(buf, st.st_size) end)
+
+			local err, n = r1:sendfile(c, st.st_size)
+			assert(not err)
+			assert.equal(n, st.st_size)
+
+			h:sleep(10)
+			assert.equal(buf:take(), ("x"):rep(8192*1024))
 		end,
 
 		test_send = function()
