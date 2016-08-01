@@ -6,6 +6,12 @@ local d = require("levee.d")
 local _ = require("levee._")
 
 
+local uint64_t = ffi.typeof(ffi.new("uint64_t"))
+local uint32_t = ffi.typeof(ffi.new("uint32_t"))
+local int64_t = ffi.typeof(ffi.new("int64_t"))
+local int32_t = ffi.typeof(ffi.new("int32_t"))
+
+
 --
 -- encode
 
@@ -45,7 +51,7 @@ end
 
 
 local function encode_unsigned(buf, n)
-	local rc = C.sp_msgpack_enc_positive(buf, n)
+	local rc = C.sp_msgpack_enc_unsigned(buf, n)
 	if rc >= 0 then return nil, rc end
 	return errors.get(rc)
 end
@@ -80,6 +86,7 @@ local function encode(data, buf)
 	if type(data) == "table" then
 		local n = 0
 		for k, v in pairs(data) do n = n + 1 end
+
 		if n == #data then
 			-- this is an array
 			err, rc = encode_array(buf:tail(), n)
@@ -129,6 +136,20 @@ local function encode(data, buf)
 			if err then return err end
 			buf:bump(rc)
 		end
+
+	elseif type(data) == "cdata" then
+		local ct = ffi.typeof(data)
+		local err, rc
+		if ct == uint64_t or ct == uint32_t then
+			err, rc = encode_unsigned(buf:tail(), data)
+		elseif ct == int64_t or ct == int32_t then
+			err, rc = encode_signed(buf:tail(), data)
+		else
+			error(("TODO: %s"):format(ct))
+		end
+
+		if err then return err end
+		buf:bump(rc)
 
 	else
 		error("TODO: " .. type(data))

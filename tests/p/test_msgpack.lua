@@ -1,3 +1,5 @@
+local ffi = require("ffi")
+
 local levee = require("levee")
 
 return {
@@ -75,5 +77,17 @@ return {
 
 		local err, got = levee.p.msgpack.decode(s, #s - 5)
 		assert.equal(err, levee.errors.CLOSED)
+	end,
+
+	test_cdata = function()
+		local want = {
+			ffi.new("uint64_t", 64),
+			ffi.new("uint32_t", 32),
+			ffi.new("int64_t", -64),
+			ffi.new("int32_t", -32), }
+		local err, buf = levee.p.msgpack.encode(want)
+		local s = buf:take()
+		local err, got = levee.p.msgpack.decode(s)
+		assert.same(got, {64, 32, -64, -32})
 	end,
 }
