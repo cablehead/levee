@@ -47,6 +47,22 @@ return {
 		assert.same(got, want)
 	end,
 
+	test_map_end = function()
+		local want = {d = {[3] = 4695, [4] = "YARG", }, }
+		local err, buf = levee.p.msgpack.encode(want)
+		local s = buf:take()
+		local err, got = levee.p.msgpack.decode(s)
+		assert.same(got, want)
+	end,
+
+	test_array_end = function()
+		local want = {d = {2, 4, 5, 6}}
+		local err, buf = levee.p.msgpack.encode(want)
+		local s = buf:take()
+		local err, got = levee.p.msgpack.decode(s)
+		assert.same(got, want)
+	end,
+
 	test_large = function()
 		local want = {
 			params = {

@@ -237,23 +237,29 @@ function Msgpack_mt:stream_value(stream)
 
 	if self.type == C.SP_MSGPACK_MAP then
 		local ob = {}
-		while true do
+		for i = 1, self.tag.count do
 			local err, key = self:stream_value(stream)
 			if err then return err end
-			if key == C.SP_MSGPACK_MAP_END then return nil, ob end
 			local err, value = self:stream_value(stream)
 			if err then return err end
 			ob[key] = value
 		end
+		local err, key = self:stream_value(stream)
+		if err then return err end
+		assert(key == C.SP_MSGPACK_MAP_END)
+		return nil, ob
 
 	elseif self.type == C.SP_MSGPACK_ARRAY then
 		local arr = {}
-		while true do
+		for i = 1, self.tag.count do
 			local err, value = self:stream_value(stream)
 			if err then return err end
-			if value == C.SP_MSGPACK_ARRAY_END then return nil, arr end
 			table.insert(arr, value)
 		end
+		local err, value = self:stream_value(stream)
+		if err then return err end
+		assert(value == C.SP_MSGPACK_ARRAY_END)
+		return nil, arr
 
 	elseif self.type == C.SP_MSGPACK_SIGNED then
 		return nil, tonumber(self.tag.i64)
