@@ -570,7 +570,78 @@ end
 
 
 --
+-- Router
+-- ... specialized sender
+
+local Router_mt = {}
+Router_mt.__index = Router_mt
+
+
+function Router_mt:pass(errvalue, value)
+	if self.closed then return errors.CLOSED end
+
+	local err, continued = self.recver:_give(errvalue, self, value)
+
+	if err == errors.CLOSED then
+		self.closed = true
+		return err
+	end
+
+	if continued then
+		if continued == UNBUFFERED then self.hub:continue() end
+		return
+	end
+
+	self.fifo:push({errvalue, coroutine.running(), value})
+
+	local err, sender, continued = self.hub:pause()
+
+	if err == errors.CLOSED then
+		self.closed = true
+		return err
+	end
+
+	if continued then return end
+
+	return self:pass(errvalue, value)
+end
+
+
+Router_mt.send = Sender_mt.send
+Router_mt.error = Sender_mt.error
+
+
+function Router_mt:_take(err)
+	if self.closed then return errors.CLOSED end
+
+	if #self.fifo == 0 then return end
+
+	if err == errors.CLOSED then
+		self.closed = true
+		if #self.fifo > 0 then
+			while #self.fifo > 0 do
+				local __, co, __ = unpack(self.fifo:pop())
+				self.hub:resume(co, err, nil, false)
+			end
+			self.hub:continue()
+		end
+		return
+	end
+
+	local errvalue, co, value = unpack(self.fifo:pop())
+	self.hub:resume(co, err, nil, true)
+	return errvalue, value
+end
+
+
+local function Router(hub)
+	return setmetatable({hub = hub, fifo = d.Fifo()}, Router_mt)
+end
+
+
+--
 -- Dealer
+-- ... specialized recver
 
 local Dealer_mt = {}
 Dealer_mt.__index = Dealer_mt
@@ -758,6 +829,7 @@ return {
 	Queue = Queue,
 	Stalk = Stalk,
 	Selector = Selector,
+	Router = Router,
 	Dealer = Dealer,
 	Broadcast = Broadcast,
 	Pool = Pool,

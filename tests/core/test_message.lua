@@ -530,6 +530,49 @@ return {
 			"r3", {levee.errors.CLOSED}, })
 	end,
 
+	test_router = function()
+		local h = levee.Hub()
+
+		local sender, recver = h:router()
+		assert.same({recver:recv(20)}, {levee.errors.TIMEOUT})
+
+		-- send then recv
+		h:spawn(function() assert(not sender:send(3)) end)
+		h:spawn(function() assert(not sender:send(4)) end)
+		h:spawn(function() assert(not sender:send(5)) end)
+
+		assert.same({recver:recv()}, {nil, 3})
+		assert.same({recver:recv()}, {nil, 4})
+		assert.same({recver:recv()}, {nil, 5})
+
+		-- recv then send
+		local check
+		h:spawn(function()
+			assert.same({recver:recv()}, {nil, 3})
+			assert.same({recver:recv()}, {nil, 4})
+			assert.same({recver:recv()}, {nil, 5})
+			check = true
+		end)
+
+		sender:send(3)
+		sender:send(4)
+		sender:send(5)
+		assert(check)
+
+		-- test close fan out
+		local check = 0
+		h:spawn(function()
+			assert.equal(sender:send(3), levee.errors.CLOSED); check = check + 1 end)
+		h:spawn(function()
+			assert.equal(sender:send(4), levee.errors.CLOSED); check = check + 1 end)
+		h:spawn(function()
+			assert.equal(sender:send(5), levee.errors.CLOSED); check = check + 1 end)
+
+		assert.equal(check, 0)
+		recver:close()
+		assert.equal(check, 3)
+	end,
+
 	test_broadcast = function()
 		local h = levee.Hub()
 

@@ -289,6 +289,15 @@ function Hub_mt:selector()
 end
 
 
+function Hub_mt:router()
+	local sender = message.Router(self)
+	local recver = message.Recver(self)
+	sender.recver = recver
+	recver.sender = sender
+	return sender, recver
+end
+
+
 function Hub_mt:dealer()
 	local sender = message.Sender(self)
 	local recver = message.Dealer(self)
