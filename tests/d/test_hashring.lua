@@ -6,6 +6,7 @@ local d = require("levee").d
 return {
 	test_reserve_restore = function()
 		local r = d.HashRing()
+
 		-- 3 replicas, 2 availability
 		r:put("test1", 3, 2)
 		r:put("test2", 3, 2)
@@ -15,30 +16,29 @@ return {
 		assert.equal(r:get("test2"):key(), "test2")
 		assert.equal(r:get("test3"):key(), "test3")
 
-		local replica1 = r:find("/some/path")
-		assert(replica1:available())
-		local node1 = replica1:reserve()
-		assert.equal(replica1.node, node1)
+		local rep1 = r:find("/f")
+		assert(rep1:available())
+		local n1 = rep1:reserve()
+		assert.equal(rep1.node, n1)
 
-		local replica2 = r:find("/another/path")
-		assert(replica1:available())
-		local node2 = replica2:reserve()
-		assert.equal(replica2.node, node2)
+		local rep2 = r:find("/f")
+		assert(rep1:available())
+		local n2 = rep2:reserve()
+		assert.equal(n1, n2)
 
-		local replica3 = r:find("/short")
-		assert(not replica1:available())
-		local node3 = replica3:reserve()
-		assert.equal(replica3.node, r:get("test2"))
-		assert.equal(node3, r:get("test3"))
+		local rep3 = r:find("/f")
+		assert(not rep1:available())
+		local n3 = rep3:reserve()
+		assert(n1 ~= n3)
 
-		node1:restore()
-		node2:restore()
-		node3:restore()
+		n1:restore()
+		n2:restore()
+		n3:restore()
 
-		local replica3 = r:find("/short")
-		assert(replica1:available())
-		local node3 = replica3:reserve()
-		assert.equal(replica3.node, node3)
+		local rep4 = r:find("/f")
+		assert(rep1:available())
+		local n4 = rep4:reserve()
+		assert.equal(n1, n4)
 	end,
 
 	test_reserve_no_avail = function()
