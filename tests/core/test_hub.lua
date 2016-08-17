@@ -217,9 +217,5 @@ return {
 		h.trace:context(function() M.test_proxy(h) end)
 		-- h.trace:pprint()
 		h.trace:stop()
-
-		h = nil
-		collectgarbage("collect")
-		collectgarbage("collect")
 	end,
 }

@@ -138,7 +138,12 @@ end
 
 
 function Trace_mt:patch()
-	self.hub._coresume = function(hub, co, err, sender, value)
+	self.save = {
+		_coresume = self.r.hub._coresume,
+		spawn = self.r.hub.spawn,
+		spawn_later = self.r.hub.spawn_later, }
+
+	self.r.hub._coresume = function(hub, co, err, sender, value)
 		local took = _.time.Timer()
 		self.save._coresume(hub, co, err, sender, value)
 		took:finish()
@@ -156,14 +161,14 @@ function Trace_mt:patch()
 		end
 	end
 
-	self.hub.spawn = function(hub, f, a)
+	self.r.hub.spawn = function(hub, f, a)
 		local co = coroutine.create(f)
 		self:capture(f, co)
 		hub.ready:push({co, a})
 		hub:continue()
 	end
 
-	self.hub.spawn_later = function (hub, ms, f)
+	self.r.hub.spawn_later = function (hub, ms, f)
 		local co = coroutine.create(f)
 		self:capture(f, co)
 		ms = hub.poller:abstime(ms)
@@ -173,7 +178,8 @@ end
 
 
 function Trace_mt:restore()
-	for k, v in pairs(self.save) do self.hub[k] = v end
+	for k, v in pairs(self.save) do self.r.hub[k] = v end
+	self.save = nil
 end
 
 
@@ -212,16 +218,11 @@ end
 local function Trace(hub)
 	local self = setmetatable({}, Trace_mt)
 
-	self.hub = hub
-
-	self.save = {
-		_coresume = hub._coresume,
-		spawn = hub.spawn,
-		spawn_later = hub.spawn_later, }
+	self.r = setmetatable({}, {__mode="v"})
+	self.r.hub = hub
 
 	local info = debug.getinfo(3)
 	self.main = ("%s:%s"):format(info.short_src, info.currentline)
-	self.co = coroutine.running()
 	return self
 end
 
