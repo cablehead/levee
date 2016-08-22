@@ -304,6 +304,14 @@ function W_mt:send(...)
 end
 
 
+function W_mt:send_msgpack(data)
+	-- TODO: should take advantage of streaming the msgpack payload out
+	local err, buf = p.msgpack.encode(data)
+	assert(not err)  -- should return err
+	self:send(buf)
+end
+
+
 function W_mt:close()
 	if self.closed then
 		return errors.CLOSED
@@ -443,8 +451,19 @@ function Stream_mt:json_decoder()
 end
 
 
+function Stream_mt:msgpack_decoder()
+	if not self._msgpack_decoder then self._msgpack_decoder = p.msgpack.decoder() end
+	return self._msgpack_decoder
+end
+
+
 function Stream_mt:json()
 	return self:json_decoder():stream(self)
+end
+
+
+function Stream_mt:msgpack()
+	return self:msgpack_decoder():stream(self)
 end
 
 

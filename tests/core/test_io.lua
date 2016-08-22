@@ -439,6 +439,21 @@ return {
 			local err, data = s:json()
 			assert.same(data, {foo = "bar"})
 		end,
+
+		test_msgpack = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+			local s = r:stream()
+
+			w:send_msgpack({foo = "bar"})
+			local err, data = s:msgpack()
+			assert.same(data, {foo = "bar"})
+
+			w:send_msgpack({foo = "bar"})
+			local err, data = s:msgpack()
+			assert.same(data, {foo = "bar"})
+		end,
 	},
 
 	chunk = {
