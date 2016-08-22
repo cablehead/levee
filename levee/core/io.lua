@@ -347,6 +347,7 @@ RW_mt.write = W_mt.write
 RW_mt.writev = W_mt.writev
 RW_mt.iov = W_mt.iov
 RW_mt.send = W_mt.send
+RW_mt.send_msgpack = W_mt.send_msgpack
 
 
 function RW_mt:close()
