@@ -213,17 +213,24 @@ local Value_mt = {}
 Value_mt.__index = Value_mt
 
 
-function Value_mt:send(value)
+function Value_mt:pass(errvalue, value)
 	if self.closed then return errors.CLOSED end
+
+	self.errvalue = errvalue
 	self.value = value
-	local err, continued = self.recver:_give(nil, self, value)
+
+	local err, continued = self.recver:_give(errvalue, self, value)
 	if continued == UNBUFFERED then self.hub:continue() end
 end
 
 
+Value_mt.send = Sender_mt.send
+Value_mt.error = Sender_mt.error
+
+
 function Value_mt:_take(err)
 	if self.closed then return errors.CLOSED end
-	return nil, self.value
+	return self.errvalue, self.value
 end
 
 

@@ -203,6 +203,14 @@ return {
 		sender:send(4)
 		assert.same({recver:recv()}, {nil, 4})
 		assert.same({recver:recv()}, {nil, 4})
+
+		sender:error(levee.errors.system.EINVAL)
+		assert.same({recver:recv()}, {levee.errors.system.EINVAL})
+		assert.same({recver:recv()}, {levee.errors.system.EINVAL})
+
+		sender:pass((function() return nil, 5 end)())
+		assert.same({recver:recv()}, {nil, 5})
+		assert.same({recver:recv()}, {nil, 5})
 	end,
 
 	test_gate = function()

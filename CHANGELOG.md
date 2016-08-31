@@ -7,6 +7,7 @@
 * setup a gc to kill spawned child processes
 * fix bug where HTTP client requests weren't notified on connection error
 * add a router message primitive
+* update Value message primitive to match standard pipe interface
 
 
 ## 0.3.3 - 2016-05-21
