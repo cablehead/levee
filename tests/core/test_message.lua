@@ -208,6 +208,9 @@ return {
 		assert.same({recver:recv()}, {levee.errors.system.EINVAL})
 		assert.same({recver:recv()}, {levee.errors.system.EINVAL})
 
+		sender:send()
+		assert.same({recver:recv(10)}, {levee.errors.TIMEOUT})
+
 		sender:pass((function() return nil, 5 end)())
 		assert.same({recver:recv()}, {nil, 5})
 		assert.same({recver:recv()}, {nil, 5})
