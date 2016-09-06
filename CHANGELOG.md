@@ -8,6 +8,12 @@
 * fix bug where HTTP client requests weren't notified on connection error
 * add a router message primitive
 * update Value message primitive to match standard pipe interface
+* add debug option to levee build
+* begin to sketch out a hub trace mode for performance profiling and debugging
+* add a msgpack convenience method to io.Stream
+* allow numerical cdata types to be msgpack encoded
+* fix a bug msgpack when decoding maps with lengths to match internal constants
+* fix sendfile on OSX
 
 
 ## 0.3.3 - 2016-05-21
