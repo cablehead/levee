@@ -14,7 +14,8 @@
 * allow numerical cdata types to be msgpack encoded
 * fix a bug msgpack when decoding maps with lengths to match internal constants
 * fix sendfile on OSX
-
+* rework argv:remain to preserve all arguments by shuffling consumed args down
+  into the negative range
 
 ## 0.3.3 - 2016-05-21
 

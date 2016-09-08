@@ -133,7 +133,12 @@ end
 
 
 function Argv_mt:remain()
-	local remain = {unpack(self.args, self.idx)}
+	local keys = {}
+	for k in pairs(self.args) do table.insert(keys, k) end
+	table.sort(keys)
+
+	local remain = {}
+	for __, i in ipairs(keys) do remain[i-self.idx+1] = self.args[i] end
 	return remain
 end
 

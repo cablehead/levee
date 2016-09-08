@@ -57,7 +57,10 @@ return {
 			os.exit(1)
 		end
 
+		print(_.repr(argv.args))
+
 		options.arg = argv:remain()
+		print(_.repr(options.arg))
 		return options
 	end,
 

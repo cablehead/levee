@@ -102,4 +102,27 @@ return {
 		argv:next()
 		assert.equal(argv:is_option(), nil)
 	end,
+
+	test_remain = function()
+		local argv = _.argv({
+			[0] = "levee",
+			[1] = "run",
+			[2] = "foo.lua",
+			[3] = "a1",
+			[4] = "a2", })
+		assert.equal(argv:next(), "run")
+		assert.equal(argv:next(), "foo.lua")
+
+		local remain = argv:remain()
+		assert.same(remain, {
+			[-2] = "levee",
+			[-1] = "run",
+			[0] = "foo.lua",
+			[1] = "a1",
+			[2] = "a2", })
+
+		local argv = _.argv(remain)
+		assert.equal(argv:next(), "a1")
+		assert.equal(argv:next(), "a2")
+	end,
 }
