@@ -152,8 +152,6 @@ end
 --
 -- Poor man's encode - just awful, please replace
 
-
-
 local function encode(data, buf)
 	if not buf then
 		buf = d.Buffer(4096)
@@ -164,18 +162,19 @@ local function encode(data, buf)
 			-- encode empty tables as dicts
 			if #data == 0 then
 				buf:push("{}")
-				return buf
+				return nil, buf
 			end
 
 			local ret = {}
 			buf:push("[")
 			for i, item in ipairs(data) do
-				encode(item, buf)
+				local err = encode(item, buf)
+				if err then return err end
 				buf:push(", ")
 			end
 			buf.len = buf.len - 2  -- pop trailing ','
 			buf:push("]")
-			return buf
+			return nil, buf
 
 		else
 			-- dict
@@ -188,13 +187,14 @@ local function encode(data, buf)
 					buf:push('"')
 					buf:push(key)
 					buf:push('": ')
-					encode(value, buf)
+					local err = encode(value, buf)
+					if err then return err end
 					buf:push(", ")
 				end
 				buf.len = buf.len - 2  -- pop trailing ','
 			end
 			buf:push("}")
-			return buf
+			return nil, buf
 		end
 
 	elseif type(data) == "string" then
@@ -204,15 +204,15 @@ local function encode(data, buf)
 		if err then
 			-- pathological case?
 			err, n = utf8_encode(buf, data, 2)
-			assert(not err)
+			if err then return err end
 		end
 		buf:bump(n)
 		buf:push('"')
-		return buf
+		return nil, buf
 
 	elseif type(data) == "number" or type(data) == "boolean" then
 		buf:push(tostring(data))
-		return buf
+		return nil, buf
 
 	else
 		print(type(data))
@@ -220,14 +220,14 @@ local function encode(data, buf)
 	end
 end
 
+
 local decoder = ffi.metatype("SpJson", Json_mt)
 
 local M = {
 	decoder = decoder,
 	-- TODO:
-	encode = function(t)
-		return nil, encode(t)
-	end,
+	-- should be able to encode to an iovec
+	encode = encode,
 }
 
 function M.decode(s, len)

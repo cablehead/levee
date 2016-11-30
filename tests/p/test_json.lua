@@ -1,6 +1,7 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local _ = require("levee._")
 local d = require("levee.d")
 local p = require("levee.p")
 
@@ -119,6 +120,19 @@ return {
 		local err, buf = p.json.encode(want)
 		local err, got = p.json.decode(buf:value())
 		assert.same(want, got)
+	end,
+
+	test_encode_bad_utf8 = function()
+		local filename = debug.getinfo(1, 'S').source:sub(2)
+		local path = _.path.dirname(filename)
+		local fh = io.open(path.."/bad_utf8")
+		local s = fh:read("*all")
+		fh:close()
+
+		local err, buf = p.json.encode(s)
+		assert(err)
+		local err, buf = p.json.encode({foo = s})
+		assert(err)
 	end,
 
 	test_more = function()
