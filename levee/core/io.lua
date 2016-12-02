@@ -940,6 +940,24 @@ function IO_mt:open(name, ...)
 end
 
 
+function IO_mt:stdin()
+	if not self._stdin then
+		_.fcntl_nonblock(0)
+		self._stdin = self:r(0)
+	end
+	return self._stdin
+end
+
+
+function IO_mt:stdout()
+	if not self._stdout then
+		_.fcntl_nonblock(1)
+		self._stdout = self:w(1)
+	end
+	return self._stdout
+end
+
+
 IO_mt.iovec = d.Iovec
 IO_mt.R_mt = R_mt
 

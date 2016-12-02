@@ -16,6 +16,8 @@
 * fix sendfile on OSX
 * rework argv:remain to preserve all arguments by shuffling consumed args down
   into the negative range
+* return an error when encoding bad utf to json
+* add conveniences to h.io for stdin/out
 
 ## 0.3.3 - 2016-05-21
 
