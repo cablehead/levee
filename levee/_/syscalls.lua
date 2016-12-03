@@ -214,6 +214,29 @@ _.reads = function(no, len)
 end
 
 
+_.sendto = function(no, ep, buf, len)
+	len = len or #buf
+
+	if type(buf) == "string" then
+		buf = ffi.cast("char*", buf)
+	end
+
+	local n = C.sendto(no, buf, len, 0, ep.addr.sa, ep.len[0])
+	if n > 0 then return nil, tonumber(n) end
+	return errors.get(ffi.errno())
+end
+
+
+_.recvfrom = function(no, buf, len)
+	local ep = _.endpoint()
+	local n = C.recvfrom(no, buf, len, 0, ep.addr.sa, ep.len)
+	if n < 0 then return errors.get(ffi.errno()) end
+	local err = ep:_set_family(no)
+	if err then return err end
+	return nil, ep, n
+end
+
+
 _.sendfile = function(from, to, len, off)
 	local n = C.levee_sendfile(to, from, off or 0, len)
 	if n >= 0 then return nil, tonumber(n) end
@@ -320,6 +343,26 @@ _.gethostname = function()
 end
 
 
+_.endpoint = function()
+	return Endpoint()
+end
+
+
+_.endpoint_in = function(host, port)
+	host = host or "127.0.0.1"
+	port = port or 0
+
+	local ep = Endpoint()
+	ep.family[0] = C.AF_INET
+	ep.len[0] = ffi.sizeof(ep.addr.sin)
+
+	ep.addr.sin.sin_family = C.AF_INET
+	ep.addr.sin.sin_port = C.htons(port)
+	C.inet_aton(host, ep.addr.sin.sin_addr)
+	return ep
+end
+
+
 _.connect = function(domain, socktype, host, port)
 	local no = C.socket(domain, socktype, 0)
 	if no < 0 then return errors.get(ffi.errno()) end
@@ -336,28 +379,43 @@ _.connect = function(domain, socktype, host, port)
 end
 
 
-_.listen = function(domain, type_, host, port)
+_.socket = function(domain, socktype)
+	local no = C.socket(domain, socktype, 0)
+	if no < 0 then return errors.get(ffi.errno()) end
+	return nil, no
+end
+
+
+_.bind = function(domain, socktype, endpoint)
+	endpoint = endpoint or _.endpoint_in()
+
+	local err, no = _.socket(domain, socktype)
+	if err then return err end
+
+	rc = C.bind(no, endpoint.addr.sa, endpoint.len[0])
+	if rc < 0 then return errors.get(ffi.errno()) end
+	return nil, no
+end
+
+
+_.listen = function(domain, socktype, host, port)
 	local BACKLOG = 256
 	-- TODO: should we be using getaddrinfo here?
 	host = host or "127.0.0.1"
 	port = port or 0
 
-	local no = C.socket(domain, type_, 0)
-	if no < 0 then return errors.get(ffi.errno()) end
+	local err, no = _.socket(domain, socktype)
+	if err then return err end
 
 	local on = ffi.new("int32_t[1]", 1)
 	local rc = C.setsockopt(no, C.SOL_SOCKET, C.SO_REUSEADDR, on, ffi.sizeof(on))
 	if rc < 0 then return errors.get(ffi.errno()) end
 
-	local addr = sockaddr_in()
-	addr.sin_family = domain
-	addr.sin_port = C.htons(port);
-	C.inet_aton(host, addr.sin_addr)
-
-	rc = C.bind(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
+	local ep = _.endpoint_in(host, port)
+	rc = C.bind(no, ep.addr.sa, ep.len[0])
 	if rc < 0 then return errors.get(ffi.errno()) end
 
-	if type_ == C.SOCK_STREAM then
+	if socktype == C.SOCK_STREAM then
 		rc = C.listen(no, BACKLOG)
 		if rc < 0 then return errors.get(ffi.errno()) end
 	end

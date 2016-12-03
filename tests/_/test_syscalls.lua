@@ -146,4 +146,27 @@ return {
 		local err, rss = _.getcurrentrss()
 		assert(rss > 0)
 	end,
+
+	test_sendto_recvfrom = function()
+		local len = 4096
+		local buf = ffi.new("char[?]", len)
+
+		local err, s = _.bind(C.AF_INET, C.SOCK_DGRAM)
+		local err, c1 = _.socket(C.AF_INET, C.SOCK_DGRAM)
+
+		local err, s_ep = _.getsockname(s)
+		local err, n = _.sendto(c1, s_ep, "foo")
+		assert.equal(n, 3)
+
+		local err, who, n = _.recvfrom(s, buf, len)
+		assert.equal(ffi.string(buf, n), "foo")
+
+		local err, n = _.sendto(s, who, "foobar")
+		assert.equal(n, 6)
+
+		local err, who, n = _.recvfrom(c1, buf, len)
+		assert.equal(ffi.string(buf, n), "foobar")
+
+		assert.equal(tostring(s_ep), tostring(who))
+	end,
 }
