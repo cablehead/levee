@@ -222,8 +222,8 @@ _.sendto = function(no, ep, buf, len)
 	end
 
 	local n = C.sendto(no, buf, len, 0, ep.addr.sa, ep.len[0])
-	if n > 0 then return nil, tonumber(n) end
-	return errors.get(ffi.errno())
+	if n < 0 then return errors.get(ffi.errno()) end
+	return nil, tonumber(n)
 end
 
 
