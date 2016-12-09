@@ -61,6 +61,7 @@ local headers = {
 	include("siphon", "error"),
 	include("siphon", "utf8"),
 	include("siphon", "http"),
+	include("siphon", "line"),
 	include("siphon", "uri"),
 	include("siphon", "rand"),
 	include("siphon", "bloom"),

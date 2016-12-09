@@ -7,10 +7,10 @@ local function Stream()
 
 	local stream = {
 		segments = {
-			'foo\r\n',
+			'foo\n',
 			'bar',
-			'123\r\n',
-			'last\r',
+			'123\n',
+			'last',
 			'\n', }}
 	stream.__index = stream
 
@@ -38,17 +38,9 @@ end
 return {
 	test_slash_n = function()
 		local stream = Stream()
-		assert.same({line.stream(stream)}, {nil, "foo\r"})
-		assert.same({line.stream(stream)}, {nil, "bar123\r"})
-		assert.same({line.stream(stream)}, {nil, "last\r"})
+		assert.same({line.stream(stream)}, {nil, "foo"})
+		assert.same({line.stream(stream)}, {nil, "bar123"})
+		assert.same({line.stream(stream)}, {nil, "last"})
 		assert.same({line.stream(stream)}, {-1})
-	end,
-
-	test_slash_r_slash_n = function()
-		local stream = Stream()
-		assert.same({line.stream(stream, "\r\n")}, {nil, "foo"})
-		assert.same({line.stream(stream, "\r\n")}, {nil, "bar123"})
-		assert.same({line.stream(stream, "\r\n")}, {nil, "last"})
-		assert.same({line.stream(stream, "\r\n")}, {-1})
 	end,
 }
