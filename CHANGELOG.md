@@ -12,7 +12,7 @@
 * begin to sketch out a hub trace mode for performance profiling and debugging
 * add a msgpack convenience method to io.Stream
 * allow numerical cdata types to be msgpack encoded
-* fix a bug msgpack when decoding maps with lengths to match internal constants
+* fix a msgpack bug when decoding maps with lengths to match internal constants
 * fix sendfile on OSX
 * rework argv:remain to preserve all arguments by shuffling consumed args down
   into the negative range
