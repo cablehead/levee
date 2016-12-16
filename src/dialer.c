@@ -18,6 +18,12 @@
 struct LeveeDialerState levee_dialer_state;
 
 
+struct LeveeDialerResponse {
+	int err;
+	struct addrinfo *info;
+};
+
+
 void *
 levee_dialer_loop () {
 	sigset_t set;
@@ -27,17 +33,16 @@ levee_dialer_loop () {
 	int rc;
 
 	struct LeveeDialerRequest req;
-	int err = 0;
-	int no;
-	int res;
+	struct LeveeDialerResponse res;
 
 	char node[256];
 	char service[32];
 
-	struct addrinfo hints, *info, *ptr;
+	struct addrinfo hints;
 
 	while (1) {
 		memset (&hints, 0, sizeof (hints));
+		memset (&res, 0, sizeof (res));
 
 		rc = read (levee_dialer_state.io[0], &req, sizeof (req));
 		assert (rc == sizeof (req));
@@ -55,12 +60,12 @@ levee_dialer_loop () {
 		hints.ai_family = req.family;
 		hints.ai_socktype = req.socktype;
 
-		rc = getaddrinfo (node, service, &hints, &info);
+		rc = getaddrinfo (node, service, &hints, &res.info);
 		if (rc != 0) {
-			res = SP_EAI_CODE(rc);
-			goto respond;
+			res.err = SP_EAI_CODE(rc);
 		}
 
+		/*
 		for (ptr = info; ptr; ptr = ptr->ai_next) {
 			no = socket (ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 			if (no < 0) {
@@ -80,9 +85,9 @@ levee_dialer_loop () {
 			res = no;
 		}
 
-		freeaddrinfo (info);
+		// freeaddrinfo (info);
+		*/
 
-		respond:
 		rc = write (req.no, &res, sizeof (res));
 		assert (rc == sizeof (res));
 	}

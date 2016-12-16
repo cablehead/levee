@@ -31,6 +31,14 @@ end
 local Request = ffi.metatype("struct LeveeDialerRequest", Request_mt)
 
 
+ffi.cdef([[
+struct LeveeDialerResponse {
+	int err;
+	struct addrinfo *info;
+};
+]])
+
+
 --
 -- Message
 
@@ -71,8 +79,17 @@ function Dialer_mt:__dial(family, socktype, node, service)
 	self.recver:read(self.res)
 
 	local res = self.res[0]
-	if res < 0 then return errors.get(res) end
-	return nil, res
+	if res.err ~= 0 then return errors.get(res.err) end
+
+	local ptr = res.info
+	-- TODO: Try all addrs with for loop; Use Poller
+	local no = C.socket(ptr.ai_family, ptr.ai_socktype, ptr.ai_protocol)
+	local rc = C.connect(no, ptr.ai_addr, ptr.ai_addrlen)
+
+	C.freeaddrinfo(res.info)
+
+	if rc < 0 then return  errors.get(ffi.errno()) end
+	do return nil, no end
 end
 
 
@@ -86,7 +103,7 @@ function Dialer_mt:init()
 		self.req = Request()
 		self.req.no = self.w
 
-		self.res = ffi.new("int[1]")
+		self.res = ffi.new("struct LeveeDialerResponse[1]")
 
 		-- Note we leave sender as blocking
 		self.sender = self.hub.io:w(self.state.io[1])
