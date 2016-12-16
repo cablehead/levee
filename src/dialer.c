@@ -65,29 +65,6 @@ levee_dialer_loop () {
 			res.err = SP_EAI_CODE(rc);
 		}
 
-		/*
-		for (ptr = info; ptr; ptr = ptr->ai_next) {
-			no = socket (ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-			if (no < 0) {
-				err = -errno;
-				ptr = NULL;
-				break;
-			}
-			rc = connect (no, ptr->ai_addr, ptr->ai_addrlen);
-			if (rc == 0) break;
-			err = -errno;
-			close (no);
-		}
-
-		if (ptr == NULL) {
-			res = err;
-		} else {
-			res = no;
-		}
-
-		// freeaddrinfo (info);
-		*/
-
 		rc = write (req.no, &res, sizeof (res));
 		assert (rc == sizeof (res));
 	}

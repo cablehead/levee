@@ -65,7 +65,42 @@ local Dialer_mt = {}
 Dialer_mt.__index = Dialer_mt
 
 
-function Dialer_mt:__dial(family, socktype, node, service)
+local function connect(no, info, w_ev, timeout)
+	local rc = C.connect(no, info.ai_addr, info.ai_addrlen)
+	if rc == 0 then print("CONNECT 0 somehow"); return nil, no end
+
+	local err = errors.get(ffi.errno())
+	if err.is_system_EISCONN then return nil, no end
+	if not err.is_system_EINPROGRESS then return err end
+
+	local err = w_ev:recv(timeout)
+	if err then return err end
+
+	return connect(no, info, w_ev)
+end
+
+
+local function connect_all(hub, info, timeout)
+	local no = C.socket(info.ai_family, info.ai_socktype, info.ai_protocol)
+	if no < 0 then return errors.get(ffi.errno()) end
+
+	_.fcntl_nonblock(no)
+	local r_ev, w_ev = hub:register(no, true, true)
+
+	local err = connect(no, info, w_ev, timeout)
+
+	if not err then
+		return nil, {hub=hub, no=no, r_ev=r_ev, w_ev=w_ev}
+	end
+
+	hub:unregister(no, true, true)
+	info = info.ai_next
+	if info == nil then return err end
+	return connect_all(hub, info, timeout)
+end
+
+
+function Dialer_mt:__dial(family, socktype, node, service, timeout)
 	node = node or "127.0.0.1"
 	service = service and tostring(service) or "0"
 
@@ -77,19 +112,12 @@ function Dialer_mt:__dial(family, socktype, node, service)
 	self.sender:send(Message(self.req, node, service))
 
 	self.recver:read(self.res)
-
 	local res = self.res[0]
 	if res.err ~= 0 then return errors.get(res.err) end
 
-	local ptr = res.info
-	-- TODO: Try all addrs with for loop; Use Poller
-	local no = C.socket(ptr.ai_family, ptr.ai_socktype, ptr.ai_protocol)
-	local rc = C.connect(no, ptr.ai_addr, ptr.ai_addrlen)
-
+	local err, conn = connect_all(self.hub, res.info, timeout)
 	C.freeaddrinfo(res.info)
-
-	if rc < 0 then return  errors.get(ffi.errno()) end
-	do return nil, no end
+	return err, conn
 end
 
 
@@ -114,8 +142,8 @@ function Dialer_mt:init()
 		self.q_sender, self.q_recver = self.hub:queue()
 		self.hub:spawn(function()
 			for req in self.q_recver do
-				local sender, family, socktype, node, service = unpack(req)
-				sender:pass(self:__dial(family, socktype, node, service))
+				local sender, family, socktype, node, service, timeout = unpack(req)
+				sender:pass(self:__dial(family, socktype, node, service, timeout))
 				sender:close()
 			end
 		end)
@@ -123,10 +151,10 @@ function Dialer_mt:init()
 end
 
 
-function Dialer_mt:dial(family, socktype, node, service)
+function Dialer_mt:dial(family, socktype, node, service, timeout)
 	self:init()
 	local sender, recver = self.hub:pipe()
-	self.q_sender:send({sender, family, socktype, node, service})
+	self.q_sender:send({sender, family, socktype, node, service, timeout})
 	return recver:recv()
 end
 
