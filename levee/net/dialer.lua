@@ -67,7 +67,7 @@ Dialer_mt.__index = Dialer_mt
 
 local function connect(no, info, w_ev, timeout)
 	local rc = C.connect(no, info.ai_addr, info.ai_addrlen)
-	if rc == 0 then print("CONNECT 0 somehow"); return nil, no end
+	if rc == 0 then return nil, no end
 
 	local err = errors.get(ffi.errno())
 
