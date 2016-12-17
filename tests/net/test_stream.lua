@@ -64,7 +64,7 @@ return {
 
 	test_conn_timeout = function()
 		local h = levee.Hub()
-		local err, c = h.stream:dial(8003, "127.0.23.67", nil, 20)
+		local err, c = h.stream:dial(8003, "10.244.245.246", nil, 20)
 		assert.equal(err, levee.errors.TIMEOUT)
 		assert(not h:in_use())
 	end,

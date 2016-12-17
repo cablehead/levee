@@ -31,7 +31,7 @@ return {
 		assert.equal(err, errors.addr.ENONAME)
 
 		-- timeout
-		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "127.0.23.67", port, 20)
+		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "10.244.245.246", port, 20)
 		assert.equal(err, errors.TIMEOUT)
 
 		assert(not h:in_use())
