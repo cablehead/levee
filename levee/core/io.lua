@@ -960,6 +960,8 @@ end
 
 IO_mt.iovec = d.Iovec
 IO_mt.R_mt = R_mt
+IO_mt.W_mt = W_mt
+IO_mt.RW_mt = RW_mt
 
 
 return function(hub)

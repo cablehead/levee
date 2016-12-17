@@ -14,7 +14,7 @@ return {
 
 		assert(h:in_use())
 
-		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "127.0.0.1", port, 20)
+		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "127.0.0.1", port)
 		assert(not err)
 		assert(conn.no > 0)
 		local err, s = serve:recv()
@@ -23,11 +23,11 @@ return {
 		h:continue()
 		serve:close()
 
-		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "localhost", port, 20)
+		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "localhost", port)
 		assert.equal(err, errors.system.ECONNREFUSED)
 		assert(not conn)
 
-		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "kdkd", port, 20)
+		local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "kdkd", port)
 		assert.equal(err, errors.addr.ENONAME)
 
 		-- timeout

@@ -70,6 +70,7 @@ local function connect(no, info, w_ev, timeout)
 	if rc == 0 then print("CONNECT 0 somehow"); return nil, no end
 
 	local err = errors.get(ffi.errno())
+
 	if err.is_system_EISCONN then return nil, no end
 	if not err.is_system_EINPROGRESS then return err end
 
@@ -143,6 +144,7 @@ function Dialer_mt:init()
 		self.hub:spawn(function()
 			for req in self.q_recver do
 				local sender, family, socktype, node, service, timeout = unpack(req)
+				if timeout == -1 then timeout = nil end
 				sender:pass(self:__dial(family, socktype, node, service, timeout))
 				sender:close()
 			end
@@ -154,7 +156,7 @@ end
 function Dialer_mt:dial(family, socktype, node, service, timeout)
 	self:init()
 	local sender, recver = self.hub:pipe()
-	self.q_sender:send({sender, family, socktype, node, service, timeout})
+	self.q_sender:send({sender, family, socktype, node, service, timeout or -1})
 	return recver:recv()
 end
 

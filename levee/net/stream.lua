@@ -61,11 +61,11 @@ local TCP_mt = {}
 TCP_mt.__index = TCP_mt
 
 
-function TCP_mt:dial(port, host, timeout)
-	local err, no = self.hub.dialer:dial(C.AF_INET, C.SOCK_STREAM, host, port)
+function TCP_mt:dial(port, host, timeout, connect_timeout)
+	local err, conn = self.hub.dialer:dial(C.AF_INET, C.SOCK_STREAM, host, port, connect_timeout)
 	if err then return err end
-	_.fcntl_nonblock(no)
-	return nil, self.hub.io:rw(no, timeout)
+	conn.timeout = timeout
+	return nil, setmetatable(conn, self.hub.io.RW_mt)
 end
 
 
