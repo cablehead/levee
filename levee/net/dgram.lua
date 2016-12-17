@@ -68,10 +68,9 @@ end
 
 
 function UDP_mt:dial(port, host)
-	local err, no = self.hub.dialer:dial(C.AF_INET, C.SOCK_DGRAM, host, port)
+	local err, conn = self.hub.dialer:dial(C.AF_INET, C.SOCK_DGRAM, host, port)
 	if err then return err end
-	_.fcntl_nonblock(no)
-	return nil, self.hub.io:w(no)
+	return nil, setmetatable(conn, self.hub.io.RW_mt)
 end
 
 
