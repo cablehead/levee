@@ -1023,21 +1023,14 @@ local HTTP_mt = {}
 HTTP_mt.__index = HTTP_mt
 
 
-function HTTP_mt:connect(port, host, config)
-	if type(port) == "table" then
-		config = port
-		port = nil
-		host = nil
-	elseif type(host) == "table" then
-		config = host
-		host = nil
-	end
+function HTTP_mt:connect(port, host, options)
+	options = options or {}
 
 	local m = setmetatable({}, Client_mt)
 
 	host = host or "127.0.0.1"
 
-	local err, conn = self.hub.tcp:connect(port, host)
+	local err, conn = self.hub.tcp:connect(port, host, options.timeout, options.connect_timeout)
 	if err then return err end
 
 	local err, peer = _.getpeername(conn.no)
@@ -1052,7 +1045,7 @@ function HTTP_mt:connect(port, host, config)
 	m.conn = conn
 
 	m.stream = m.conn:stream()
-	m.parser = parser.Response(config)
+	m.parser = parser.Response(options.parser)
 
 	m.response_to_request = {}
 	local res_sender, res_recver = self.hub:pipe()
