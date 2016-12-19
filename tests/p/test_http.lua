@@ -717,4 +717,11 @@ return {
 		assert.equal(#iov, 41)
 		assert.equal(iov.n, 12)
 	end,
+
+	test_connect_timeout = function()
+		local levee = require("levee")
+		local h = levee.Hub()
+		local err, c = h.http:connect(8003, "10.244.245.246", {connect_timeout=20})
+		assert.equal(err, levee.errors.TIMEOUT)
+	end,
 }
