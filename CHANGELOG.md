@@ -19,6 +19,7 @@
 * return an error when encoding bad utf to json
 * add conveniences to h.io for stdin/out
 * add support for sendto and recvfrom
+* move TCP connect to use a hub's poller, so connect is async
 
 ## 0.3.3 - 2016-05-21
 
