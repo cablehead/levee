@@ -71,8 +71,8 @@ local function connect(no, info, w_ev, timeout)
 
 	local err = errors.get(ffi.errno())
 
-	if err.is_system_EISCONN then return nil, no end
-	if not err.is_system_EINPROGRESS then return err end
+	if err == errors.system.EISCONN then return nil, no end
+	if err ~= errors.system.EINPROGRESS then return err end
 
 	local err = w_ev:recv(timeout)
 	if err then return err end
