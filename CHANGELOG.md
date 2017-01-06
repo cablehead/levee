@@ -21,6 +21,11 @@
 * add support for sendto and recvfrom
 * move TCP connect to use a hub's poller, so connect is async
 
+### Deprecates
+
+* d.Buffer:push -> d.Buffer:write
+* d.Buffer:take -> d.Buffer:string
+
 ## 0.3.3 - 2016-05-21
 
 * default pdeathsig to TERM. allow the signal to be configurable
