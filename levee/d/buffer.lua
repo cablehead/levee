@@ -120,8 +120,17 @@ function Buffer_mt:slice(len)
 end
 
 
-function Buffer_mt:value()
-	return self.buf + self.off, self.len
+function Buffer_mt:value(off, len)
+	if not len then
+		len = off
+		off = 0
+	end
+	if not len then
+		len = self.len
+	else
+		if len > self.len then len = self.len end
+	end
+	return self.buf + self.off + off, len
 end
 
 
@@ -183,11 +192,15 @@ function Buffer_mt:take(len)
 end
 
 
-function Buffer_mt:push(s)
-	self:ensure(#s)
-	ffi.copy(self:tail(), s)
-	self:bump(#s)
+function Buffer_mt:write(buf, len)
+	len = len or #buf
+	self:ensure(len)
+	ffi.copy(self:tail(), buf, len)
+	self:bump(len)
 end
+
+
+Buffer_mt.push = Buffer_mt.write
 
 
 function Buffer_mt:writeinto_iovec(iov)

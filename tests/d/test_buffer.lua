@@ -34,6 +34,22 @@ return {
 		assert.equal(buf:peek(), "")
 	end,
 
+	test_value = function()
+		local buf = d.Buffer(4096)
+		buf:write("foobar")
+		assert.equal(ffi.string(buf:value()), "foobar")
+		assert.equal(ffi.string(buf:value(3)), "foo")
+		assert.equal(ffi.string(buf:value(3, 1)), "b")
+	end,
+
+	test_write = function()
+		local b1 = d.Buffer()
+		b1:write("foobar")
+		local b2 = d.Buffer()
+		b2:write(b1:value())
+		assert.equal(ffi.string(b2:value()), "foobar")
+	end,
+
 	test_copy = function()
 		local buf = d.Buffer(4096)
 		local s = "012345678901234567890123456789"
