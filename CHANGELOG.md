@@ -20,6 +20,7 @@
 * add conveniences to h.io for stdin/out
 * add support for sendto and recvfrom
 * move TCP connect to use a hub's poller, so connect is async
+* add support for TLS via libressl!
 
 ### Deprecates
 
