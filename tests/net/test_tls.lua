@@ -25,7 +25,7 @@ return {
 			local err, ctx = config:server()
 
 			local err, conn = serve:recv()
-			ctx:upgrade(conn)
+			local err, conn = ctx:upgrade(conn)
 			conn:handshake()
 
 			assert.equal(conn:reads(), "foo")
