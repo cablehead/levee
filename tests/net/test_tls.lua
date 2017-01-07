@@ -33,7 +33,6 @@ return {
 			conn:write("bar")
 			conn:close()
 		end
-
 		h:spawn(server)
 
 		-- client
@@ -62,7 +61,6 @@ return {
 			conn:write("bar")
 			conn:close()
 		end
-
 		h:spawn(server)
 
 		-- client
@@ -72,6 +70,22 @@ return {
 		assert.equal(conn:reads(), nil)
 	end,
 
-	test_handshake_fail = function()
+	test_handshake_server_fail = function()
+		local TLS = require("levee.net.tls")
+
+		local h = levee.Hub()
+
+		local err, serve = h.stream:listen()
+		local err, addr = serve:addr()
+
+		local function server()
+			local err, conn = serve:recv()
+			conn:write(("X"):rep(100))
+		end
+		h:spawn(server)
+
+		-- client
+		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
+		assert(err)
 	end,
 }
