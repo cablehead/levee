@@ -214,12 +214,12 @@ levee_set_arg (Levee *self, int argc, const char **argv)
 		return;
 	}
 
-	lua_createtable (self->L, argc+1, 0);
-	lua_pushstring (self->L, "levee");
+	lua_createtable (self->L, argc, 0);
+	lua_pushstring (self->L, argv[0]);
 	lua_rawseti (self->L, -2, 0);
-	for (int i = 0; i < argc; i++) {
+	for (int i = 1; i < argc; i++) {
 		lua_pushstring (self->L, argv[i]);
-		lua_rawseti (self->L, -2, i+1);
+		lua_rawseti (self->L, -2, i);
 	}
 	lua_setglobal (self->L, "arg");
 }

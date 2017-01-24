@@ -61,7 +61,7 @@ local function output_main(path, options)
 			atexit (cleanup);
 
 			state = levee_create ();
-			levee_set_arg (state, argc-1, argv+1);
+			levee_set_arg (state, argc, argv);
 
 			int rc = 0;
 			if (!levee_runf (state, pmain, 0, false)) {
