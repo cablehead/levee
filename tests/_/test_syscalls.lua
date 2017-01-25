@@ -129,6 +129,8 @@ return {
 
 	test_net_unix	= function()
 		local name = os.tmpname()
+		defer(function() os.remove(name) end)
+
 		local err, l_no = _.socket(C.AF_UNIX, C.SOCK_STREAM)
 		local err = _.listen(l_no, _.endpoint_unix(name))
 		assert(err)
