@@ -52,6 +52,9 @@ function Listener_mt:addr()
 end
 
 
+Listener_mt.sockname = Listener_mt.addr
+
+
 function Listener_mt:close()
 	if self.closed then
 		return
@@ -75,12 +78,12 @@ local function Options(port, host, timeout, connect_timeout)
 	if type(port) == "table" then
 		return port
 	end
+
 	return {
 		port = port,
 		host = host,
 		timeout = timeout,
-		connect_timeout = connect_timeout,
-		}
+		connect_timeout = connect_timeout, }
 end
 
 
@@ -98,13 +101,25 @@ function TCP_mt:dial(port, host, timeout, connect_timeout)
 		options.config = config
 	end
 
-	local err, conn = self.hub.dialer:dial(
-		C.AF_INET,
-		C.SOCK_STREAM,
-		options.host,
-		options.port,
-		options.connect_timeout)
-	if err then return err end
+	local conn
+	if options.unix then
+		local err, no
+		err, no = _.socket(C.AF_UNIX , C.SOCK_STREAM)
+		if err then return err end
+		err = _.connect(no, _.endpoint_unix(options.unix))
+		if err then return err end
+		conn = {hub=self.hub, no=no}
+		conn.r_ev, conn.w_ev = self.hub:register(no, true, true)
+	else
+		local err
+		err, conn = self.hub.dialer:dial(
+			C.AF_INET,
+			C.SOCK_STREAM,
+			options.host,
+			options.port,
+			options.connect_timeout)
+		if err then return err end
+	end
 
 	conn.timeout = options.timeout
 	conn = setmetatable(conn, self.hub.io.RW_mt)
@@ -127,6 +142,17 @@ TCP_mt.connect = TCP_mt.dial
 function TCP_mt:listen(port, host, timeout)
 	local options = Options(port, host, timeout)
 
+	local domain
+	local endpoint
+
+	if options.unix then
+		domain = C.AF_UNIX
+		endpoint = _.endpoint_unix(options.unix)
+	else
+		domain = C.AF_INET
+		endpoint = _.endpoint_in(options.host, options.port)
+	end
+
 	local self = setmetatable({hub = self.hub}, Listener_mt)
 
 	if options.tls then
@@ -140,7 +166,10 @@ function TCP_mt:listen(port, host, timeout)
 		self.tls = ctx
 	end
 
-	local err, no = _.listen(C.AF_INET, C.SOCK_STREAM, options.host, options.port)
+	local err, no = _.socket(domain, C.SOCK_STREAM)
+	if err then return err end
+
+	local err = _.listen(no, endpoint)
 	if err then return err end
 
 	_.fcntl_nonblock(no)

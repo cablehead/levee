@@ -3,7 +3,7 @@ local _ = levee._
 
 
 return {
-	test_core = function()
+	test_net = function()
 		local h = levee.Hub()
 
 		local buf = levee.d.Buffer(4096)
@@ -66,6 +66,53 @@ return {
 		local h = levee.Hub()
 		local err, c = h.stream:dial(8003, "10.244.245.246", nil, 20)
 		assert.equal(err, levee.errors.TIMEOUT)
+		assert(not h:in_use())
+	end,
+
+	test_unix = function()
+		local tmp = _.path.Path:tmpdir()
+		defer(function() tmp:remove(true) end)
+
+		local buf = levee.d.Buffer(4096)
+
+		local name = tostring(tmp("sock"))
+
+		local h = levee.Hub()
+		local err, serve = h.stream:listen({unix=name, timeout=20})
+
+		local err, ep = serve:sockname()
+		assert.equal(tostring(ep), name)
+
+		local err, c1 = h.stream:dial({unix=name})
+		local err, s1 = serve:recv()
+
+		assert.equal(s1:readinto(buf), levee.errors.TIMEOUT)
+
+		c1:write("m1.1")
+		s1:readinto(buf)
+		assert.equal(buf:take(), "m1.1")
+
+		local err, c2 = h.stream:dial({unix=name})
+		local err, s2 = serve:recv()
+
+		c2:write("m2.1")
+		s2:readinto(buf)
+		assert.equal(buf:take(), "m2.1")
+
+		s1:write("m1.2")
+		c1:readinto(buf)
+		assert.equal(buf:take(), "m1.2")
+
+		s2:write("m2.2")
+		c2:readinto(buf)
+		assert.equal(buf:take(), "m2.2")
+
+		c1:close()
+		s2:close()
+		serve:close()
+
+		s1:readinto(buf)
+		c2:readinto(buf)
 		assert(not h:in_use())
 	end,
 }
