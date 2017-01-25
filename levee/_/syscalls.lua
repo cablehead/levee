@@ -363,34 +363,32 @@ _.endpoint_in = function(host, port)
 end
 
 
-_.connect = function(domain, socktype, host, port)
-	local no = C.socket(domain, socktype, 0)
+_.endpoint_unix = function(name)
+	local ep = Endpoint()
+	ep.family[0] = C.AF_UNIX
+	ep.len[0] = ffi.sizeof(ep.addr.sun)
+	ep.addr.sun.sun_family = C.AF_UNIX
+	ep.addr.sun.sun_path = name
+	return ep
+end
+
+
+_.socket = function(domain, socktype, protocol)
+	local no = C.socket(domain, socktype, protocol or 0)
 	if no < 0 then return errors.get(ffi.errno()) end
+	return nil, no
+end
 
-	local addr = sockaddr_in()
-	addr.sin_family = domain
-	addr.sin_port = C.htons(port);
-	C.inet_aton(host, addr.sin_addr)
 
-	local rc = C.connect(no, ffi.cast("struct sockaddr *", addr), ffi.sizeof(addr))
+_.connect = function(no, endpoint)
+	local rc = C.connect(no, endpoint.addr.sa, endpoint.len[0])
 	if rc < 0 then C.close(no) ; return errors.get(ffi.errno()) end
-
 	return nil, no
 end
 
 
-_.socket = function(domain, socktype)
-	local no = C.socket(domain, socktype, 0)
-	if no < 0 then return errors.get(ffi.errno()) end
-	return nil, no
-end
-
-
-_.bind = function(domain, socktype, endpoint)
+_.bind = function(no, endpoint)
 	endpoint = endpoint or _.endpoint_in()
-
-	local err, no = _.socket(domain, socktype)
-	if err then return err end
 
 	rc = C.bind(no, endpoint.addr.sa, endpoint.len[0])
 	if rc < 0 then return errors.get(ffi.errno()) end
@@ -398,27 +396,16 @@ _.bind = function(domain, socktype, endpoint)
 end
 
 
-_.listen = function(domain, socktype, host, port)
-	local BACKLOG = 256
-	-- TODO: should we be using getaddrinfo here?
-	host = host or "127.0.0.1"
-	port = port or 0
-
-	local err, no = _.socket(domain, socktype)
-	if err then return err end
-
+_.listen = function(no, endpoint, backlog)
 	local on = ffi.new("int32_t[1]", 1)
 	local rc = C.setsockopt(no, C.SOL_SOCKET, C.SO_REUSEADDR, on, ffi.sizeof(on))
 	if rc < 0 then return errors.get(ffi.errno()) end
 
-	local ep = _.endpoint_in(host, port)
-	rc = C.bind(no, ep.addr.sa, ep.len[0])
+	rc = C.bind(no, endpoint.addr.sa, endpoint.len[0])
 	if rc < 0 then return errors.get(ffi.errno()) end
 
-	if socktype == C.SOCK_STREAM then
-		rc = C.listen(no, BACKLOG)
-		if rc < 0 then return errors.get(ffi.errno()) end
-	end
+	rc = C.listen(no, backlog or 256)
+	if rc < 0 then return errors.get(ffi.errno()) end
 
 	return nil, no
 end

@@ -87,11 +87,11 @@ return {
 		os.remove(path)
 	end,
 
-	test_net = function()
+	test_net_in	= function()
 		-- basic errors
-		local err = _.listen(-3, C.SOCK_STREAM)
+		local err = _.listen(-3)
 		assert(err)
-		local err = _.accept(-3, C.SOCK_STREAM)
+		local err = _.accept(-3)
 		assert(err)
 		local err = _.getsockname(-3)
 		assert(err)
@@ -99,37 +99,55 @@ return {
 		assert(err)
 
 		-- listen
-		local err, l_no = _.listen(C.AF_INET, C.SOCK_STREAM)
+		local err, l_no = _.socket(C.AF_INET, C.SOCK_STREAM)
+		local err, l_no = _.listen(l_no, _.endpoint_in())
 		assert(not err)
 		-- attempt to bind to previously bound port
-		local err, ep = _.getsockname(l_no)
+		local err, l_ep = _.getsockname(l_no)
 		assert(not err)
-		local port = ep:port()
-		local err = _.listen(C.AF_INET, C.SOCK_STREAM, nil, port)
+		local err, alt_no = _.socket(C.AF_INET, C.SOCK_STREAM)
+		local err = _.listen(alt_no, l_ep)
 		assert(err)
 		-- peername for listening socket makes no sense
-		local err, ep = _.getpeername(l_no)
+		local err = _.getpeername(l_no)
 		assert(err)
 
 		-- connect
-		local err, c_no = _.connect(C.AF_INET, C.SOCK_STREAM, "127.0.0.1", port)
+		local err, c_no = _.socket(C.AF_INET, C.SOCK_STREAM)
+		local err, c_no = _.connect(c_no, l_ep)
 		assert(not err)
-
-		local err, c_ep = _.getsockname(c_no)
-		assert(not err)
-		local err, ep = _.getpeername(c_no)
-		assert(not err)
-		assert.equal(ep:port(), port)
 
 		-- accept
 		local err, s_no = _.accept(l_no)
 		assert(not err)
-		local err, ep = _.getsockname(s_no)
+		local err, p_ep = _.getpeername(s_no)
 		assert(not err)
-		assert.equal(ep:port(), port)
-		local err, ep = _.getpeername(s_no)
+		local err, c_ep = _.getsockname(c_no)
 		assert(not err)
-		assert.equal(ep:port(), c_ep:port())
+		assert.equal(tostring(p_ep), tostring(c_ep))
+	end,
+
+	test_net_unix	= function()
+		local name = os.tmpname()
+		local err, l_no = _.socket(C.AF_UNIX, C.SOCK_STREAM)
+		local err = _.listen(l_no, _.endpoint_unix(name))
+		assert(err)
+		os.remove(name)
+		local err = _.listen(l_no, _.endpoint_unix(name))
+		assert(not err)
+
+		local err, c_no = _.socket(C.AF_UNIX, C.SOCK_STREAM)
+		local err = _.connect(c_no, _.endpoint_unix(name))
+
+		local err, s_no = _.accept(l_no)
+		assert(not err)
+		local err, p_ep = _.getpeername(s_no)
+		assert(not err)
+		local err, c_ep = _.getsockname(c_no)
+		assert(not err)
+		assert.equal(tostring(p_ep), tostring(c_ep))
+		_.write(c_no, "foo")
+		assert.equal(_.reads(s_no), "foo")
 	end,
 
 	test_gethostname = function()
@@ -151,7 +169,8 @@ return {
 		local len = 4096
 		local buf = ffi.new("char[?]", len)
 
-		local err, s = _.bind(C.AF_INET, C.SOCK_DGRAM)
+		local err, s = _.socket(C.AF_INET, C.SOCK_DGRAM)
+		local err, s = _.bind(s, _.endpoint_in())
 		local err, c1 = _.socket(C.AF_INET, C.SOCK_DGRAM)
 
 		local err, s_ep = _.getsockname(s)
