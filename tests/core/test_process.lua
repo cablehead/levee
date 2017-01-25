@@ -93,4 +93,42 @@ return {
 		child.done:recv()
 		print()
 	end,
+
+	test_respawn = function()
+		local script = [[
+			local levee = require("levee")
+			local _ = levee._
+
+			local h = levee.Hub()
+
+			if arg[1] then
+				io.stdout:write(arg[1])
+			else
+				local child = h.process:respawn({argv={"child"}})
+				io.stdout:write(child.stdout:reads())
+				child.done:recv()
+			end
+		]]
+
+		local tmp = _.path.Path:tmpdir()
+		defer(function() tmp:remove(true) end)
+
+		tmp("foo.lua"):write(script)
+
+		local options = {
+			exe = tostring(tmp("foo")),
+			file = tostring(tmp("foo.lua")), }
+
+		require("levee.cmd").build.run(options)
+
+		local h = levee.Hub()
+
+		local child = h.process:respawn({argv={"run", options.file}})
+		assert.equal(child.stdout:reads(), "child")
+		child.done:recv()
+
+		local child = h.process:spawn(options.exe)
+		assert.equal(child.stdout:reads(), "child")
+		child.done:recv()
+	end,
 }

@@ -76,8 +76,15 @@ end
 
 
 function M_mt:spawn(name, options)
+	if type(name) == "table" then
+		options = name
+		name = nil
+	end
+
 	options = options or {}
 	options.pdeathsig = options.pdeathsig or C.SIGTERM
+	options.argv = options.argv or {}
+	if name then table.insert(options.argv, 1, name) end
 
 	local io = options.io or {}
 
@@ -173,10 +180,26 @@ function M_mt:spawn(name, options)
 		end
 	end
 
-	local argv = options.argv or {}
-	table.insert(argv, 1, name)
-	local err = _.execvp(name, argv)
+	local err = _.execvp(options.argv[1], options.argv)
 	if err then err:exit() end
+end
+
+
+function M_mt:respawn(options)
+	options = options or {}
+	options.argv = options.argv or {}
+
+	local bootstrap = {}
+	for k in pairs(arg) do
+		if k <= 0 then table.insert(bootstrap, k) end
+	end
+	table.sort(bootstrap, function(a, b) return b < a end)
+
+	for __, i in ipairs(bootstrap) do
+		table.insert(options.argv, 1, arg[i])
+	end
+
+	return self:spawn(options)
 end
 
 
