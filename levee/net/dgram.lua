@@ -60,7 +60,9 @@ UDP_mt.__index = UDP_mt
 
 
 function UDP_mt:bind(port, host)
-	local err, no = _.bind(C.AF_INET, C.SOCK_DGRAM, host, port)
+	local err, no = _.socket(C.AF_INET, C.SOCK_DGRAM)
+	if err then return err end
+	local err = _.bind(no, _.endpoint_in(host, port))
 	if err then return err end
 	_.fcntl_nonblock(no)
 	return nil, Dgram(self.hub, no)
@@ -75,7 +77,9 @@ end
 
 
 function UDP_mt:listen(port, host)
-	local err, no = _.listen(C.AF_INET, C.SOCK_DGRAM, host, port)
+	local err, no = _.socket(C.AF_INET, C.SOCK_DGRAM)
+	if err then return err end
+	local err = _.listen(no, _.endpoint_in(host, port))
 	if err then return err end
 	_.fcntl_nonblock(no)
 	return nil, self.hub.io:r(no)
