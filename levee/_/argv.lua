@@ -238,17 +238,19 @@ function Argv_mt:commands(usage, commands, ...)
 		end
 
 		for i, k in ipairs(order) do
-			table.insert(usage, "    "..k)
-			local short = commands[k].short
-			if short then
-				local spacer = " "
-				for i = 1, len - #k do
-					spacer = spacer .. " "
+			if not commands[k].__hide then
+				table.insert(usage, "    "..k)
+				local short = commands[k].short
+				if short then
+					local spacer = " "
+					for i = 1, len - #k do
+						spacer = spacer .. " "
+					end
+					table.insert(usage, spacer .. "- ")
+					table.insert(usage, short)
 				end
-				table.insert(usage, spacer .. "- ")
-				table.insert(usage, short)
+				table.insert(usage, "\n")
 			end
-			table.insert(usage, "\n")
 		end
 
 		-- dang, i wonder if we can rework exit to not prepend a message...
