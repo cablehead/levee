@@ -962,6 +962,8 @@ IO_mt.iovec = d.Iovec
 IO_mt.R_mt = R_mt
 IO_mt.W_mt = W_mt
 IO_mt.RW_mt = RW_mt
+IO_mt.Stream_mt = Stream_mt
+IO_mt.Chunk_mt = Chunk_mt
 
 
 return function(hub)
