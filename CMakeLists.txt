@@ -3,8 +3,8 @@ project(levee C)
 
 set(INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 
-set(CMAKE_C_FLAGS "-std=c99 -Wall -Wextra -Werror -pedantic -I${INCLUDE_DIR}")
-set(CMAKE_C_FLAGS_DEBUG "-g")
+set(CMAKE_C_FLAGS "-std=c99 -I${INCLUDE_DIR}")
+set(CMAKE_C_FLAGS_DEBUG "-g -Wall -Wextra -Werror")
 set(CMAKE_C_FLAGS_RELEASE "-g -O2 -fomit-frame-pointer -march=native")
 
 include(cmake/Siphon.cmake)
