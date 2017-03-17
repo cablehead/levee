@@ -42,6 +42,85 @@ require (lua_State *L, const char *name)
 	return 1;
 }
 
+static void
+print_value (lua_State *L, int idx, int indent)
+{
+#define MAX_INDENT 8
+	static const char space[MAX_INDENT*2] = "                ";
+
+	if (indent > 0) {
+		if (indent > MAX_INDENT) { indent = MAX_INDENT; }
+		fwrite (space, 1, indent*2, stderr);
+	}
+
+	if (idx < 0) {
+		idx = lua_gettop (L) + idx + 1;
+		if (idx < 0) {
+			fprintf (stderr, "#");
+			return;
+		}
+	}
+
+	int t = lua_type (L, idx);
+	switch (t) {
+	case LUA_TSTRING:
+		fprintf (stderr, "\"%s\"", lua_tostring (L, idx));
+		return;
+	case LUA_TBOOLEAN:
+		fprintf (stderr, lua_toboolean (L, idx) ? "true" : "false");
+		return;
+	case LUA_TNUMBER:
+		fprintf (stderr, "%g", lua_tonumber (L, idx));
+		return;
+	case LUA_TNIL:
+		fprintf (stderr, "nil");
+		return;
+	case LUA_TFUNCTION: {
+		const void *func = (const void *)lua_tocfunction (L, idx);
+		Dl_info info;
+		if (func != NULL && dladdr (func, &info) > 0) {
+			fprintf (stderr, "%s", info.dli_sname);
+			return;
+		}
+		break;
+	}
+	case LUA_TTABLE:
+		if (indent > -1 && indent < MAX_INDENT) {
+			fprintf (stderr, "{\n");
+			lua_pushnil (L);
+			while (lua_next (L, idx)) {
+				print_value (L, -2, indent+1);
+				fprintf (stderr, " = ");
+				print_value (L, -1, -1);
+				fprintf (stderr, ",\n");
+				lua_pop (L, 1);
+			}
+			fprintf (stderr, " }");
+			return;
+		}
+		break;
+	}
+
+	lua_getglobal (L, "type");
+	lua_pushvalue (L, idx);
+	lua_call (L, 1, 1);
+	fprintf (stderr, "%s", lua_tostring (L, -1));
+	lua_pop (L, 1);
+}
+
+static void
+print_stack (lua_State *L, const char *msg, bool expand_table)
+{
+	fprintf (stderr, "%s: ", msg);
+	int i;
+	int top = lua_gettop (L);
+	for (i=1; i<=top; i++) {
+		print_value (L, i, expand_table ? 0 : -1);
+		fprintf (stderr, "  ");
+	}
+	fprintf (stderr, "\n");
+}
+
 static int
 levee_dsym_loader (lua_State *L)
 {
@@ -435,35 +514,7 @@ void
 levee_print_stack (Levee *self, const char *msg)
 {
 	if (self->state != LEVEE_LOCAL) return;
-	fprintf (stderr, "%s: ", msg);
-	int i;
-	int top = lua_gettop (self->L);
-	for (i=1; i<=top; i++) {
-		int t = lua_type (self->L, i);
-		switch (t) {
-			case LUA_TSTRING:
-				fprintf (stderr, "\"%s\"", lua_tostring (self->L, i));
-				break;
-			case LUA_TBOOLEAN:
-				fprintf (stderr, lua_toboolean (self->L, i) ? "true" : "false");
-				break;
-			case LUA_TNUMBER:
-				fprintf (stderr, "%g", lua_tonumber (self->L, i));
-				break;
-			case LUA_TNIL:
-				fprintf (stderr, "nil");
-				break;
-			default:
-				lua_getglobal (self->L, "type");
-				lua_pushvalue (self->L, i);
-				lua_call (self->L, 1, 1);
-				fprintf (stderr, "%s", lua_tostring (self->L, -1));
-				lua_pop (self->L, 1);
-				break;
-		}
-		fprintf (stderr, "  ");  /* put a separator */
-	}
-	fprintf (stderr, "\n");  /* end the listing */
+	print_stack (self->L, msg, false);
 }
 
 /*
