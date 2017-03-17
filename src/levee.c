@@ -43,7 +43,8 @@ require (lua_State *L, const char *name)
 }
 
 static int
-levee_dsym_loader (lua_State *L) {
+levee_dsym_loader (lua_State *L)
+{
 	size_t len;
 	const char *target = lua_tolstring (L, 1, &len);
 	const char *offset = strchr (target, '.');
@@ -92,16 +93,16 @@ levee_dsym_loader (lua_State *L) {
 	return 1;
 }
 
-void levee_insert_dsym_loader (lua_State *L) {
+void
+levee_insert_dsym_loader (lua_State *L)
+{
 	lua_getglobal (L, "table");
-	lua_pushstring (L, "insert");
-	lua_gettable (L, 1);
-	lua_remove (L, 1);  // remove table
+	lua_getfield (L, -1, "insert");
+	lua_remove (L, -2);  // remove table
 
 	lua_getglobal (L, "package");
-	lua_pushstring (L, "loaders");
-	lua_gettable (L, 2);
-	lua_remove (L, 2);  // remove package
+	lua_getfield (L, -1, "loaders");
+	lua_remove (L, -2);  // remove package
 
 	lua_pushnumber (L, 2);
 	lua_pushcfunction (L, levee_dsym_loader);
@@ -157,12 +158,6 @@ levee_create (void)
 	require (L, "levee.core.thread");
 	lua_pop (L, 1); // pop levee.core.channel module
 
-	__sync_synchronize ();
-	const LeveeConfig *cfg = config;
-	if (cfg != NULL && cfg->init != NULL) {
-		cfg->init (L);
-	}
-
 	Levee *self = malloc (sizeof *self);
 	if (self == NULL) {
 		int err = errno;
@@ -170,6 +165,13 @@ levee_create (void)
 		errno = err;
 		return NULL;
 	}
+
+	__sync_synchronize ();
+	const LeveeConfig *cfg = config;
+	if (cfg != NULL && cfg->init != NULL) {
+		cfg->init (L);
+	}
+
 	self->L = L;
 	self->state = LEVEE_LOCAL;
 	self->last_error = NULL;
@@ -313,6 +315,7 @@ run (void *data)
 
 	Levee *self = data;
 
+	levee_insert_dsym_loader (self->L);
 	if (lua_pcall (self->L, self->narg, 0, 0)) {
 		return false;
 	}
