@@ -173,7 +173,7 @@ levee_dsym_loader (lua_State *L)
 }
 
 void
-levee_insert_dsym_loader (lua_State *L)
+insert_dsym_loader (lua_State *L)
 {
 	lua_getglobal (L, "table");
 	lua_getfield (L, -1, "insert");
@@ -244,6 +244,8 @@ levee_create (void)
 		errno = err;
 		return NULL;
 	}
+
+	insert_dsym_loader (L);
 
 	__sync_synchronize ();
 	const LeveeConfig *cfg = config;
@@ -394,7 +396,6 @@ run (void *data)
 
 	Levee *self = data;
 
-	levee_insert_dsym_loader (self->L);
 	if (lua_pcall (self->L, self->narg, 0, 0)) {
 		return false;
 	}

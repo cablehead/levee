@@ -37,8 +37,6 @@ local function output_main(path, options)
 		static int
 		pmain (lua_State *L)
 		{
-			levee_insert_dsym_loader(L);
-			(void)L;
 			int n = levee_require (state, "${name}.main");
 			if (n > 0) {
 				lua_pop (L, n);
