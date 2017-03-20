@@ -54,9 +54,10 @@ Endpoint_mt.__index = Endpoint_mt
 
 if ffi.os:lower() == "linux" then
 	function Endpoint_mt:_set_family(no)
-		self.len[0] = ffi.sizeof("int")
+		local flen = ffi.new("socklen_t[1]")
+		flen[0] = ffi.sizeof(ffi.typeof(self.family))
 		local rc = C.getsockopt(
-			no, C.SOL_SOCKET, C.SO_DOMAIN, self.family, self.len)
+			no, C.SOL_SOCKET, C.SO_DOMAIN, self.family, flen)
 		if rc < 0 then return errors.get(ffi.errno()) end
 	end
 else
