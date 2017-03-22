@@ -94,8 +94,10 @@ function R_mt:sendfile(to, len, off)
 		off = off + n
 		remain = remain - n
 
-		local err, ev = to.w_ev:recv()
-		if err then return err end
+		if err then
+			 local err, ev = to.w_ev:recv()
+			 if err then return err end
+		end
 	end
 
 	return nil, len
