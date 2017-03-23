@@ -66,15 +66,15 @@ return {
 
 	test_gc = function()
 		local h = levee.Hub()
-
 		local child = h.process:spawn("cat")
 		local pid = child.pid
 		assert.same({_.waitpid(pid, C.WNOHANG)}, {nil, 0, 0, 0})
 
 		child = nil
+		local options = bit.bor(C.WUNTRACED, C.WCONTINUED)
 		collectgarbage("collect")
 		collectgarbage("collect")
-		assert.same({_.waitpid(pid, C.WNOHANG)}, {nil, pid, 0, 15})
+		assert.same({_.waitpid(pid, options)}, {nil, pid, 0, 15})
 	end,
 
 	test_default = function()
