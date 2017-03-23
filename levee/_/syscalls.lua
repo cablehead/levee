@@ -435,6 +435,12 @@ _.connect = function(no, endpoint)
 	return nil, no
 end
 
+_.setsockopt = function(no, level, name)
+	local on = ffi.new("int32_t[1]", 1)
+	local rc = C.setsockopt(no, level, name, on, ffi.sizeof(on))
+	if rc < 0 then return errors.get(ffi.errno()) end
+	return nil, no
+	end
 
 _.bind = function(no, endpoint)
 	endpoint = endpoint or _.endpoint_in()
@@ -444,14 +450,12 @@ _.bind = function(no, endpoint)
 	return nil, no
 end
 
-
 _.listen = function(no, endpoint, backlog)
-	local on = ffi.new("int32_t[1]", 1)
-	local rc = C.setsockopt(no, C.SOL_SOCKET, C.SO_REUSEADDR, on, ffi.sizeof(on))
-	if rc < 0 then return errors.get(ffi.errno()) end
+	local err  = _.setsockopt(no, C.SOL_SOCKET, C.SO_REUSEADDR)
+	if err then return err end
 
-	rc = C.bind(no, endpoint.addr.sa, endpoint.len[0])
-	if rc < 0 then return errors.get(ffi.errno()) end
+	local err = _.bind(no, endpoint)
+	if err then return err end
 
 	rc = C.listen(no, backlog or 256)
 	if rc < 0 then return errors.get(ffi.errno()) end
