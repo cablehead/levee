@@ -8,6 +8,10 @@ matrix:
       dist: trusty
       sudo: required
 
+branches:
+  only:
+    - master
+
 install:
   - ./.travis/install.${TRAVIS_OS_NAME}.sh
 
