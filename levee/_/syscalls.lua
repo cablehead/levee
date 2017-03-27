@@ -25,6 +25,11 @@ function Stat_mt:is_dir()
 end
 
 
+function Stat_mt:size()
+	return tonumber(self.st_size)
+end
+
+
 ffi.metatype("SpStat", Stat_mt)
 
 
