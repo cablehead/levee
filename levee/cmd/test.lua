@@ -157,6 +157,17 @@ function Assert_mt.contains(want, list)
 	error(("%s not found in list"):format(tostring(want)))
 end
 
+function Assert_mt.not_contains(want, list)
+	if type(list) ~= "table" then
+		error(("%s is not a table"):format(tostring(list)))
+	end
+	for i,v in ipairs(list) do
+		if v == want then
+			error(("%s found in list"):format(tostring(want)))
+		end
+	end
+end
+
 function Assert_mt.error(f)
 	local ok = pcall(f)
 	if ok then

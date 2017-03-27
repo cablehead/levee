@@ -195,5 +195,8 @@ return {
 		local err, s = _.socket(C.AF_INET, C.SOCK_DGRAM)
 		local fds = _.fds()
 		assert.contains(s, fds)
+		_.close(s)
+		local fds = _.fds()
+		assert.not_contains(s, fds)
 	end
 }
