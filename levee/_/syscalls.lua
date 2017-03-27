@@ -277,6 +277,35 @@ _.close = function(no)
 	if rc ~= 0 then return errors.get(ffi.errno()) end
 end
 
+if ffi.os:lower() == "osx" then
+	local fdmax = 32768
+	local fdinfo = C.malloc(fdmax * ffi.sizeof("struct proc_fdinfo"))
+	fdinfo = ffi.cast("struct proc_fdinfo *", fdinfo)
+	fdinfo = ffi.gc(fdinfo, C.free)
+	fdinfo_size = fdmax * ffi.sizeof("struct proc_fdinfo")
+
+	_.fds = function()
+		C.memset(fdinfo, 0, fdinfo_size)
+		local sz = C.proc_pidinfo(C.getpid(), C.PROC_PIDLISTFDS, 0, fdinfo, fdinfo_size)
+		assert(sz < fdinfo_size)
+
+		local fds = {}
+		for i=0,fdmax-1 do
+			if fdinfo[i].proc_fdtype == 0 then break end
+			table.insert(fds, tonumber(fdinfo[i].proc_fd))
+		end
+		return fds
+	end
+else
+	_.fds = function()
+		local fds = {}
+		for f in _.path.walk("/proc/self/fd") do
+			table.insert(fds, tonumber(f:basename()))
+		end
+		return fds
+	end
+end
+
 
 _.stat = function(path)
 	local info = ffi.new("SpStat")

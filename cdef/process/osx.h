@@ -1,0 +1,25 @@
+struct proc_fdinfo {
+	int32_t  proc_fd;
+	uint32_t proc_fdtype;
+};
+
+enum proc_pidinfo_flavor {
+	PROC_PIDLISTFDS = 1,
+	PROC_PIDTASKALLINFO = 2,
+	PROC_PIDTBSDINFO = 3,
+	PROC_PIDTASKINFO = 4,
+	PROC_PIDTHREADINFO = 5,
+	PROC_PIDLISTTHREADS = 6,
+	PROC_PIDREGIONINFO = 7,
+	PROC_PIDREGIONPATHINFO = 8,
+	PROC_PIDVNODEPATHINFO = 9,
+	PROC_PIDTHREADPATHINFO = 10,
+	PROC_PIDPATHINFO = 11,
+	PROC_PIDWORKQUEUEINFO = 12,
+	PROC_PIDT_SHORTBSDINFO = 13,
+	PROC_PIDLISTFILEPORTS = 14,
+	PROC_PIDTHREADID64INFO = 15,
+	PROC_PID_RUSAGE = 16
+};
+
+int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize);
