@@ -299,7 +299,7 @@ if ffi.os:lower() == "osx" then
 else
 	_.fds = function()
 		local fds = {}
-		for f in require("levee._.path").walk("/proc/self/fd") do
+		for f in require("levee._.path").walk("/proc/self/fd", 1) do
 			table.insert(fds, tonumber(f:basename()))
 		end
 		return fds
