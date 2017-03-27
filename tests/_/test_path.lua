@@ -308,4 +308,27 @@ return {
 		assert(tmp:remove(true))
 		assert(not tmp:exists())
 	end,
+
+	test_walk = function()
+		local files = {}
+		local matched = 0
+		for f in _.path.walk("tests/tree") do
+			if f:is_dir() and f:basename() == "skip" then
+				f:skip()
+			end
+			if f:is_reg() then
+				local err, s = f:stat()
+				if err == nil then
+					matched = matched + 1
+					files[f:pathname()] = s:size()
+				end
+			end
+		end
+		assert.equal(files["tests/tree/a"], 1)
+		assert.equal(files["tests/tree/x/b"], 2)
+		assert.equal(files["tests/tree/x/c"], 3)
+		assert.equal(files["tests/tree/y/d"], 4)
+		assert.equal(files["tests/tree/y/z/e"], 5)
+		assert.equal(matched, 5)
+	end,
 }

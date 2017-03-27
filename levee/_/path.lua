@@ -138,6 +138,16 @@ function _.exists(name)
 end
 
 
+function _.walk(path, depth)
+	local err, dir = _.Dir(path, depth)
+	if err then return function() end end
+	return function()
+		local rc = C.sp_dir_next(dir)
+		if rc > 0 then return dir end
+	end
+end
+
+
 --
 -- Path
 
@@ -179,6 +189,11 @@ function Path_mt:is_dir()
 end
 
 
+function Path_mt:walk(depth)
+	return _.walk(self._path, depth)
+end
+
+
 function Path_mt:cwd()
 	local err, cwd = _.cwd(self._path)
 	if err then err:exit() end
@@ -216,6 +231,81 @@ end
 
 
 _.Path = setmetatable({}, Path_constructor)
+
+
+--
+-- Dir
+
+
+local Dir_mt = {}
+Dir_mt.__index = Dir_mt
+
+
+function Dir_mt:__tostring()
+	return "levee._.Dir: " .. self:pathname()
+end
+
+
+-- don't descend into the directory on the subsequent `next`
+function Dir_mt:skip()
+	C.sp_dir_skip(self)
+end
+
+
+-- follow into a symlink when calling the subsequent `next`
+function Dir_mt:follow()
+	C.sp_dir_follow(self)
+end
+
+
+function Dir_mt:type()
+	return C.sp_dir_type(self)
+end
+
+
+function Dir_mt:is_reg()
+	return C.sp_dir_type(self) == C.SP_PATH_REG
+end
+
+
+function Dir_mt:is_dir()
+	return C.sp_dir_type(self) == C.SP_PATH_DIR
+end
+
+
+function Dir_mt:stat()
+	local src = C.sp_dir_stat(self)
+	if src == nil then return errors.get(-ffi.errno()) end
+	local dst = ffi.new("SpStat")
+	C.memcpy(dst, src, ffi.sizeof(dst))
+	return nil, dst
+end
+
+
+function Dir_mt:pathname()
+	return ffi.string(self.path, self.pathlen)
+end
+
+
+function Dir_mt:dirname()
+	return ffi.string(self.path, self.dirlen)
+end
+
+
+function Dir_mt:basename()
+	return ffi.string(self.path + self.dirlen + 1, self.pathlen - self.dirlen - 1)
+end
+
+
+local Dir_ct = ffi.metatype("SpDir", Dir_mt)
+
+
+function _.Dir(path, depth)
+	local dir = Dir_ct()
+	local rc = C.sp_dir_open(dir, path, depth or 255)
+	if rc < 0 then return errors.get(rc) end
+	return nil, ffi.gc(dir, C.sp_dir_close)
+end
 
 
 return _
