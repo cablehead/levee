@@ -144,6 +144,7 @@ function _.walk(path, depth)
 	return function()
 		local rc = C.sp_dir_next(dir)
 		if rc > 0 then return dir end
+		dir:close()
 	end
 end
 
@@ -294,6 +295,11 @@ end
 
 function Dir_mt:basename()
 	return ffi.string(self.path + self.dirlen + 1, self.pathlen - self.dirlen - 1)
+end
+
+
+function Dir_mt:close()
+	C.sp_dir_close(self)
 end
 
 
