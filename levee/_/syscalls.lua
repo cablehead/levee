@@ -300,7 +300,10 @@ else
 	_.fds = function()
 		local fds = {}
 		for f in require("levee._.path").walk("/proc/self/fd", 1) do
-			table.insert(fds, tonumber(f:basename()))
+			local fd = tonumber(f:basename())
+			if not f:using_fd(fd) then
+				table.insert(fds, fd)
+			end
 		end
 		return fds
 	end

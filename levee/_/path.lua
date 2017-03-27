@@ -303,6 +303,16 @@ function Dir_mt:close()
 end
 
 
+function Dir_mt:using_fd(fd)
+	for i=0,self.cur-1 do
+		if fd == C.dirfd(self.stack[i]) then
+			return true
+		end
+	end
+	return false
+end
+
+
 local Dir_ct = ffi.metatype("SpDir", Dir_mt)
 
 

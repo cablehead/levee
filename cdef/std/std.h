@@ -29,3 +29,5 @@ void abort (void);
 
 unsigned int sleep(unsigned int seconds);
 int usleep(unsigned int useconds);
+
+int dirfd(void *);
