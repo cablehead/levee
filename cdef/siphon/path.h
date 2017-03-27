@@ -36,7 +36,7 @@ typedef struct {
 	void **stack;
 	uint16_t flags, dirlen, pathlen;
 	uint8_t cur, max;
-	SpStat stat;
+	SpStat _stat;
 	bool empty;
 	char path[SP_PATH_MAX];
 } SpDir;
