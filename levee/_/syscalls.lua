@@ -25,7 +25,7 @@ function Stat_mt:is_dir()
 end
 
 
-ffi.metatype("struct levee_stat", Stat_mt)
+ffi.metatype("SpStat", Stat_mt)
 
 
 ffi.cdef[[
@@ -274,16 +274,16 @@ end
 
 
 _.stat = function(path)
-	local info = ffi.new("struct levee_stat")
-	local rc = C.levee_stat(path, info)
+	local info = ffi.new("SpStat")
+	local rc = C.sp_stat(path, info, false)
 	if rc == 0 then return nil, info end
 	return errors.get(ffi.errno())
 end
 
 
 _.fstat = function(no)
-	local info = ffi.new("struct levee_stat")
-	local rc = C.levee_fstat(no, info)
+	local info = ffi.new("SpStat")
+	local rc = C.sp_fstat(no, info)
 	if rc == 0 then return nil, info end
 	return errors.get(ffi.errno())
 end
