@@ -197,6 +197,7 @@ end
 
 function RW_mt:handshake()
 	local rc = C.tls_handshake(self.ctx)
+	if rc == -1 then return ffi.string(C.tls_error(self.ctx)) end
 	if rc >= 0 then return nil, tonumber(rc) end
 
 	local err, rc = self:__WANT_POLL(rc)
