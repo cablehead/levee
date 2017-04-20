@@ -42,6 +42,9 @@ levee_get_error (Levee *self);
 extern size_t
 levee_getcurrentrss ();
 
+extern ssize_t
+levee_tls_writev (struct tls *ctx, const struct iovec *vector, int count);
+
 struct LeveeDialerState {
 	int rc;
 	int io[2];

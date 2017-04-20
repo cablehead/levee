@@ -48,8 +48,6 @@ return {
 	end,
 
 	test_core = function()
-		local TLS = require("levee.net.tls")
-
 		local h = levee.Hub()
 
 		local err, serve = h.stream:listen({tls=SERVER_OPTIONS})
@@ -71,8 +69,6 @@ return {
 	end,
 
 	test_handshake_server_fail = function()
-		local TLS = require("levee.net.tls")
-
 		local h = levee.Hub()
 
 		local err, serve = h.stream:listen()
@@ -87,5 +83,28 @@ return {
 		-- client
 		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
 		assert(err)
+	end,
+
+	test_write_iovec = function()
+		local h = levee.Hub()
+
+		local err, serve = h.stream:listen({tls=SERVER_OPTIONS})
+		local err, addr = serve:addr()
+
+		local function server()
+			local err, conn = serve:recv()
+			local iov = d.Iovec()
+			iov:write("foo")
+			iov:write("bar")
+			iov:write("baz")
+			conn:writev(iov:value())
+			conn:close()
+		end
+		h:spawn(server)
+
+		-- client
+		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
+		assert.equal(conn:reads(), "foobarbaz")
+		assert.equal(conn:reads(), nil)
 	end,
 }

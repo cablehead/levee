@@ -7,6 +7,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
+#include <tls.h>
 
 #ifdef __linux__
 # include <sys/epoll.h>
@@ -104,5 +106,8 @@ levee_sendfile (int s, int fd, size_t off, size_t len);
 
 extern size_t
 levee_getcurrentrss ();
+
+extern ssize_t
+levee_tls_writev (struct tls *ctx, const struct iovec *vector, int count);
 
 #endif

@@ -249,6 +249,46 @@ function RW_mt:write(buf, len)
 end
 
 
+function RW_mt:writev(iov, n)
+	-- TODO merge this with io.W_mt:writev
+	if self.closed then return errors.CLOSED end
+
+	local len
+	local i, total = 0, 0
+
+	while true do
+		while true do
+			len = ffi.C.levee_tls_writev(self.ctx, iov[i], n - i)
+			if len > 0 then break end
+			local err = errors.get(ffi.errno())
+			if not err.is_system_EAGAIN then
+				self:close()
+				return err
+			end
+			self.w_ev:recv()
+		end
+
+		total = total + len
+
+		while true do
+			if iov[i].iov_len > len then break end
+			len = len - iov[i].iov_len
+			i = i + 1
+			if i == n then
+				assert(len == 0)
+				self.hub:continue()
+				return nil, total
+			end
+		end
+
+		if len > 0 then
+			iov[i].iov_base = iov[i].iov_base + len
+			iov[i].iov_len = iov[i].iov_len - len
+		end
+	end
+end
+
+
 function RW_mt:close()
 	if self.closed then return errors.CLOSED end
 
