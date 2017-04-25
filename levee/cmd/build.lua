@@ -203,13 +203,12 @@ Options:
 				"-D_BSD_SOURCE", "-D_GNU_SOURCE",
 				"-pthread", "-Wl,--export-dynamic", "-static-libgcc",
 				"-Wl,--whole-archive," .. lib .. ",--no-whole-archive",
-				"-lm", "-ldl", "-ltls",
+				"-lm", "-ldl",
 			},
 			osx = {
 				"-pagezero_size", "10000", "-image_base", "100000000",
 				"-Wl,-export_dynamic",
 				"-Wl,-force_load," .. lib,
-				"-ltls",
 			},
 		}
 

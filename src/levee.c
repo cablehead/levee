@@ -8,8 +8,6 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
-#include <sys/uio.h>
-#include <tls.h>
 
 #ifdef __linux__
 # include <sys/sendfile.h>
@@ -21,6 +19,7 @@
 
 #include "levee.h"
 #include "levee_cdef.h"
+
 
 
 #define LEVEE_LOCAL 0
@@ -611,45 +610,4 @@ size_t levee_getcurrentrss ()
     /* AIX, BSD, Solaris, and Unknown OS ------------------------ */
     return (size_t)0L;          /* Unsupported. */
 #endif
-}
-
-ssize_t
-levee_tls_writev (struct tls *ctx, const struct iovec *vector, int count)
-{
-  int ibytes = 0;
-  size_t bytes, to_copy, copy = 0;
-  ssize_t bytes_written = 0;
-  char *buffer, *bp;
-
-  for (int i = 0; i < count; ++i)
-  {
-    if (SSIZE_MAX - ibytes < vector[i].iov_len)
-    {
-      errno = EINVAL;
-      return -1;
-    }
-    ibytes += vector[i].iov_len;
-  }
-
-  // Using size_t, `bytes`, instead of int, `ibytes`, in the addition above
-  // causes a malloc error in OSX
-  bytes = (size_t) ibytes;
-  buffer = (char *) malloc (bytes);
-  to_copy = bytes;
-  bp = buffer;
-  for (int i = 0; i < count; ++i)
-  {
-    copy = vector[i].iov_len < to_copy ? vector[i].iov_len : to_copy;
-    memcpy ((void *) bp, (void *) vector[i].iov_base, copy);
-    bp += copy;
-    to_copy -= copy;
-    if (to_copy == 0)
-      break;
-  }
-
-  bytes_written = tls_write(ctx, buffer, bytes);
-
-  free(buffer);
-
-  return bytes_written;
 }

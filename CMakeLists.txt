@@ -105,8 +105,3 @@ elseif("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
 else()
 	message(FATAL_ERROR "platform not supported yet: ${CMAKE_SYSTEM_NAME}")
 endif()
-
-find_library(TLS_LOCATION NAMES tls)
-add_library(tls UNKNOWN IMPORTED)
-set_property(TARGET tls PROPERTY IMPORTED_LOCATION ${TLS_LOCATION})
-target_link_libraries(levee tls)

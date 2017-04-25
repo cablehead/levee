@@ -250,24 +250,14 @@ end
 
 
 function RW_mt:writev(iov, n)
-	-- TODO merge this with io.W_mt:writev
 	if self.closed then return errors.CLOSED end
 
 	local len
 	local i, total = 0, 0
 
 	while true do
-		while true do
-			len = ffi.C.levee_tls_writev(self.ctx, iov[i], n - i)
-			if len > 0 then break end
-			local err = errors.get(ffi.errno())
-			if not err.is_system_EAGAIN then
-				self:close()
-				return err
-			end
-			self.w_ev:recv()
-		end
-
+		err, len = self:write(iov[i].iov_base, iov[i].iov_len)
+		if err then return err end
 		total = total + len
 
 		while true do

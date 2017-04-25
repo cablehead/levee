@@ -85,26 +85,46 @@ return {
 		assert(err)
 	end,
 
-	test_write_iovec = function()
+	test_writev = function()
 		local h = levee.Hub()
 
 		local err, serve = h.stream:listen({tls=SERVER_OPTIONS})
 		local err, addr = serve:addr()
 
+		local iov = h.io.iovec(32)
+
+		-- to prevent gc
+		local keep = {}
+		local want = {}
+		for i = 1, 12 do
+			 local s = tostring(i):rep(10000+i)
+			 iov:write(s)
+			 table.insert(keep, s)
+			 table.insert(want, s)
+		end
+		want = table.concat(want)
+
+		local err, total
 		local function server()
 			local err, conn = serve:recv()
-			local iov = d.Iovec()
-			iov:write("foo")
-			iov:write("bar")
-			iov:write("baz")
-			conn:writev(iov:value())
+			err, total = conn:writev(iov:value())
 			conn:close()
 		end
 		h:spawn(server)
 
 		-- client
 		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
-		assert.equal(conn:reads(), "foobarbaz")
-		assert.equal(conn:reads(), nil)
+		local got = {}
+		while true do
+			local s = conn:reads(64*1024)
+			if not s then break end
+			table.insert(got, s)
+		end
+		got = table.concat(got)
+
+		assert.equal(#want, #got)
+		assert.equal(want, got)
+		assert.equal(total, #got)
+		assert(not err)
 	end,
 }
