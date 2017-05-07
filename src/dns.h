@@ -1106,6 +1106,8 @@ struct dns_socket;
 
 DNS_PUBLIC struct dns_socket *dns_so_open(const struct sockaddr *, int, const struct dns_options *, int *error);
 
+DNS_PUBLIC struct dns_socket *levee_dns_so_open(int fd, const struct sockaddr *, int, const struct dns_options *, int *error);
+
 DNS_PUBLIC void dns_so_close(struct dns_socket *);
 
 DNS_PUBLIC void dns_so_reset(struct dns_socket *);

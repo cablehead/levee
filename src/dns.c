@@ -6341,7 +6341,7 @@ static void dns_so_closefds(struct dns_socket *so, int which) {
 
 static void dns_so_destroy(struct dns_socket *);
 
-static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
+static struct dns_socket *levee_dns_so_init(int fd, struct dns_socket *so, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
 	static const struct dns_socket so_initializer = { .opts = DNS_OPTS_INITIALIZER, .udp = -1, .tcp = -1, };
 
 	*so		= so_initializer;
@@ -6353,7 +6353,9 @@ static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockad
 	if (local)
 		memcpy(&so->local, local, dns_sa_len(local));
 
-	if (-1 == (so->udp = dns_socket((struct sockaddr *)&so->local, SOCK_DGRAM, error)))
+		if (fd != -1)
+				so->udp = fd;
+	else if (-1 == (so->udp = dns_socket((struct sockaddr *)&so->local, SOCK_DGRAM, error)))
 		goto error;
 
 	dns_k_permutor_init(&so->qids, 1, 65535);
@@ -6363,16 +6365,21 @@ error:
 	dns_so_destroy(so);
 
 	return 0;
+} /* levee_dns_so_init() */
+
+
+static struct dns_socket *dns_so_init(struct dns_socket *so, const struct
+sockaddr *local, int type, const struct dns_options *opts, int *error) {
+		return levee_dns_so_init(-1, so, local, type, opts, error);
 } /* dns_so_init() */
 
-
-struct dns_socket *dns_so_open(const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
+struct dns_socket *levee_dns_so_open(int fd, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
 	struct dns_socket *so;
 
 	if (!(so = malloc(sizeof *so)))
 		goto syerr;
 
-	if (!dns_so_init(so, local, type, opts, error))
+	if (!levee_dns_so_init(fd, so, local, type, opts, error))
 		goto error;
 
 	return so;
@@ -6382,8 +6389,11 @@ error:
 	dns_so_close(so);
 
 	return 0;
-} /* dns_so_open() */
+} /* levee_dns_so_open() */
 
+struct dns_socket *dns_so_open(const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
+		return levee_dns_so_open(-1, local, type, opts, error);
+} /* dns_so_open() */
 
 static void dns_so_destroy(struct dns_socket *so) {
 	dns_so_reset(so);
