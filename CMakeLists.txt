@@ -44,6 +44,7 @@ add_library(
 	src/ref.c
 	src/heap.c
 	src/levee.c
+	src/dns.c
 	src/dialer.c
 	src/list.c
 	src/lpeg/lpcap.c
