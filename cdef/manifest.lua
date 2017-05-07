@@ -56,6 +56,7 @@ local headers = {
 	include("heap", "heap"),
 	include("list", "list"),
 	include("channel", "channel"),
+	include("dns", "dns"),
 	include("siphon", "common"),
 	include("siphon", "hash"),
 	include("siphon", "error"),
