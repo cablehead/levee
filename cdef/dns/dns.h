@@ -4,6 +4,7 @@ typedef unsigned long dns_refcount_t;
 typedef unsigned long dns_resconf_i_t;
 typedef unsigned long dns_atomic_t;
 
+static const int INET_ADDRSTRLEN	= 16;
 static const int INET6_ADDRSTRLEN	= 46;
 static const int DNS_P_DICTSIZE	= 16;
 static const int DNS_K_TEA_KEY_SIZE	= 16;
@@ -236,6 +237,10 @@ struct dns_resolv_conf {
 	struct { /* PRIVATE */
 		dns_atomic_t refcount;
 	} _;
+};
+
+struct dns_a {
+	struct in_addr addr;
 };
 
 extern const char *dns_strerror(dns_error_t);
