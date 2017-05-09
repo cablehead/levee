@@ -6368,11 +6368,6 @@ error:
 } /* levee_dns_so_init() */
 
 
-static struct dns_socket *dns_so_init(struct dns_socket *so, const struct
-sockaddr *local, int type, const struct dns_options *opts, int *error) {
-		return levee_dns_so_init(-1, so, local, type, opts, error);
-} /* dns_so_init() */
-
 struct dns_socket *levee_dns_so_open(int fd, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
 	struct dns_socket *so;
 
@@ -6939,7 +6934,8 @@ static int dns_res_tcp2type(int tcp) {
 	}
 } /* dns_res_tcp2type() */
 
-struct dns_resolver *dns_res_open(struct dns_resolv_conf *resconf, struct dns_hosts *hosts, struct dns_hints *hints, struct dns_cache *cache, const struct dns_options *opts, int *_error) {
+
+struct dns_resolver *levee_dns_res_open(int fd, struct dns_resolv_conf *resconf, struct dns_hosts *hosts, struct dns_hints *hints, struct dns_cache *cache, const struct dns_options *opts, int *_error) {
 	static const struct dns_resolver R_initializer
 		= { .refcount = 1, };
 	struct dns_resolver *R	= 0;
@@ -6976,7 +6972,7 @@ struct dns_resolver *dns_res_open(struct dns_resolv_conf *resconf, struct dns_ho
 	*R	= R_initializer;
 	type	= dns_res_tcp2type(resconf->options.tcp);
 
-	if (!dns_so_init(&R->so, (struct sockaddr *)&resconf->iface, type, opts, &error))
+	if (!levee_dns_so_init(fd, &R->so, (struct sockaddr *)&resconf->iface, type, opts, &error))
 		goto error;
 
 	R->resconf	= resconf;
@@ -6998,6 +6994,11 @@ _error:
 	dns_cache_close(cache);
 
 	return 0;
+} /* levee_dns_res_open */
+
+
+struct dns_resolver *dns_res_open(struct dns_resolv_conf *resconf, struct dns_hosts *hosts, struct dns_hints *hints, struct dns_cache *cache, const struct dns_options *opts, int *_error) {
+	return levee_dns_res_open(-1, resconf, hosts, hints, cache, opts, _error);
 } /* dns_res_open() */
 
 

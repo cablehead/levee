@@ -1144,6 +1144,8 @@ struct dns_resolver;
 
 DNS_PUBLIC struct dns_resolver *dns_res_open(struct dns_resolv_conf *, struct dns_hosts *hosts, struct dns_hints *, struct dns_cache *, const struct dns_options *, int *);
 
+DNS_PUBLIC struct dns_resolver *levee_dns_res_open(int fd, struct dns_resolv_conf *resconf, struct dns_hosts *hosts, struct dns_hints *hints, struct dns_cache *cache, const struct dns_options *opts, int *_error);
+
 DNS_PUBLIC struct dns_resolver *dns_res_stub(const struct dns_options *, int *);
 
 DNS_PUBLIC void dns_res_reset(struct dns_resolver *);

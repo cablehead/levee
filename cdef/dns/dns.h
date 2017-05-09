@@ -243,6 +243,10 @@ struct dns_a {
 	struct in_addr addr;
 };
 
+struct dns_aaaa {
+	struct in6_addr addr;
+};
+
 extern const char *dns_strerror(dns_error_t);
 
 
@@ -586,6 +590,8 @@ extern const struct dns_stat *dns_so_stat(struct dns_socket *);
 
 
 extern struct dns_resolver *dns_res_open(struct dns_resolv_conf *, struct dns_hosts *hosts, struct dns_hints *, struct dns_cache *, const struct dns_options *, int *);
+
+extern struct dns_resolver *levee_dns_res_open(int fd, struct dns_resolv_conf *resconf, struct dns_hosts *hosts, struct dns_hints *hints, struct dns_cache *cache, const struct dns_options *opts, int *_error);
 
 extern struct dns_resolver *dns_res_stub(const struct dns_options *, int *);
 
