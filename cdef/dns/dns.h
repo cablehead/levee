@@ -9,6 +9,9 @@ static const int INET6_ADDRSTRLEN	= 46;
 static const int DNS_P_DICTSIZE	= 16;
 static const int DNS_K_TEA_KEY_SIZE	= 16;
 static const int DNS_D_MAXNAME	= 255;
+static const int DNS_TXT_MINDATA	= 1024;
+static const int DNS_OPT_MINDATA	= 256;
+
 
 enum dns_section {
 	DNS_S_QD		= 0x01,
@@ -39,6 +42,23 @@ enum dns_type {
 	DNS_T_AXFR      = 252,
 
 	DNS_T_ALL	= 255
+};
+
+enum dns_rcode {
+	DNS_RC_NOERROR	= 0,
+	DNS_RC_FORMERR	= 1,
+	DNS_RC_SERVFAIL	= 2,
+	DNS_RC_NXDOMAIN	= 3,
+	DNS_RC_NOTIMP	= 4,
+	DNS_RC_REFUSED	= 5,
+	DNS_RC_YXDOMAIN	= 6,
+	DNS_RC_YXRRSET	= 7,
+	DNS_RC_NXRRSET	= 8,
+	DNS_RC_NOTAUTH	= 9,
+	DNS_RC_NOTZONE	= 10,
+
+	/* EDNS(0) extended RCODEs */
+	DNS_RC_BADVERS = 16,
 };
 
 struct dns_header {
@@ -245,6 +265,84 @@ struct dns_a {
 
 struct dns_aaaa {
 	struct in6_addr addr;
+};
+
+struct dns_mx {
+	unsigned short preference;
+	char host[DNS_D_MAXNAME + 1];
+};
+
+struct dns_ns {
+	char host[DNS_D_MAXNAME + 1];
+};
+
+struct dns_cname {
+	char host[DNS_D_MAXNAME + 1];
+};
+
+struct dns_soa {
+	char mname[DNS_D_MAXNAME + 1];
+	char rname[DNS_D_MAXNAME + 1];
+	unsigned serial, refresh, retry, expire, minimum;
+};
+
+struct dns_ptr {
+	char host[DNS_D_MAXNAME + 1];
+};
+
+struct dns_srv {
+	unsigned short priority;
+	unsigned short weight;
+	unsigned short port;
+	char target[DNS_D_MAXNAME + 1];
+};
+
+struct dns_opt {
+	enum dns_rcode rcode;
+	unsigned char version;
+	unsigned short flags;
+
+	union {
+		unsigned short maxsize; /* deprecated as confusing */
+		unsigned short maxudp; /* maximum UDP payload size */
+	};
+
+	size_t size, len;
+	unsigned char data[DNS_OPT_MINDATA];
+};
+
+struct dns_sshfp {
+	enum dns_sshfp_key {
+		DNS_SSHFP_RSA = 1,
+		DNS_SSHFP_DSA = 2,
+	} algo;
+
+	enum dns_sshfp_digest {
+		DNS_SSHFP_SHA1 = 1,
+	} type;
+
+	union {
+		unsigned char sha1[20];
+	} digest;
+};
+
+struct dns_txt {
+	size_t size, len;
+	unsigned char data[DNS_TXT_MINDATA];
+};
+
+union dns_any {
+	struct dns_a a;
+	struct dns_aaaa aaaa;
+	struct dns_mx mx;
+	struct dns_ns ns;
+	struct dns_cname cname;
+	struct dns_soa soa;
+	struct dns_ptr ptr;
+	struct dns_srv srv;
+	struct dns_opt opt;
+	struct dns_sshfp sshfp;
+	struct dns_txt txt, spf, rdata;
 };
 
 extern const char *dns_strerror(dns_error_t);
