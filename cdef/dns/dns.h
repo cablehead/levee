@@ -12,6 +12,26 @@ static const int DNS_D_MAXNAME	= 255;
 static const int DNS_TXT_MINDATA	= 1024;
 static const int DNS_OPT_MINDATA	= 256;
 
+enum dns_errno {
+	DNS_ENOBUFS = -(('d' << 24) | ('n' << 16) | ('s' << 8) | 64),
+	DNS_EILLEGAL,
+	DNS_EORDER,
+	DNS_ESECTION,
+	DNS_EUNKNOWN,
+	DNS_EADDRESS,
+	DNS_ENOQUERY,
+	DNS_ENOANSWER,
+	DNS_EFETCHED,
+	DNS_ESERVICE, /* EAI_SERVICE */
+	DNS_ENONAME,  /* EAI_NONAME */
+	DNS_EFAIL,    /* EAI_FAIL */
+	DNS_ELAST,
+
+	/* Levee defined errors */
+	DNS_NOHINTS,
+	DNS_NORRI,
+	DNS_PRINT,
+};
 
 enum dns_section {
 	DNS_S_QD		= 0x01,
