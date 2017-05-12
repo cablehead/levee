@@ -74,10 +74,41 @@ _.dns_resconf_local = function()
 	return nil, resconf
 end
 
+_.dns_resconf_loadpath = function(path)
+	local err = ffi.new("int[1]")
+	local resconf = C.dns_resconf_open(err)
+	if err[0] ~= 0 then return _.dns_strerror(err), nil end
+
+	local err = C.dns_resconf_loadpath(resconf, path)
+	if err ~= 0 and err ~= C.ENOENT then
+		return _.dns_strerror(err), nil
+	end
+
+	local err = C.dns_nssconf_loadpath(resconf, "/etc/nsswitch.conf")
+	if err ~= 0 and err ~= C.ENOENT then
+		C.dns_resconf_close(resconf)
+		return _.dns_strerror(err), nil
+	end
+
+	return nil, resconf
+end
+
 _.dns_hosts_local = function()
 	local err = ffi.new(error_type, 0)
 	local hosts = C.dns_hosts_local(err)
 	if err[0] ~= 0 then return _.dns_strerror(err), nil end
+
+	return nil, hosts
+end
+
+_.dns_hosts_loadpath = function(path)
+	local err = ffi.new("int[1]")
+	local hosts = C.dns_hosts_open(err)
+	if err[0] ~= 0 then return _.dns_strerror(err), nil end
+
+	local err = C.dns_hosts_loadpath(hosts, path)
+	if err ~= 0 then return _.dns_strerror(err), nil
+	end
 
 	return nil, hosts
 end
