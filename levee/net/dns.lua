@@ -110,14 +110,83 @@ local __ctypes = {
 }
 
 
-local function __parse_record(rr, data)
+--
+-- Question
+
+-- A Question is the input to a Resolver's query
+
+local Question_mt = {}
+Question_mt.__index = Question_mt
+
+
+function Question_mt:__tostring()
+	s = ("name=%s, type=%s, len=%s, recurse=%s")
+	s = s:format(self.name, self.type, self.len, self.recurse)
+	return s
+end
+
+
+local function Question(qname, qtype)
+	if not qtype then qtype = "A" end
+	qtype = __types[qtype]
+
+	local recurse = false
+	if qtype ~= C.DNS_T_A then
+		recurse = true
+	end
+
+	return setmetatable({
+		name = qname,
+		type = qtype,
+		len = qname:len(),
+		recurse = recurse}, Record_mt)
+end
+
+
+--
+-- Record
+
+-- A Record is the output of a Resolver's query
+
+local Record_mt = {}
+Record_mt.__index = Record_mt
+
+
+function Record_mt:__tostring()
+	s = ("name=%s, type=%s, record=%s, ttl=%s, section=%s")
+	s = s:format(self.name, self.type, self.record, self.ttl, self.section)
+	return s
+end
+
+
+function Record_mt:__lt(b)
+	local a = self.record:gsub("%.+", "")
+	a = tonumber(a)
+	b = b.record:gsub("%.+", "")
+	b = tonumber(b)
+	return a <= b and not (b <= a)
+end
+
+
+local function Record(rname, rtype, record, ttl, section)
+	return setmetatable({
+		name = rname,
+		type = rtype,
+		record = record,
+		ttl = ttl,
+		section = section}, Record_mt)
+end
+
+
+--
+local function parse_record(rr, packet)
 	local ctype = __ctypes[tonumber(rr.type)]
 	local rec = ffi.new(ctype.struct)
 	-- TODO verify size * 4 works in every case
 	local size = ctype.size * 4
 	local buf = ffi.new("char[?]", size)
 
-	local err = ctype.parser(rec, rr, data)
+	local err = ctype.parser(rec, rr, packet)
 	if err ~= 0 then return _.dns_strerror(err), nil end
 	err = ctype.printer(buf, size, rec)
 	if err == 0 then return _.dns_strerror(C.DNS_PRINT), nil end
@@ -126,15 +195,15 @@ local function __parse_record(rr, data)
 end
 
 
-local function __parse_name(rr, data)
-	local err, any = _.dns_d_expand(rr, data)
+local function parse_name(rr, packet)
+	local err, any = _.dns_d_expand(rr, packet)
 	if err then return err, nil end
 
 	return nil, ffi.string(any.ns.host)
 end
 
 
-local function __parse(packet)
+local function parse(packet)
 	local rr = ffi.new("struct dns_rr")
 	local rri = ffi.new("struct dns_rr_i [1]")
 	local recs = {}
@@ -149,15 +218,15 @@ local function __parse(packet)
 
 		if count == 0 then return nil, recs end
 		if rr.section ~= C.DNS_S_QD then
-			local err, n = __parse_name(rr, packet)
+			local err, n = parse_name(rr, packet)
 			if err then return err, nil end
 
-			local err, r = __parse_record(rr, packet)
+			local err, r = parse_record(rr, packet)
 			if err then return err, nil end
 
 			local s = __sections[tonumber(rr.section)]
 			local t = __ctypes[tonumber(rr.type)]
-			r = {name=n, type=t.type, record=r, ttl=rr.ttl, section=s}
+			r = Record(n, t.type, r, rr.ttl, s)
 			table.insert(recs, r)
 		end
 	end
@@ -166,18 +235,10 @@ local function __parse(packet)
 end
 
 
-local function __question(qname, qtype)
-	local q = {name=qname, len=qname:len(), recurse=false}
-	if not qtype then qtype = "A" end
-	q.type = __types[qtype]
+--
+-- Resolver
 
-	if q.type ~= C.DNS_T_A then
-		q.recurse = true
-	end
-
-	return q
-end
-
+-- A Resolver sends a Question to DNS server(s) and returns a table of Records
 
 local Resolver_mt = {}
 Resolver_mt.__index = Resolver_mt
@@ -253,7 +314,7 @@ end
 function Resolver_mt:query(qname, qtype)
 	if self.closed then return errors.CLOSED end
 
-	local q = __question(qname, qtype)
+	local q = Question(qname, qtype)
 
 	local err, conf = self:__config(q.recurse)
 	if err then return err, nil end
@@ -270,8 +331,7 @@ function Resolver_mt:query(qname, qtype)
 	local err, packet = _.dns_res_fetch(resv)
 	if err then return err, nil end
 
-	return __parse(packet)
-
+	return parse(packet)
 end
 
 

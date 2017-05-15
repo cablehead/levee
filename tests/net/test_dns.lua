@@ -10,9 +10,9 @@ return {
 		local err, resv = h.dns:resolver()
 		assert(not err)
 
-		local err, answer = resv:query("google-public-dns-a.google.com", "A")
+		local err, records = resv:query("google-public-dns-a.google.com", "A")
 		assert(not err)
-		assert.equal(#answer, 1)
+		assert.equal(#records, 1)
 		local expect = {
 			name="google-public-dns-a.google.com.",
 			type="A",
@@ -20,7 +20,7 @@ return {
 			record="8.8.8.8",
 			section="ANSWER"
 		}
-		assert.same(answer[1], expect)
+		assert.same(records[1], expect)
 
 		resv:close()
 	end,
@@ -30,7 +30,7 @@ return {
 		local err, resv = h.dns:resolver()
 		resv:close()
 
-		local err, answer = resv:query("google-public-dns-a.google.com", "A")
+		local err, records = resv:query("google-public-dns-a.google.com", "A")
 		assert.equal(err, errors.CLOSED)
 	end,
 
@@ -38,7 +38,7 @@ return {
 		local h = levee.Hub()
 		local err, resv = h.dns:resolver()
 
-		local err, answer = resv:query("google-public-dns-a.google.com", "AAAA")
+		local err, records = resv:query("google-public-dns-a.google.com", "AAAA")
 		local expect = {
 			name="google-public-dns-a.google.com.",
 			type="AAAA",
@@ -46,7 +46,7 @@ return {
 			record="2001:4860:4860::8888",
 			section="ANSWER"
 		}
-		assert.same(answer[1], expect)
+		assert.same(records[1], expect)
 
 		resv:close()
 	end,
@@ -55,7 +55,7 @@ return {
 		local h = levee.Hub()
 		local err, resv = h.dns:resolver()
 
-		local err, answer = resv:query("google-public-dns-a.google.com", "A")
+		local err, records = resv:query("google-public-dns-a.google.com", "A")
 		local expect = {
 				name="google-public-dns-a.google.com.",
 				type="A",
@@ -63,9 +63,9 @@ return {
 				record="8.8.8.8",
 				section="ANSWER"
 		}
-		assert.same(answer[1], expect)
+		assert.same(records[1], expect)
 
-		err, answer = resv:query("google-public-dns-b.google.com", "A")
+		err, records = resv:query("google-public-dns-b.google.com", "A")
 		local expect = {
 				name="google-public-dns-b.google.com.",
 				type="A",
@@ -73,9 +73,9 @@ return {
 				record="8.8.4.4",
 				section="ANSWER"
 		}
-		assert.same(answer[1], expect)
+		assert.same(records[1], expect)
 
-		local err, answer = resv:query("google-public-dns-a.google.com", "AAAA")
+		local err, records = resv:query("google-public-dns-a.google.com", "AAAA")
 		local expect = {
 			name="google-public-dns-a.google.com.",
 			type="AAAA",
@@ -83,19 +83,20 @@ return {
 			record="2001:4860:4860::8888",
 			section="ANSWER"
 		}
-		assert.same(answer[1], expect)
+		assert.same(records[1], expect)
 
 		resv:close()
 	end,
 
-	test_multi_answers = function()
+	test_multi_records = function()
 		local h = levee.Hub()
 		local err, resv = h.dns:resolver()
 		assert(not err)
 
-		local err, answer = resv:query("yahoo.com", "A")
+		local err, records = resv:query("yahoo.com", "A")
 		assert(not err)
-		assert.equal(#answer, 3)
+		assert.equal(#records, 3)
+		table.sort(records)
 		local expect = {
 			{
 				name="yahoo.com.",
@@ -108,18 +109,18 @@ return {
 				name="yahoo.com.",
 				type="A",
 				ttl=3600,
-				record="98.138.253.109",
+				record="98.139.183.24",
 				section="ANSWER"
 			},
 			{
 				name="yahoo.com.",
 				type="A",
 				ttl=3600,
-				record="98.139.183.24",
+				record="98.138.253.109",
 				section="ANSWER"
 			},
 		}
-		assert.same(answer, expect)
+		assert.same(records, expect)
 
 		resv:close()
 	end,
