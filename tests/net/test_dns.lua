@@ -124,4 +124,24 @@ return {
 
 		resv:close()
 	end,
+
+	test_address = function()
+		local h = levee.Hub()
+		local err, resv = h.dns:resolver()
+		assert(not err)
+
+		local err, records = resv:query("8.8.4.4.", "A")
+		assert(not err)
+		assert.equal(#records, 1)
+		local expect = {
+			name="8.8.4.4.",
+			type="A",
+			ttl=3600,
+			record="8.8.4.4",
+			section="ANSWER"
+		}
+		assert.same(records[1], expect)
+
+		resv:close()
+	end,
 }
