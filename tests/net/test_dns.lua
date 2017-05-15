@@ -87,4 +87,40 @@ return {
 
 		resv:close()
 	end,
+
+	test_multi_answers = function()
+		local h = levee.Hub()
+		local err, resv = h.dns:resolver()
+		assert(not err)
+
+		local err, answer = resv:query("yahoo.com", "A")
+		assert(not err)
+		assert.equal(#answer, 3)
+		local expect = {
+			{
+				name="yahoo.com.",
+				type="A",
+				ttl=3600,
+				record="206.190.36.45",
+				section="ANSWER"
+			},
+			{
+				name="yahoo.com.",
+				type="A",
+				ttl=3600,
+				record="98.138.253.109",
+				section="ANSWER"
+			},
+			{
+				name="yahoo.com.",
+				type="A",
+				ttl=3600,
+				record="98.139.183.24",
+				section="ANSWER"
+			},
+		}
+		assert.same(answer, expect)
+
+		resv:close()
+	end,
 }
