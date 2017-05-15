@@ -202,7 +202,7 @@ end
 
 function Resolver_mt:__open(recurse, conf)
 	local resv = self.__resolvers[recurse]
-	if resv then return resv end
+	if resv then return nil, resv end
 
 	local err
 	err, resv = _.dns_res_open(self.no, conf.resconf, conf.hosts, conf.hints)
@@ -215,7 +215,7 @@ end
 
 function Resolver_mt:__config(recurse)
 	local conf = self.__configs[recurse]
-	if conf then return conf end
+	if conf then return nil, conf end
 
 	local err, resconf
 	if self.__resconf then
