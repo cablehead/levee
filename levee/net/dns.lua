@@ -217,7 +217,9 @@ local function parse(packet)
 		if err then return err, nil end
 
 		if count == 0 then return nil, recs end
-		if rr.section ~= C.DNS_S_QD then
+
+		local t =  __ctypes[tonumber(rr.type)]
+		if rr.section ~= C.DNS_S_QD and t then
 			local err, n = parse_name(rr, packet)
 			if err then return err, nil end
 
@@ -225,7 +227,6 @@ local function parse(packet)
 			if err then return err, nil end
 
 			local s = __sections[tonumber(rr.section)]
-			local t = __ctypes[tonumber(rr.type)]
 			r = Record(n, t.type, r, rr.ttl, s)
 			table.insert(recs, r)
 		end
@@ -305,6 +306,20 @@ function Resolver_mt:__config(recurse)
 		if err then return err, nil end
 	end
 
+	if self.__port then
+		local port = C.htons(self.__port)
+		local head = hints.head
+		while head ~= ffi.NULL do
+			for i=0,head.count do
+				local ss = ffi.cast("struct sockaddr_in*", head.addrs[i].ss)
+				if ss.sin_addr.s_addr ~= 0 then
+					ss.sin_port = port
+				end
+			end
+			head = head.next
+		end
+	end
+
 	conf = {resconf=resconf, hosts=hosts, hints=hints}
 	self.__configs[recurse]= conf
 	return nil, conf
@@ -347,11 +362,12 @@ function Resolver_mt:close()
 end
 
 
-local function Resolver(hub, no, resconf, hosts)
+local function Resolver(hub, no, port, resconf, hosts)
 	local self = setmetatable({}, Resolver_mt)
 	self.hub = hub
 	self.no = no
 	self.r_ev = self.hub:register(no, true)
+	self.__port = port
 	self.__resconf = resconf
 	self.__hosts = hosts
 	self.__configs = {}
@@ -364,11 +380,11 @@ local DNS_mt = {}
 DNS_mt.__index = DNS_mt
 
 
-function DNS_mt:resolver(resconf, hosts)
+function DNS_mt:resolver(port, resconf, hosts)
 	local err, no = _.socket(C.AF_INET, C.SOCK_DGRAM)
 	if err then return err end
 	_.fcntl_nonblock(no)
-	return nil, Resolver(self.hub, no, resconf, hosts)
+	return nil, Resolver(self.hub, no, port, resconf, hosts)
 end
 
 

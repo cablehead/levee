@@ -279,6 +279,27 @@ struct dns_resolv_conf {
 	} _;
 };
 
+struct dns_hints_soa {
+	unsigned char zone[DNS_D_MAXNAME + 1];
+
+	struct {
+		struct sockaddr_storage ss;
+		unsigned priority;
+	} addrs[16];
+
+	unsigned count;
+
+	struct dns_hints_soa *next;
+};
+
+
+struct dns_hints {
+	dns_atomic_t refcount;
+
+	struct dns_hints_soa *head;
+};
+
+
 struct dns_a {
 	struct in_addr addr;
 };
