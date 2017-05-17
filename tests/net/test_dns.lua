@@ -44,7 +44,7 @@ local function respond(server, rtype)
 		while remain > 0 do
 				local chunk = string.sub(packet, off+1, off+DNS_PACK_SIZE)
 				local err, n = server:sendto(who, chunk, DNS_PACK_SIZE)
-				if n < 0 then n = 0 end
+				if err or n < 0 then n = 0 end
 				off = off + n
 				remain = remain - n
 		end

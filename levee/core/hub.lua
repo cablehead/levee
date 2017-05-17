@@ -432,7 +432,8 @@ end
 
 function Hub_mt:in_use()
 	for no in pairs(self.registered) do
-		if no ~= self.dialer.r then
+		if not self.dialer.state or
+			(no ~= self.dialer.r and no ~= self.dialer.state.io[1]) then
 			return true
 		end
 	end
