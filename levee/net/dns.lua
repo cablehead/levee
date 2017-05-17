@@ -306,14 +306,20 @@ function Resolver_mt:__config(recurse)
 		if err then return err, nil end
 	end
 
-	if self.__port then
-		local port = C.htons(self.__port)
+	if self.__port or self.__addr then
+		local sin_port, sin_addr
+		if self.__port then sin_port = C.htons(self.__port) end
+		if self.__addr then
+			sin_addr = ffi.new("struct in_addr")
+			C.inet_aton(ffi.cast("char*", self.__addr), sin_addr)
+		end
 		local head = hints.head
 		while head ~= ffi.NULL do
 			for i=0,head.count do
 				local ss = ffi.cast("struct sockaddr_in*", head.addrs[i].ss)
 				if ss.sin_addr.s_addr ~= 0 then
-					ss.sin_port = port
+					if sin_addr then ss.sin_addr = sin_addr end
+					if sin_port then ss.sin_port = sin_port end
 				end
 			end
 			head = head.next
@@ -362,12 +368,13 @@ function Resolver_mt:close()
 end
 
 
-local function Resolver(hub, no, port, resconf, hosts)
+local function Resolver(hub, no, port, addr, resconf, hosts)
 	local self = setmetatable({}, Resolver_mt)
 	self.hub = hub
 	self.no = no
 	self.r_ev = self.hub:register(no, true)
 	self.__port = port
+	self.__addr = addr
 	self.__resconf = resconf
 	self.__hosts = hosts
 	self.__configs = {}
@@ -380,11 +387,11 @@ local DNS_mt = {}
 DNS_mt.__index = DNS_mt
 
 
-function DNS_mt:resolver(port, resconf, hosts)
+function DNS_mt:resolver(port, addr, resconf, hosts)
 	local err, no = _.socket(C.AF_INET, C.SOCK_DGRAM)
 	if err then return err end
 	_.fcntl_nonblock(no)
-	return nil, Resolver(self.hub, no, port, resconf, hosts)
+	return nil, Resolver(self.hub, no, port, addr, resconf, hosts)
 end
 
 
