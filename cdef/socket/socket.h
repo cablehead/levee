@@ -50,6 +50,7 @@ int setsockopt(
 uint16_t htons(uint16_t hostshort);
 uint16_t ntohs(uint16_t netshort);
 int inet_aton(const char *cp, struct in_addr *inp);
+int inet_pton(int af, const char *src, void *dst);
 const char *inet_ntop(
 	int af, const void * restrict src, char * restrict dst, socklen_t size);
 
