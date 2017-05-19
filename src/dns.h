@@ -427,9 +427,6 @@ struct dns_packet {
 /** takes size of maximum desired payload */
 #define dns_p_new(n)		(dns_p_init((struct dns_packet *)&(union { unsigned char b[dns_p_calcsize((n))]; struct dns_packet p; }){ { 0 } }, dns_p_calcsize((n))))
 
-/** function version of the macro with the same name */
-DNS_PUBLIC int levee_dns_p_new(struct dns_packet **, size_t);
-
 /** takes size of entire packet structure as allocated */
 DNS_PUBLIC struct dns_packet *dns_p_init(struct dns_packet *, size_t);
 

@@ -389,8 +389,6 @@ union dns_any {
 extern const char *dns_strerror(dns_error_t);
 
 
-extern int levee_dns_p_new(struct dns_packet **, size_t);
-
 extern struct dns_packet * dns_p_init(struct dns_packet *, size_t);
 
 extern struct dns_packet * dns_p_make(size_t, int *);

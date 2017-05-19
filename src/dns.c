@@ -1530,16 +1530,6 @@ unsigned dns_p_count(struct dns_packet *P, enum dns_section section) {
 } /* dns_p_count() */
 
 
-int levee_dns_p_new(struct dns_packet **P, size_t n) {
-	size_t size = dns_p_calcsize(n);
-	union { unsigned char b[size]; struct dns_packet p; } u;
-	memset(&u, 0, size);
-	struct dns_packet *p = dns_p_init((struct dns_packet*)&u, size);
-	*P = (struct dns_packet*)malloc(size);
-	memcpy(*P, p, size);
-	return 0;
-} /* levee_dns_p_new() */
-
 struct dns_packet *dns_p_init(struct dns_packet *P, size_t size) {
 	if (!P)
 		return 0;
