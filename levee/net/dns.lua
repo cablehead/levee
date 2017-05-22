@@ -219,7 +219,8 @@ local function parse(packet)
 		if count == 0 then return nil, recs end
 
 		local t =  __ctypes[tonumber(rr.type)]
-		if rr.section ~= C.DNS_S_QD and t then
+		-- TODO support other sections
+		if rr.section == C.DNS_S_AN and t then
 			local err, n = parse_name(rr, packet)
 			if err then return err, nil end
 
