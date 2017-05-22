@@ -134,10 +134,13 @@ end
 
 
 function Dialer_mt:__dial_async(family, socktype, node, service, timeout)
-	node = node or "127.0.0.1"
+	if not node or node:lower() == 'localhost' then
+		node = "127.0.0.1"
+	end
 	local nodes = {node}
 
-	if family == C.AF_INET or family == C.AF_INET6 then
+	local err = _.inet_pton(family, node)
+	if err and (family == C.AF_INET or family == C.AF_INET6) then
 		local err, resv = self.hub.dns:resolver()
 		if err then return err end
 
