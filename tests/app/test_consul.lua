@@ -4,30 +4,23 @@ local levee = require("levee")
 return {
 	skipif = function()
 		local h = levee.Hub()
-		local err, conn = h.tcp:connect(8500)
-		if not conn then return true end
-		conn:close()
-		return false
+		local err, consul = h.consul:spawn()
+		if err then return true end
 	end,
 
 	test_agent_self = function()
 		local h = levee.Hub()
-		local c = h:consul()
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
+
 		local err, data = c.agent:self()
 		assert(data.Member)
 	end,
 
 	test_kv_core = function()
 		local h = levee.Hub()
-		local c = h:consul()
-
-		-- clean up old runs
-		c.kv:delete("foo/", {recurse=true})
-		local err, index, sessions = c.session:list()
-		for _, session in pairs(sessions) do
-			c.session:destroy(session["ID"])
-		end
-		--
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
 
 		local err, session_id = c.session:create({behavior="delete", lock_delay=0})
 
@@ -77,7 +70,8 @@ return {
 
 	test_kv_put_nil = function()
 		local h = levee.Hub()
-		local c = h:consul()
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
 		c.kv:put("foo")
 		local err, index, data = c.kv:get("foo")
 		assert.equal(data.Value, nil)
@@ -86,11 +80,8 @@ return {
 
 	test_kv_put_cas = function()
 		local h = levee.Hub()
-		local c = h:consul()
-
-		-- clean up old runs
-		c.kv:delete("foo")
-		--
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
 
 		c.kv:put("foo", "1", {cas=0})
 		local err, index, data = c.kv:get("foo")
@@ -105,14 +96,8 @@ return {
 
 	test_session = function()
 		local h = levee.Hub()
-		local c = h:consul()
-
-		-- clean up old runs
-		local err, index, sessions = c.session:list()
-		for _, session in pairs(sessions) do
-			c.session:destroy(session["ID"])
-		end
-		--
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
 
 		local err, session_id = c.session:create({behavior="delete", ttl=10})
 
@@ -137,11 +122,8 @@ return {
 
 	test_service = function()
 		local h = levee.Hub()
-		local c = h:consul()
-
-		-- clean up old runs
-		c.agent.service:deregister("foo")
-		--
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
 
 		assert.same({c.agent.check:pass("service:foo")}, {nil, false})
 
@@ -181,16 +163,9 @@ return {
 
 	test_election = function()
 		local h = levee.Hub()
-		local c = h:consul()
 
-		-- clean up old runs
-		c.kv:delete("foo/", {recurse=true})
-
-		local err, index, sessions = c.session:list()
-		for _, session in pairs(sessions) do
-			c.session:destroy(session["ID"])
-		end
-		--
+		local err, consul = h.consul:spawn()
+		local c = consul:connect()
 
 		local err, s1 = c.session:create({behavior="delete", lock_delay=0})
 		local err, r1 = c:election("foo/", s1, 2)

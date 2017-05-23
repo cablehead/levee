@@ -24,6 +24,11 @@ local function b64dec(data)
 end
 
 
+local function trim(s)
+	return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+
 --
 -- Consul API
 
@@ -173,7 +178,7 @@ function KV_mt:put(key, value, options)
 
 	return self.agent:request("PUT", "kv/"..key, {params=params, data=value},
 		function(res)
-			return nil, res:tostring() == "true"
+			return nil, trim(res:tostring()) == "true"
 		end)
 end
 
@@ -454,7 +459,8 @@ end
 local function Instance(hub, bin, http_port, join)
 
 	local function freeport()
-		local err, no = _.listen(C.AF_INET, C.SOCK_STREAM, host, port)
+		local err, no = _.socket(C.AF_INET, C.SOCK_STREAM)
+		local err = _.listen(no, _.endpoint_in('127.0.0.1', 0))
 		local err, addr = _.getsockname(no)
 		C.close(no)
 		return addr:port()
@@ -468,7 +474,6 @@ local function Instance(hub, bin, http_port, join)
 	self.config = {
 		ports = {
 			http = http_port or freeport(),
-			rpc = freeport(),
 			serf_lan = freeport(),
 			serf_wan = freeport(),
 			server = freeport(),
@@ -505,6 +510,13 @@ local function Instance(hub, bin, http_port, join)
 			STDIN=0,
 			}, })
 
+
+	local err, done = self.child.done:recv(100)
+	if done then
+		self.path:remove(true)
+		return errors.CLOSED
+	end
+
 	self.hub:spawn(function()
 		local stream = self.child.stdout:stream()
 		local log = _.log.Log("levee.app.consul")
@@ -514,13 +526,6 @@ local function Instance(hub, bin, http_port, join)
 			log:info(line)
 		end
 	end)
-
-
-	local err, done = self.child.done:recv(100)
-	if done then
-		self.path:remove(true)
-		return errors.CLOSED
-	end
 
 	while true do
 		local err, conn = self.hub.tcp:connect(self.port)
