@@ -187,7 +187,7 @@ function Poller:poll(timeout)
 	end
 
 	local err = errors.get(err)
-	if not err == errors.system.EINTR then err:abort() end
+	if err ~= errors.system.EINTR then err:abort() end
 
 	return self:poll(timeout)
 end
