@@ -120,8 +120,8 @@ Question_mt.__index = Question_mt
 
 
 function Question_mt:__tostring()
-	s = ("name=%s, type=%s, len=%s, recurse=%s")
-	s = s:format(self.name, self.type, self.len, self.recurse)
+	s = ("name=%s, type=%s, len=%s")
+	s = s:format(self.name, self.type, self.len)
 	return s
 end
 
@@ -130,16 +130,10 @@ local function Question(qname, qtype)
 	if not qtype then qtype = "A" end
 	qtype = __types[qtype]
 
-	local recurse = false
-	if qtype ~= C.DNS_T_A then
-		recurse = true
-	end
-
 	return setmetatable({
 		name = qname,
 		type = qtype,
-		len = qname:len(),
-		recurse = recurse}, Record_mt)
+		len = qname:len()}, Record_mt)
 end
 
 
@@ -263,36 +257,36 @@ function Resolver_mt:__poll(resv)
 end
 
 
-function Resolver_mt:__open(recurse, conf)
-	local resv = self.__resolvers[recurse]
+function Resolver_mt:__open(conf)
+	local resv = self.__resolver
 	if resv then return nil, resv end
 
 	local err
 	err, resv = _.dns_res_open(self.no, conf.resconf, conf.hosts, conf.hints)
 	if err then return err, nil end
 
-	self.__resolvers[recurse] = resv
+	self.__resolver = resv
 	return nil, resv
 end
 
 
-function Resolver_mt:__config(recurse)
-	local conf = self.__configs[recurse]
+function Resolver_mt:__load()
+	local conf = self.__config
 	if conf then return nil, conf end
 
 	local err, resconf
-	if self.__resconf then
-		err, resconf = _.dns_resconf_loadpath(self.__resconf)
-		if err then return err, nil end
+	if self.resconf then
+		err, resconf = _.dns_resconf_loadpath(self.resconf)
+		if err then return err end
 	else
 		err, resconf = _.dns_resconf_local()
 		if err then return err, nil end
 	end
 
 	local hosts
-	if self.__hosts then
-		err, hosts = _.dns_hosts_loadpath(self.__hosts)
-		if err then return err, nil end
+	if self.hosts then
+		err, hosts = _.dns_hosts_loadpath(self.hosts)
+		if err then return err end
 	else
 		err, hosts = _.dns_hosts_local()
 		if err then return err, nil end
@@ -301,18 +295,12 @@ function Resolver_mt:__config(recurse)
 	local err, hints = _.dns_hints_local(resconf)
 	if err then return err, nil end
 
-	if recurse then
-		resconf.options.recurse = recurse
-		err, hints = _.dns_hints_root(resconf)
-		if err then return err, nil end
-	end
-
-	if self.__port or self.__addr then
+	if self.nsport or self.nsaddr then
 		local sin_port, sin_addr
-		if self.__port then sin_port = C.htons(self.__port) end
-		if self.__addr then
+		if self.nsport then sin_port = C.htons(self.nsport) end
+		if self.nsaddr then
 			sin_addr = ffi.new("struct in_addr")
-			C.inet_aton(ffi.cast("char*", self.__addr), sin_addr)
+			C.inet_aton(ffi.cast("char*", self.nsaddr), sin_addr)
 		end
 		local head = hints.head
 		while head ~= ffi.NULL do
@@ -328,7 +316,7 @@ function Resolver_mt:__config(recurse)
 	end
 
 	conf = {resconf=resconf, hosts=hosts, hints=hints}
-	self.__configs[recurse]= conf
+	self.__config = conf
 	return nil, conf
 end
 
@@ -338,10 +326,10 @@ function Resolver_mt:query(qname, qtype)
 
 	local q = Question(qname, qtype)
 
-	local err, conf = self:__config(q.recurse)
+	local err, conf = self:__load()
 	if err then return err, nil end
 
-	local err, resv = self:__open(q.recurse, conf)
+	local err, resv = self:__open(conf)
 	if err then return err, nil end
 
 	err = _.dns_res_submit(resv, q.name, q.type)
@@ -374,12 +362,10 @@ local function Resolver(hub, no, port, addr, resconf, hosts)
 	self.hub = hub
 	self.no = no
 	self.r_ev = self.hub:register(no, true)
-	self.__port = port
-	self.__addr = addr
-	self.__resconf = resconf
-	self.__hosts = hosts
-	self.__configs = {}
-	self.__resolvers = {}
+	self.nsport = port
+	self.nsaddr = addr
+	self.resconf = resconf
+	self.hosts = hosts
 	return self
 end
 
