@@ -7,8 +7,9 @@ local filename = debug.getinfo(1, 'S').source:sub(2)
 local path = _.path.dirname(filename)
 
 
--- Normally this is 768. Here we make room for the leading 16-bit QID
-local DNS_PACK_SIZE = 766
+local DNS_PACK_SIZE = 768
+-- Make room for the leading 16-bit QID
+local TEST_PACK_SIZE = 766
 
 
 local function response(rtype)
@@ -36,14 +37,14 @@ local function respond(server, rtype)
 	local data = response(rtype)
 	local size = data:len()
 
-	for i=0,(size/DNS_PACK_SIZE)-1 do
+	for i=0,(size/TEST_PACK_SIZE)-1 do
 		local off = 0
-		local packet = string.sub(data, i*DNS_PACK_SIZE+1, (i+1)*DNS_PACK_SIZE)
+		local packet = string.sub(data, i*TEST_PACK_SIZE+1, (i+1)*TEST_PACK_SIZE)
 		packet = qid..packet
 		local remain = packet:len()
 		while remain > 0 do
 				local chunk = string.sub(packet, off+1, off+DNS_PACK_SIZE)
-				local err, n = server:sendto(who, chunk, DNS_PACK_SIZE)
+				local err, n = server:sendto(who, chunk)
 				if err or n < 0 then n = 0 end
 				off = off + n
 				remain = remain - n
