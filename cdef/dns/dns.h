@@ -26,11 +26,6 @@ enum dns_errno {
 	DNS_ENONAME,  /* EAI_NONAME */
 	DNS_EFAIL,    /* EAI_FAIL */
 	DNS_ELAST,
-
-	/* Levee defined errors */
-	DNS_NOHINTS,
-	DNS_NORRI,
-	DNS_PRINT,
 };
 
 enum dns_section {

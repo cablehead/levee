@@ -181,9 +181,8 @@ local function parse_record(rr, packet)
 	local buf = ffi.new("char[?]", size)
 
 	local err = ctype.parser(rec, rr, packet)
-	if err ~= 0 then return _.dns_strerror(err), nil end
-	err = ctype.printer(buf, size, rec)
-	if err == 0 then return _.dns_strerror(C.DNS_PRINT), nil end
+	if err ~= 0 then return errors.get(err) end
+	ctype.printer(buf, size, rec)
 
 	return nil, ffi.string(buf)
 end
@@ -191,7 +190,7 @@ end
 
 local function parse_name(rr, packet)
 	local err, any = _.dns_d_expand(rr, packet)
-	if err then return err, nil end
+	if err then return err end
 
 	return nil, ffi.string(any.ns.host)
 end
@@ -202,13 +201,12 @@ local function parse(packet)
 	local rri = ffi.new("struct dns_rr_i [1]")
 	local recs = {}
 
-	-- TODO handle packet with no results
-	local err, rri = _.dns_rr_i_init(rri, packet);
-	if err then return err, nil end
+	local rri = C.dns_rr_i_init(rri, packet);
 
+	-- TODO handle packet with no results
 	while true do
 		local err, count = _.dns_rr_grep(rr, rri, packet)
-		if err then return err, nil end
+		if err then return err end
 
 		if count == 0 then return nil, recs end
 
@@ -216,10 +214,10 @@ local function parse(packet)
 		-- TODO support other sections
 		if rr.section == C.DNS_S_AN and t then
 			local err, n = parse_name(rr, packet)
-			if err then return err, nil end
+			if err then return err end
 
 			local err, r = parse_record(rr, packet)
-			if err then return err, nil end
+			if err then return err end
 
 			local s = __sections[tonumber(rr.section)]
 			r = Record(n, t.type, r, rr.ttl, s)
@@ -263,7 +261,7 @@ function Resolver_mt:__open(conf)
 
 	local err
 	err, resv = _.dns_res_open(self.no, conf.resconf, conf.hosts, conf.hints)
-	if err then return err, nil end
+	if err then return err end
 
 	self.__resolver = resv
 	return nil, resv
@@ -280,7 +278,7 @@ function Resolver_mt:__load()
 		if err then return err end
 	else
 		err, resconf = _.dns_resconf_local()
-		if err then return err, nil end
+		if err then return err end
 	end
 
 	local hosts
@@ -289,11 +287,11 @@ function Resolver_mt:__load()
 		if err then return err end
 	else
 		err, hosts = _.dns_hosts_local()
-		if err then return err, nil end
+		if err then return err end
 	end
 
 	local err, hints = _.dns_hints_local(resconf)
-	if err then return err, nil end
+	if err then return err end
 
 	if self.nsport or self.nsaddr then
 		local sin_port, sin_addr
@@ -327,19 +325,19 @@ function Resolver_mt:query(qname, qtype)
 	local q = Question(qname, qtype)
 
 	local err, conf = self:__load()
-	if err then return err, nil end
+	if err then return err end
 
 	local err, resv = self:__open(conf)
-	if err then return err, nil end
+	if err then return err end
 
 	err = _.dns_res_submit(resv, q.name, q.type)
-	if err then return err, nil end
+	if err then return err end
 
 	err = self:__poll(resv)
-	if err then return err, nil end
+	if err then return err end
 
 	local err, packet = _.dns_res_fetch(resv)
-	if err then return err, nil end
+	if err then return err end
 
 	return parse(packet)
 end
