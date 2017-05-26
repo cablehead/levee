@@ -11,6 +11,59 @@ local error_type = ffi.typeof("int[1]")
 local _ = {}
 
 
+local ctoh = {
+	[C.DNS_C_IN]="IN",
+	[C.DNS_C_ANY]="ANY"
+}
+
+local stoh = {
+	[C.DNS_S_QD]="QUESTION",
+	[C.DNS_S_AN]="ANSWER",
+	[C.DNS_S_NS]="AUTHORITY",
+	[C.DNS_S_AR]="ADDITIONAL"
+}
+
+local ttoh = {
+	[C.DNS_T_A]="A",
+	[C.DNS_T_AAAA]="AAAA",
+	[C.DNS_T_MX]="MX",
+	[C.DNS_T_NS]="NS",
+	[C.DNS_T_CNAME]="CNAME",
+	[C.DNS_T_SOA]="SOA",
+	[C.DNS_T_SRV]="SRV",
+	[C.DNS_T_OPT]="OPT",
+	[C.DNS_T_PTR]="PRT",
+	[C.DNS_T_TXT]="TXT",
+	[C.DNS_T_SSHFP]="SSHFP"
+}
+
+local htoc = {
+	IN=C.DNS_C_IN,
+	ANY=C.DNS_C_ANY
+}
+
+local htos = {
+	QUESTION=C.DNS_S_QD,
+	ANSWER=C.DNS_S_AN,
+	AUTHORITY=C.DNS_S_NS,
+	ADDITIONAL=C.DNS_S_AR
+}
+
+local htot = {
+	A=C.DNS_T_A,
+	AAAA=C.DNS_T_AAAA,
+	MX=C.DNS_T_MX,
+	NS=C.DNS_T_NS,
+	CNAME=C.DNS_T_CNAME,
+	SOA=C.DNS_T_SOA,
+	SRV=C.DNS_T_SRV,
+	SRV=C.DNS_T_SRV,
+	OPT=C.DNS_T_OPT,
+	PTR=C.DNS_T_PTR,
+	TXT=C.DNS_T_TXT,
+	SSHFP=C.DNS_T_SSHFP
+}
+
 local errors_ = {
 	ENOBUFS=C.DNS_ENOBUFS,
 	EILLEGAL=C.DNS_EILLEGAL,
@@ -38,6 +91,14 @@ end
 
 for name,code in pairs(errors_) do
 	errors.add(code, "dns", name, ffi.string(_.dns_strerror(code)))
+end
+
+_.dns_section = function(rr)
+	return stoh[tonumber(rr.section)]
+end
+
+_.dns_type = function(rr)
+	return ttoh[tonumber(rr.type)]
 end
 
 _.dns_d_expand = function(rr, packet)
@@ -173,12 +234,13 @@ _.dns_res_check = function(resolver)
 end
 
 _.dns_res_submit = function(resolver, qname, qtype, qclass)
-	if not qclass then qclass = C.DNS_C_IN end
+	if not qclass then qclass = "IN" end
+	qtype = htot[qtype]
+	qclass = htoc[qclass]
 	local err = C.dns_res_submit(resolver, qname, qtype, qclass)
 	if err ~= 0 then return errors.get(err) end
 
 	return nil
 end
-
 
 return _

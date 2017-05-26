@@ -7,105 +7,61 @@ local _ = levee._
 local errors = require("levee.errors")
 
 
-local __sections = {
-	[C.DNS_S_QD]="QUESTION",
-	[C.DNS_S_AN]="ANSWER",
-	[C.DNS_S_NS]="AUTHORITY",
-	[C.DNS_S_AR]="ADDITIONAL"
-}
-
-local __types = {
-	A=C.DNS_T_A,
-	AAAA=C.DNS_T_AAAA,
-	MX=C.DNS_T_MX,
-	NS=C.DNS_T_NS,
-	CNAME=C.DNS_T_CNAME,
-	SOA=C.DNS_T_SOA,
-	SRV=C.DNS_T_SRV,
-	SRV=C.DNS_T_SRV,
-	OPT=C.DNS_T_OPT,
-	PTR=C.DNS_T_PTR,
-	TXT=C.DNS_T_TXT,
-	SSHFP=C.DNS_T_SSHFP
-}
-
 local __ctypes = {
 	[C.DNS_T_A]={
 		parser=C.dns_a_parse,
 		printer=C.dns_a_print,
-		struct="struct dns_a",
-		size=ffi.sizeof("struct dns_a"),
-		type="A"
+		type=ffi.typeof("struct dns_a"),
 	},
 	[C.DNS_T_AAAA]={
 		parser=C.dns_aaaa_parse,
 		printer=C.dns_aaaa_print,
-		struct="struct dns_aaaa",
-		size=ffi.sizeof("struct dns_aaaa"),
-		type="AAAA"
+		type=ffi.typeof("struct dns_aaaa"),
 	},
 	[C.DNS_T_MX]={
 		parser=C.dns_mx_parse,
 		printer=C.dns_mx_print,
-		struct="struct dns_mx",
-		size=ffi.sizeof("struct dns_mx"),
-		type="MX"
+		type=ffi.typeof("struct dns_mx"),
 	},
 	[C.DNS_T_NS]={
 		parser=C.dns_ns_parse,
 		printer=C.dns_ns_print,
-		struct="struct dns_ns",
-		size=ffi.sizeof("struct dns_ns"),
-		type="NS"
+		type=ffi.typeof("struct dns_ns"),
 	},
 	[C.DNS_T_CNAME]={
 		parser=C.dns_cname_parse,
 		printer=C.dns_cname_print,
-		struct="struct dns_cname",
-		size=ffi.sizeof("struct dns_cname"),
-		type="CNAME"
+		type=ffi.typeof("struct dns_cname"),
 	},
 	[C.DNS_T_SOA]={
 		parser=C.dns_soa_parse,
 		printer=C.dns_soa_print,
-		struct="struct dns_soa",
-		size=ffi.sizeof("struct dns_soa"),
-		type="SOA"
+		type=ffi.typeof("struct dns_soa"),
 	},
 	[C.DNS_T_SRV]={
 		parser=C.dns_srv_parse,
 		printer=C.dns_srv_print,
-		struct="struct dns_srv",
-		size=ffi.sizeof("struct dns_srv"),
-		type="SRV"
+		type=ffi.typeof("struct dns_srv"),
 	},
 	[C.DNS_T_OPT]={
 		parser=C.dns_opt_parse,
 		printer=C.dns_opt_print,
-		struct="struct dns_opt",
-		size=ffi.sizeof("struct dns_opt"),
-		type="OPT"
+		type=ffi.typeof("struct dns_opt"),
 	},
 	[C.DNS_T_PTR]={
 		parser=C.dns_ptr_parse,
 		printer=C.dns_ptr_print,
-		struct="struct dns_ptr",
-		size=ffi.sizeof("struct dns_ptr"),
-		type="PTR"
+		type=ffi.typeof("struct dns_ptr"),
 	},
 	[C.DNS_T_TXT]={
 		parser=C.dns_txt_parse,
 		printer=C.dns_txt_print,
-		struct="struct dns_txt",
-		size=ffi.sizeof("struct dns_txt"),
-		type="TXT"
+		type=ffi.typeof("struct dns_txt"),
 	},
 	[C.DNS_T_SSHFP]={
 		parser=C.dns_sshfp_parse,
 		printer=C.dns_sshfp_print,
-		struct="struct dns_sshfp",
-		size=ffi.sizeof("struct dns_sshfp"),
-		type="SSHFP"
+		type=ffi.typeof("struct dns_sshfp"),
 	},
 }
 
@@ -128,7 +84,6 @@ end
 
 local function Question(qname, qtype)
 	if not qtype then qtype = "A" end
-	qtype = __types[qtype]
 
 	return setmetatable({
 		name = qname,
@@ -172,12 +127,11 @@ local function Record(rname, rtype, record, ttl, section)
 end
 
 
---
 local function parse_record(rr, packet)
 	local ctype = __ctypes[tonumber(rr.type)]
-	local rec = ffi.new(ctype.struct)
+	local rec = ffi.new(ctype.type)
 	-- TODO verify size * 4 works in every case
-	local size = ctype.size * 4
+	local size = ffi.sizeof(ctype.type) * 4
 	local buf = ffi.new("char[?]", size)
 
 	local err = ctype.parser(rec, rr, packet)
@@ -186,7 +140,6 @@ local function parse_record(rr, packet)
 
 	return nil, ffi.string(buf)
 end
-
 
 local function parse_name(rr, packet)
 	local err, any = _.dns_d_expand(rr, packet)
@@ -210,17 +163,16 @@ local function parse(packet)
 
 		if count == 0 then return nil, recs end
 
-		local t =  __ctypes[tonumber(rr.type)]
 		-- TODO support other sections
-		if rr.section == C.DNS_S_AN and t then
+		local s = _.dns_section(rr)
+		if s == "ANSWER" then
 			local err, n = parse_name(rr, packet)
 			if err then return err end
 
 			local err, r = parse_record(rr, packet)
 			if err then return err end
 
-			local s = __sections[tonumber(rr.section)]
-			r = Record(n, t.type, r, rr.ttl, s)
+			r = Record(n, _.dns_type(rr), r, rr.ttl, s)
 			table.insert(recs, r)
 		end
 	end
