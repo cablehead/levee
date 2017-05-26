@@ -7,65 +7,6 @@ local _ = levee._
 local errors = require("levee.errors")
 
 
-local __ctypes = {
-	[C.DNS_T_A]={
-		parser=C.dns_a_parse,
-		printer=C.dns_a_print,
-		type=ffi.typeof("struct dns_a"),
-	},
-	[C.DNS_T_AAAA]={
-		parser=C.dns_aaaa_parse,
-		printer=C.dns_aaaa_print,
-		type=ffi.typeof("struct dns_aaaa"),
-	},
-	[C.DNS_T_MX]={
-		parser=C.dns_mx_parse,
-		printer=C.dns_mx_print,
-		type=ffi.typeof("struct dns_mx"),
-	},
-	[C.DNS_T_NS]={
-		parser=C.dns_ns_parse,
-		printer=C.dns_ns_print,
-		type=ffi.typeof("struct dns_ns"),
-	},
-	[C.DNS_T_CNAME]={
-		parser=C.dns_cname_parse,
-		printer=C.dns_cname_print,
-		type=ffi.typeof("struct dns_cname"),
-	},
-	[C.DNS_T_SOA]={
-		parser=C.dns_soa_parse,
-		printer=C.dns_soa_print,
-		type=ffi.typeof("struct dns_soa"),
-	},
-	[C.DNS_T_SRV]={
-		parser=C.dns_srv_parse,
-		printer=C.dns_srv_print,
-		type=ffi.typeof("struct dns_srv"),
-	},
-	[C.DNS_T_OPT]={
-		parser=C.dns_opt_parse,
-		printer=C.dns_opt_print,
-		type=ffi.typeof("struct dns_opt"),
-	},
-	[C.DNS_T_PTR]={
-		parser=C.dns_ptr_parse,
-		printer=C.dns_ptr_print,
-		type=ffi.typeof("struct dns_ptr"),
-	},
-	[C.DNS_T_TXT]={
-		parser=C.dns_txt_parse,
-		printer=C.dns_txt_print,
-		type=ffi.typeof("struct dns_txt"),
-	},
-	[C.DNS_T_SSHFP]={
-		parser=C.dns_sshfp_parse,
-		printer=C.dns_sshfp_print,
-		type=ffi.typeof("struct dns_sshfp"),
-	},
-}
-
-
 --
 -- Question
 
@@ -128,18 +69,17 @@ end
 
 
 local function parse_record(rr, packet)
-	local ctype = __ctypes[tonumber(rr.type)]
-	local rec = ffi.new(ctype.type)
-	-- TODO verify size * 4 works in every case
-	local size = ffi.sizeof(ctype.type) * 4
+	local rec = ffi.new("union dns_any")
+	local size = ffi.sizeof("union dns_any")
 	local buf = ffi.new("char[?]", size)
 
-	local err = ctype.parser(rec, rr, packet)
+	local err = C.dns_any_parse(rec, rr, packet)
 	if err ~= 0 then return errors.get(err) end
-	ctype.printer(buf, size, rec)
+	C.dns_any_print(buf, size, rec, rr.type)
 
 	return nil, ffi.string(buf)
 end
+
 
 local function parse_name(rr, packet)
 	local err, any = _.dns_d_expand(rr, packet)
