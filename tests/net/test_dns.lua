@@ -103,15 +103,6 @@ return {
 		resv:close()
 	end,
 
-	test_closed = function()
-		local h = levee.Hub()
-		local err, resv = h.dns:resolver()
-		resv:close()
-
-		local err, records = resv:query("google-public-dns-a.google.com", "A")
-		assert.equal(err, errors.CLOSED)
-	end,
-
 	test_aaaa = function()
 		local h = levee.Hub()
 
@@ -244,30 +235,27 @@ return {
 		resv:close()
 	end,
 
+	test_closed = function()
+		local h = levee.Hub()
+		local err, resv = h.dns:resolver()
+		resv:close()
+
+		local err, records = resv:query("google-public-dns-a.google.com", "A")
+		assert.equal(err, errors.CLOSED)
+	end,
+
 	test_address = function()
 		local h = levee.Hub()
+		local err, resv = h.dns:resolver()
 
-		local addr = "127.0.0.1"
-		local port = 1053
+		local err, records = resv:query("8.8.4.4")
+		assert.equal(err, errors.addr.ENONAME)
 
-		local function server()
-			local err, s = h.dgram:bind(port, addr)
-			respond(s, "GOOGLE-ADDR")
-			s:close()
-		end
-		h:spawn(server)
+		local err, records = resv:query("2001:4860:4860::8888")
+		assert.equal(err, errors.addr.ENONAME)
 
-		local err, resv = h.dns:resolver(port, addr)
-		local err, records = resv:query("8.8.4.4", "A")
-		assert.equal(#records, 1)
-		local expect = record({
-			name="8.8.4.4.",
-			type="A",
-			ttl=3600,
-			record="8.8.4.4",
-			section="ANSWER"
-		})
-		assert.same(records[1], expect)
+		local err, records = resv:query("2001:4860:4860::8888", "AAAA")
+		assert.equal(err, errors.addr.ENONAME)
 
 		resv:close()
 	end,

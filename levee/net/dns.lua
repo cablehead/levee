@@ -156,6 +156,10 @@ function Resolver_mt:query(qname, qtype)
 
 	if not qtype then qtype = "A" end
 
+	-- don't resolve IP addresses
+	if not _.inet_pton(C.AF_INET, qname) then return errors.addr.ENONAME end
+	if not _.inet_pton(C.AF_INET6, qname) then return errors.addr.ENONAME end
+
 	local err, conf = self:__load()
 	if err then return err end
 
