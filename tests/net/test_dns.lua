@@ -53,6 +53,25 @@ local function respond(server, rtype)
 end
 
 
+local record_mt = {}
+record_mt.__index = record_mt
+
+
+function record_mt:__eq(b)
+	if self.name ~= b.name then return false end
+	if self.type ~= b.type then return false end
+	if self.record ~= b.record then return false end
+	if self.ttl ~= b.ttl then return false end
+	if self.section ~= b.section then return false end
+
+	return true
+end
+
+local function record(r)
+	return setmetatable(r, record_mt)
+end
+
+
 return {
 	test_core = function()
 		local h = levee.Hub()
@@ -72,13 +91,13 @@ return {
 		local err, records = resv:query("google-public-dns-a.google.com", "A")
 		assert(not err)
 		assert.equal(#records, 1)
-		local expect = {
+		local expect = record({
 			name="google-public-dns-a.google.com.",
 			type="A",
 			ttl=3600,
 			record="8.8.8.8",
 			section="ANSWER"
-		}
+		})
 		assert.same(records[1], expect)
 
 		resv:close()
@@ -108,13 +127,13 @@ return {
 
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("google-public-dns-a.google.com", "AAAA")
-		local expect = {
+		local expect = record({
 			name="google-public-dns-a.google.com.",
 			type="AAAA",
 			ttl=86400,
 			record="2001:4860:4860::8888",
 			section="ANSWER"
-		}
+		})
 		assert.same(records[1], expect)
 
 		resv:close()
@@ -135,13 +154,13 @@ return {
 
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("google-public-dns-a.google.com", "A")
-		local expect = {
+		local expect = record({
 				name="google-public-dns-a.google.com.",
 				type="A",
 				ttl=3600,
 				record="8.8.8.8",
 				section="ANSWER"
-		}
+		})
 		assert.same(records[1], expect)
 
 		local function server()
@@ -152,13 +171,13 @@ return {
 		h:spawn(server)
 
 		err, records = resv:query("google-public-dns-b.google.com", "A")
-		local expect = {
+		local expect = record({
 				name="google-public-dns-b.google.com.",
 				type="A",
 				ttl=3600,
 				record="8.8.4.4",
 				section="ANSWER"
-		}
+		})
 		assert.same(records[1], expect)
 
 		local function server()
@@ -169,13 +188,13 @@ return {
 		h:spawn(server)
 
 		local err, records = resv:query("google-public-dns-a.google.com", "AAAA")
-		local expect = {
+		local expect = record({
 			name="google-public-dns-a.google.com.",
 			type="AAAA",
 			ttl=86400,
 			record="2001:4860:4860::8888",
 			section="ANSWER"
-		}
+		})
 		assert.same(records[1], expect)
 
 		resv:close()
@@ -197,29 +216,28 @@ return {
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("yahoo.com", "A")
 		assert.equal(#records, 3)
-		table.sort(records)
 		local expect = {
-			{
-				name="yahoo.com.",
-				type="A",
-				ttl=3600,
-				record="206.190.36.45",
-				section="ANSWER"
-			},
-			{
-				name="yahoo.com.",
-				type="A",
-				ttl=3600,
-				record="98.139.183.24",
-				section="ANSWER"
-			},
-			{
+			record({
 				name="yahoo.com.",
 				type="A",
 				ttl=3600,
 				record="98.138.253.109",
 				section="ANSWER"
-			},
+			}),
+			record({
+				name="yahoo.com.",
+				type="A",
+				ttl=3600,
+				record="98.139.183.24",
+				section="ANSWER"
+			}),
+			record({
+				name="yahoo.com.",
+				type="A",
+				ttl=3600,
+				record="206.190.36.45",
+				section="ANSWER"
+			}),
 		}
 		assert.same(records, expect)
 
@@ -242,13 +260,13 @@ return {
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("8.8.4.4", "A")
 		assert.equal(#records, 1)
-		local expect = {
+		local expect = record({
 			name="8.8.4.4.",
 			type="A",
 			ttl=3600,
 			record="8.8.4.4",
 			section="ANSWER"
-		}
+		})
 		assert.same(records[1], expect)
 
 		resv:close()

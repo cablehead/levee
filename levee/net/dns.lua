@@ -7,66 +7,6 @@ local _ = levee._
 local errors = require("levee.errors")
 
 
---
--- Question
-
--- A Question is the input to a Resolver's query
-
-local Question_mt = {}
-Question_mt.__index = Question_mt
-
-
-function Question_mt:__tostring()
-	s = ("name=%s, type=%s, len=%s")
-	s = s:format(self.name, self.type, self.len)
-	return s
-end
-
-
-local function Question(qname, qtype)
-	if not qtype then qtype = "A" end
-
-	return setmetatable({
-		name = qname,
-		type = qtype,
-		len = qname:len()}, Record_mt)
-end
-
-
---
--- Record
-
--- A Record is the output of a Resolver's query
-
-local Record_mt = {}
-Record_mt.__index = Record_mt
-
-
-function Record_mt:__tostring()
-	s = ("name=%s, type=%s, record=%s, ttl=%s, section=%s")
-	s = s:format(self.name, self.type, self.record, self.ttl, self.section)
-	return s
-end
-
-
-function Record_mt:__lt(b)
-	local a = self.record:gsub("%.+", "")
-	a = tonumber(a)
-	b = b.record:gsub("%.+", "")
-	b = tonumber(b)
-	return a <= b and not (b <= a)
-end
-
-
-local function Record(rname, rtype, record, ttl, section)
-	return setmetatable({
-		name = rname,
-		type = rtype,
-		record = record,
-		ttl = ttl,
-		section = section}, Record_mt)
-end
-
 
 local function parse_record(rr, packet)
 	local rec = ffi.new("union dns_any")
@@ -112,7 +52,7 @@ local function parse(packet)
 			local err, r = parse_record(rr, packet)
 			if err then return err end
 
-			r = Record(n, _.dns_type(rr), r, rr.ttl, s)
+			r = {name=n, type=_.dns_type(rr), record=r, ttl=rr.ttl, section=s}
 			table.insert(recs, r)
 		end
 	end
@@ -214,7 +154,7 @@ end
 function Resolver_mt:query(qname, qtype)
 	if self.closed then return errors.CLOSED end
 
-	local q = Question(qname, qtype)
+	if not qtype then qtype = "A" end
 
 	local err, conf = self:__load()
 	if err then return err end
@@ -222,7 +162,7 @@ function Resolver_mt:query(qname, qtype)
 	local err, resv = self:__open(conf)
 	if err then return err end
 
-	err = _.dns_res_submit(resv, q.name, q.type)
+	err = _.dns_res_submit(resv, qname, qtype)
 	if err then return err end
 
 	err = self:__poll(resv)
