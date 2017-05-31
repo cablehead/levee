@@ -10,7 +10,8 @@ local errors = require("levee.errors")
 
 local function parse_record(rr, packet)
 	local rec = ffi.new("union dns_any")
-	local size = ffi.sizeof("union dns_any")
+	local size = ffi.sizeof(rec)
+	rec = C.dns_any_init(rec, size)
 	local buf = ffi.new("char[?]", size)
 
 	local err = C.dns_any_parse(rec, rr, packet)
