@@ -71,15 +71,17 @@ local Resolver_mt = {}
 Resolver_mt.__index = Resolver_mt
 
 
-function Resolver_mt:__poll(resv)
+function Resolver_mt:__poll(resv, timeout)
 	if self.closed then return errors.CLOSED end
+
+	if not timeout then timeout = 1000 end
 
 	-- TODO guard for failed queries/bad nameservers
 	repeat
 		local err, cont = _.dns_res_check(resv)
 		if err then
 			if not err.is_system_EAGAIN then return err end
-			err = self.r_ev:recv(1000)
+			err = self.r_ev:recv(timeout)
 			if err then return err end
 		end
 	until not cont
@@ -152,7 +154,7 @@ function Resolver_mt:__load()
 end
 
 
-function Resolver_mt:query(qname, qtype)
+function Resolver_mt:query(qname, qtype, timeout)
 	if self.closed then return errors.CLOSED end
 
 	if not qtype then qtype = "A" end
@@ -170,7 +172,7 @@ function Resolver_mt:query(qname, qtype)
 	err = _.dns_res_submit(resv, qname, qtype)
 	if err then return err end
 
-	err = self:__poll(resv)
+	err = self:__poll(resv, timeout)
 	if err then return err end
 
 	local err, packet = _.dns_res_fetch(resv)

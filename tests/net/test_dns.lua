@@ -315,4 +315,12 @@ return {
 
 		resv:close()
 	end,
+
+	test_timeout = function()
+		local h = levee.Hub()
+
+		local err, resv = h.dns:resolver(8003, "10.244.245.246")
+		local err, records = resv:query("imgx.com", "A", 20)
+		assert.equal(err, levee.errors.TIMEOUT)
+	end,
 }
