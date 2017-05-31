@@ -30,30 +30,30 @@ local function parse_name(rr, packet)
 end
 
 
-local function parse(packet)
+local function parse(packet, qtype)
 	local rr = ffi.new("struct dns_rr")
 	local rri = ffi.new("struct dns_rr_i [1]")
 	local recs = {}
 
 	local rri = C.dns_rr_i_init(rri, packet);
 
-	-- TODO handle packet with no results
 	while true do
 		local err, count = _.dns_rr_grep(rr, rri, packet)
 		if err then return err end
 
 		if count == 0 then return nil, recs end
 
-		-- TODO support other sections
 		local s = _.dns_section(rr)
-		if s == "ANSWER" then
+		local t = _.dns_type(rr)
+		-- TODO support other sections
+		if s == "ANSWER" and t == qtype then
 			local err, n = parse_name(rr, packet)
 			if err then return err end
 
 			local err, r = parse_record(rr, packet)
 			if err then return err end
 
-			r = {name=n, type=_.dns_type(rr), record=r, ttl=rr.ttl, section=s}
+			r = {name=n, type=t, record=r, ttl=rr.ttl, section=s}
 			table.insert(recs, r)
 		end
 	end
@@ -176,7 +176,7 @@ function Resolver_mt:query(qname, qtype)
 	local err, packet = _.dns_res_fetch(resv)
 	if err then return err end
 
-	return parse(packet)
+	return parse(packet, qtype)
 end
 
 

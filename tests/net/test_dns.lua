@@ -17,6 +17,7 @@ local function response(rtype)
 		["imgx-com-a"]="dns-imgx-com-a.data",
 		["imgx-com-txt"]="dns-imgx-com-txt.data",
 		["lua-org-aaaa"]="dns-lua-org-aaaa.data",
+		["opendns-org-cname-a"]="dns-opendns-org-cname-a.data",
 		["yahoo-com-a"]="dns-yahoo-com-a.data",
 	}
 
@@ -113,6 +114,7 @@ return {
 
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("imgx.com", "TXT")
+		assert(#records, 1)
 		local expect = record({
 			name="imgx.com.",
 			type="TXT",
@@ -140,6 +142,7 @@ return {
 
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("lua.org", "AAAA")
+		assert(#records, 1)
 		local expect = record({
 			name="lua.org.",
 			type="AAAA",
@@ -167,6 +170,7 @@ return {
 
 		local err, resv = h.dns:resolver(port, addr)
 		local err, records = resv:query("imgx.com", "A")
+		assert(#records, 1)
 		local expect = record({
 				name="imgx.com.",
 				type="A",
@@ -184,6 +188,7 @@ return {
 		h:spawn(server)
 
 		err, records = resv:query("imgx.com", "TXT")
+		assert(#records, 1)
 		local expect = record({
 			name="imgx.com.",
 			type="TXT",
@@ -201,6 +206,7 @@ return {
 		h:spawn(server)
 
 		local err, records = resv:query("lua.org", "AAAA")
+		assert(#records, 1)
 		local expect = record({
 			name="lua.org.",
 			type="AAAA",
@@ -253,6 +259,34 @@ return {
 			}),
 		}
 		assert.same(records, expect)
+
+		resv:close()
+	end,
+
+	test_type = function()
+		local h = levee.Hub()
+
+		local addr = "127.0.0.1"
+		local port = 1053
+
+		local function server()
+			local err, s = h.dgram:bind(port, addr)
+			respond(s, "opendns-org-cname-a")
+			s:close()
+		end
+		h:spawn(server)
+
+		local err, resv = h.dns:resolver(port, addr)
+		local err, records = resv:query("opendns.org", "A")
+		assert(#records, 1)
+		local expect = record({
+			name="www.opendns.org.",
+			type="A",
+			ttl=300,
+			record="67.215.92.210",
+			section="ANSWER"
+		})
+		assert.same(records[1], expect)
 
 		resv:close()
 	end,
