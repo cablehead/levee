@@ -101,6 +101,40 @@ _.dns_type = function(rr)
 	return ttoh[tonumber(rr.type)]
 end
 
+_.dns_p_make = function(size)
+	if not size then
+		size = ffi.offsetof("struct dns_packet", "data") + 260
+	end
+
+	local err = ffi.new(error_type, 0)
+	local packet = C.dns_p_make(size, err)
+	if err[0] ~= 0 then return errors.get(err[0]),  nil end
+
+	return nil, packet
+end
+
+_.dns_p_push = function(packet, name, type_, section, class, ttl, any)
+	if not type_ then type_ = "A" end
+	if not section then section = "QUESTION" end
+	if not class then class = "IN" end
+	if not ttl then ttl = 0 end
+	if not any then any = ffi.cast("void*", 0) end
+
+	local err = C.dns_p_push(
+		packet,
+		htos[section],
+		ffi.cast("void*", name),
+		name:len(),
+		htot[type_],
+		htoc[class],
+		ttl,
+		any
+	)
+	if err ~= 0 then return errors.get(err),  nil end
+
+	return nil, packet
+end
+
 _.dns_d_expand = function(rr, packet)
 	local any = ffi.new("union dns_any")
 	local err = ffi.new(error_type, 0)
@@ -241,6 +275,39 @@ _.dns_res_submit = function(resolver, qname, qtype, qclass)
 	if err ~= 0 then return errors.get(err) end
 
 	return nil
+end
+
+_.dns_so_query = function(so, packet, nameserver)
+	local err = ffi.new(error_type, 0)
+	local data = C.dns_so_query(
+		so,
+		packet,
+		ffi.cast("struct sockaddr *", nameserver),
+		err
+	)
+	if err[0] ~= 0 then return errors.get(err[0]) end
+	if data == ffi.NULL then data = nil end
+
+	return nil, data
+end
+
+_.dns_so_open = function(no, iface, ifacetype, opts)
+	if not ifacetype then ifacetype = C.SOCK_DGRAM end
+
+	local err = ffi.new(error_type, 0)
+	local so = C.levee_dns_so_open(
+		no,
+		ffi.cast("struct sockaddr *", iface),
+		ifacetype,
+		opts,
+		err
+	)
+	if so == ffi.NULL or err[0] ~= 0 then
+		return errors.get(err[0])
+	end
+	ffi.gc(so, C.dns_so_close)
+
+	return nil, so
 end
 
 return _
