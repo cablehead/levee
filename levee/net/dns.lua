@@ -62,44 +62,49 @@ local function parse(packet, qtype)
 end
 
 
+local function nameservers(hints)
+	local addrs = {}
+	local head = hints.head
+
+	while head ~= ffi.NULL do
+		for i=0,head.count do
+			local ss = ffi.cast("struct sockaddr_in*", head.addrs[i].ss)
+			if ss.sin_addr.s_addr ~= 0 then
+				table.insert(addrs, ss)
+			end
+		end
+		head = head.next
+	end
+
+	return addrs
+end
+
+
 --
 -- Resolver
 
--- A Resolver sends a Question to DNS server(s) and returns a table of Records
+-- A Resolver sends a question to DNS server(s) and returns a table of records
 
 local Resolver_mt = {}
 Resolver_mt.__index = Resolver_mt
 
 
-function Resolver_mt:__poll(resv, timeout)
+function Resolver_mt:__poll(so, packet, nameserver, timeout)
 	if self.closed then return errors.CLOSED end
 
-	if not timeout then timeout = 1000 end
+	if not timeout then timeout = 500 end
 
-	-- TODO guard for failed queries/bad nameservers
-	repeat
-		local err, cont = _.dns_res_check(resv)
+	local err, data
+	while not data do
+		err, data = _.dns_so_query(so, packet, nameserver)
 		if err then
 			if not err.is_system_EAGAIN then return err end
 			err = self.r_ev:recv(timeout)
 			if err then return err end
 		end
-	until not cont
+	end
 
-	return nil
-end
-
-
-function Resolver_mt:__open(conf)
-	local resv = self.__resolver
-	if resv then return nil, resv end
-
-	local err
-	err, resv = _.dns_res_open(self.no, conf.resconf, conf.hosts, conf.hints)
-	if err then return err end
-
-	self.__resolver = resv
-	return nil, resv
+	return nil, data
 end
 
 
@@ -116,39 +121,24 @@ function Resolver_mt:__load()
 		if err then return err end
 	end
 
-	local hosts
-	if self.hosts then
-		err, hosts = _.dns_hosts_loadpath(self.hosts)
-		if err then return err end
-	else
-		err, hosts = _.dns_hosts_local()
-		if err then return err end
-	end
-
 	local err, hints = _.dns_hints_local(resconf)
 	if err then return err end
 
+	local ns = nameservers(hints)
 	if self.nsport or self.nsaddr then
 		local sin_port, sin_addr
 		if self.nsport then sin_port = C.htons(self.nsport) end
 		if self.nsaddr then
 			sin_addr = ffi.new("struct in_addr")
-			C.inet_aton(ffi.cast("char*", self.nsaddr), sin_addr)
+			C.inet_aton(self.nsaddr, sin_addr)
 		end
-		local head = hints.head
-		while head ~= ffi.NULL do
-			for i=0,head.count do
-				local ss = ffi.cast("struct sockaddr_in*", head.addrs[i].ss)
-				if ss.sin_addr.s_addr ~= 0 then
-					if sin_addr then ss.sin_addr = sin_addr end
-					if sin_port then ss.sin_port = sin_port end
-				end
-			end
-			head = head.next
+		for __,addr in ipairs(ns) do
+			if sin_addr then addr.sin_addr = sin_addr end
+			if sin_port then addr.sin_port = sin_port end
 		end
 	end
 
-	conf = {resconf=resconf, hosts=hosts, hints=hints}
+	conf = {resconf=resconf, hosts=hosts, hints=hints, nameservers=ns}
 	self.__config = conf
 	return nil, conf
 end
@@ -166,19 +156,22 @@ function Resolver_mt:query(qname, qtype, timeout)
 	local err, conf = self:__load()
 	if err then return err end
 
-	local err, resv = self:__open(conf)
+	local err, question = _.dns_p_make()
 	if err then return err end
 
-	err = _.dns_res_submit(resv, qname, qtype)
+	err = _.dns_p_push(question, qname, qtype)
 	if err then return err end
 
-	err = self:__poll(resv, timeout)
-	if err then return err end
+	for __, addr in ipairs(conf.nameservers) do
+		err, so = _.dns_so_open(self.no, conf.resconf.iface)
+		if err then return err end
 
-	local err, packet = _.dns_res_fetch(resv)
-	if err then return err end
+		err, packet = self:__poll(so, question, addr, timeout)
+		if err and err ~= errors.TIMEOUT then return err end
+		if packet then return parse(packet, qtype) end
+	end
 
-	return parse(packet, qtype)
+	return err
 end
 
 
@@ -194,7 +187,7 @@ function Resolver_mt:close()
 end
 
 
-local function Resolver(hub, no, port, addr, resconf, hosts)
+local function Resolver(hub, no, port, addr, resconf)
 	local self = setmetatable({}, Resolver_mt)
 	self.hub = hub
 	self.no = no
@@ -202,7 +195,6 @@ local function Resolver(hub, no, port, addr, resconf, hosts)
 	self.nsport = port
 	self.nsaddr = addr
 	self.resconf = resconf
-	self.hosts = hosts
 	return self
 end
 
@@ -215,7 +207,7 @@ function DNS_mt:resolver(port, addr, resconf, hosts)
 	local err, no = _.socket(C.AF_INET, C.SOCK_DGRAM)
 	if err then return err end
 	_.fcntl_nonblock(no)
-	return nil, Resolver(self.hub, no, port, addr, resconf, hosts)
+	return nil, Resolver(self.hub, no, port, addr, resconf)
 end
 
 
