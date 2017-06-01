@@ -323,4 +323,46 @@ return {
 		local err, records = resv:query("imgx.com", "A", 20)
 		assert.equal(err, levee.errors.TIMEOUT)
 	end,
+
+	test_failover = function()
+		 local h = levee.Hub()
+
+		 local addr = "127.0.0.1"
+		 local port = 1153
+
+		 local function server()
+				local err, s = h.dgram:bind(port, addr)
+
+				local buf = levee.d.Buffer(4096)
+
+				-- first resolver
+				local err, who, n = s:recvfrom(buf:tail())
+				local err, who, n = s:recvfrom(buf:tail())
+
+				-- second resolver
+				local err, who, n = s:recvfrom(buf:tail())
+				respond(s, "imgx-com-a")
+
+				s:close()
+		end
+		h:spawn(server)
+
+		local tmp = _.path.Path:tmpdir()
+		defer(function() tmp:remove(true) end)
+		tmp = tmp("resolvconf")
+		-- port and addr will replace each of the nameservers
+		tmp:write("nameserver 0.0.0.1\nnameserver 0.0.0.2")
+		local path = tostring(tmp)
+
+		local err, resv = h.dns:resolver(port, addr, path)
+		local err, records = resv:query("imgx.com", "A", 20)
+		assert(err.is_levee_TIMEOUT)
+		resv:close()
+
+		local err, resv = h.dns:resolver(port, addr, path)
+		local err, records = resv:query("imgx.com", "A", 20)
+		assert(not err)
+		assert.equal(#records, 1)
+		resv:close()
+	end,
 }
