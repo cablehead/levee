@@ -2,6 +2,7 @@ local ffi = require("ffi")
 local C = ffi.C
 
 
+local _path = require("levee._.path")
 local errors = require("levee.errors")
 
 
@@ -178,10 +179,13 @@ _.dns_resconf_loadpath = function(path)
 	local err = C.dns_resconf_loadpath(resconf, path)
 	if err ~= 0 then return errors.get(err) end
 
-	local err = C.dns_nssconf_loadpath(resconf, "/etc/nsswitch.conf")
-	if err ~= 0 then
-		C.dns_resconf_close(resconf)
-		return errors.get(err)
+	local nssconf = "/etc/nsswitch.conf"
+	if _path.exists(nssconf) then
+		local err = C.dns_nssconf_loadpath(resconf, nssconf)
+		if err ~= 0 then
+			C.dns_resconf_close(resconf)
+			return errors.get(err)
+		end
 	end
 
 	return nil, resconf
