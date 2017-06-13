@@ -158,6 +158,8 @@ function Resolver_mt:query(qname, qtype, timeout)
 
 	local err, question = _.dns_p_make()
 	if err then return err end
+	-- use recursion if the DNS server allows it
+	question.header.rd = 1
 
 	err = _.dns_p_push(question, qname, qtype)
 	if err then return err end
