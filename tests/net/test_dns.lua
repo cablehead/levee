@@ -72,19 +72,18 @@ return {
 	test_core = function()
 		local h = levee.Hub()
 
-		local addr = "127.0.0.1"
+		local host = "127.0.0.1"
 		local port = 1053
 
 		local function server()
-			local err, s = h.dgram:bind(port, addr)
+			local err, s = h.dgram:bind(port, host)
 			respond(s, "imgx-com-a")
 			s:close()
 		end
 		h:spawn(server)
 
-		local err, resv = h.dns:resolver(port, addr)
-		assert(not err)
-		local err, records = resv:query("imgx.com", "A")
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("imgx.com", "A", opts)
 		assert(not err)
 		assert.equal(#records, 1)
 		local expect = record({
@@ -95,25 +94,23 @@ return {
 			section="ANSWER"
 		})
 		assert.same(records[1], expect)
-
-		resv:close()
 	end,
 
 	test_txt = function()
 		local h = levee.Hub()
 
-		local addr = "127.0.0.1"
+		local host = "127.0.0.1"
 		local port = 1053
 
 		local function server()
-			local err, s = h.dgram:bind(port, addr)
+			local err, s = h.dgram:bind(port, host)
 			respond(s, "imgx-com-txt")
 			s:close()
 		end
 		h:spawn(server)
 
-		local err, resv = h.dns:resolver(port, addr)
-		local err, records = resv:query("imgx.com", "TXT")
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("imgx.com", "TXT", opts)
 		assert(#records, 1)
 		local expect = record({
 			name="imgx.com.",
@@ -123,25 +120,23 @@ return {
 			section="ANSWER"
 		})
 		assert.same(records[1], expect)
-
-		resv:close()
 	end,
 
 	test_aaaa = function()
 		local h = levee.Hub()
 
-		local addr = "127.0.0.1"
+		local host = "127.0.0.1"
 		local port = 1053
 
 		local function server()
-			local err, s = h.dgram:bind(port, addr)
+			local err, s = h.dgram:bind(port, host)
 			respond(s, "lua-org-aaaa")
 			s:close()
 		end
 		h:spawn(server)
 
-		local err, resv = h.dns:resolver(port, addr)
-		local err, records = resv:query("lua.org", "AAAA")
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("lua.org", "AAAA", opts)
 		assert(#records, 1)
 		local expect = record({
 			name="lua.org.",
@@ -151,89 +146,23 @@ return {
 			section="ANSWER"
 		})
 		assert.same(records[1], expect)
-
-		resv:close()
-	end,
-
-	test_multi_query = function()
-		local h = levee.Hub()
-
-		local addr = "127.0.0.1"
-		local port = 1053
-
-		local function server()
-			local err, s = h.dgram:bind(port, addr)
-			respond(s, "imgx-com-a")
-			s:close()
-		end
-		h:spawn(server)
-
-		local err, resv = h.dns:resolver(port, addr)
-		local err, records = resv:query("imgx.com", "A")
-		assert(#records, 1)
-		local expect = record({
-				name="imgx.com.",
-				type="A",
-				ttl=414,
-				record="162.255.119.249",
-				section="ANSWER"
-		})
-		assert.same(records[1], expect)
-
-		local function server()
-			local err, s = h.dgram:bind(port, addr)
-			respond(s, "imgx-com-txt")
-			s:close()
-		end
-		h:spawn(server)
-
-		err, records = resv:query("imgx.com", "TXT")
-		assert(#records, 1)
-		local expect = record({
-			name="imgx.com.",
-			type="TXT",
-			ttl=983,
-			record="\"v=spf1 include:spf.efwd.registrar-servers.com ~all\"",
-			section="ANSWER"
-		})
-		assert.same(records[1], expect)
-
-		local function server()
-			local err, s = h.dgram:bind(port, addr)
-			respond(s, "lua-org-aaaa")
-			s:close()
-		end
-		h:spawn(server)
-
-		local err, records = resv:query("lua.org", "AAAA")
-		assert(#records, 1)
-		local expect = record({
-			name="lua.org.",
-			type="AAAA",
-			ttl=60,
-			record="2a01:4f8:201:620f::2001",
-			section="ANSWER"
-		})
-		assert.same(records[1], expect)
-
-		resv:close()
 	end,
 
 	test_multi_records = function()
 		local h = levee.Hub()
 
-		local addr = "127.0.0.1"
+		local host = "127.0.0.1"
 		local port = 1053
 
 		local function server()
-			local err, s = h.dgram:bind(port, addr)
+			local err, s = h.dgram:bind(port, host)
 			respond(s, "yahoo-com-a")
 			s:close()
 		end
 		h:spawn(server)
 
-		local err, resv = h.dns:resolver(port, addr)
-		local err, records = resv:query("yahoo.com", "A")
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("yahoo.com", "A", opts)
 		assert.equal(#records, 3)
 		local expect = {
 			record({
@@ -259,25 +188,23 @@ return {
 			}),
 		}
 		assert.same(records, expect)
-
-		resv:close()
 	end,
 
 	test_type = function()
 		local h = levee.Hub()
 
-		local addr = "127.0.0.1"
+		local host = "127.0.0.1"
 		local port = 1053
 
 		local function server()
-			local err, s = h.dgram:bind(port, addr)
+			local err, s = h.dgram:bind(port, host)
 			respond(s, "opendns-org-cname-a")
 			s:close()
 		end
 		h:spawn(server)
 
-		local err, resv = h.dns:resolver(port, addr)
-		local err, records = resv:query("opendns.org", "A")
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("opendns.org", "A", opts)
 		assert(#records, 1)
 		local expect = record({
 			name="www.opendns.org.",
@@ -287,51 +214,37 @@ return {
 			section="ANSWER"
 		})
 		assert.same(records[1], expect)
-
-		resv:close()
-	end,
-
-	test_closed = function()
-		local h = levee.Hub()
-		local err, resv = h.dns:resolver()
-		resv:close()
-
-		local err, records = resv:query("imgx.com", "A")
-		assert.equal(err, errors.CLOSED)
 	end,
 
 	test_ip = function()
 		local h = levee.Hub()
-		local err, resv = h.dns:resolver()
 
-		local err, records = resv:query("148.251.24.173")
+		local err = h.dns:resolve("148.251.24.173")
 		assert.equal(err, errors.addr.ENONAME)
 
-		local err, records = resv:query("2a01:4f8:201:620f::2001")
+		local err = h.dns:resolve("2a01:4f8:201:620f::2001")
 		assert.equal(err, errors.addr.ENONAME)
 
-		local err, records = resv:query("2a01:4f8:201:620f::2001", "AAAA")
+		local err = h.dns:resolve("2a01:4f8:201:620f::2001", "AAAA")
 		assert.equal(err, errors.addr.ENONAME)
-
-		resv:close()
 	end,
 
 	test_timeout = function()
 		local h = levee.Hub()
 
-		local err, resv = h.dns:resolver(8003, "10.244.245.246")
-		local err, records = resv:query("imgx.com", "A", 20)
+		local opts = {port=8003, host="10.244.245.246", timeout=20}
+		local err, records = h.dns:resolve("imgx.com", "A", opts)
 		assert.equal(err, levee.errors.TIMEOUT)
 	end,
 
 	test_failover = function()
 		 local h = levee.Hub()
 
-		 local addr = "127.0.0.1"
+		 local host = "127.0.0.1"
 		 local port = 1153
 
 		 local function server()
-				local err, s = h.dgram:bind(port, addr)
+				local err, s = h.dgram:bind(port, host)
 
 				local buf = levee.d.Buffer(4096)
 
@@ -350,19 +263,16 @@ return {
 		local tmp = _.path.Path:tmpdir()
 		defer(function() tmp:remove(true) end)
 		tmp = tmp("resolvconf")
-		-- port and addr will replace each of the nameservers
+		-- port and host will replace each of the nameservers
 		tmp:write("nameserver 0.0.0.1\nnameserver 0.0.0.2")
 		local path = tostring(tmp)
 
-		local err, resv = h.dns:resolver(port, addr, path)
-		local err, records = resv:query("imgx.com", "A", 20)
+		local opts = {port=port, host=host, timeout=20, resconf=path}
+		local err = h.dns:resolve("imgx.com", "A", opts)
 		assert(err.is_levee_TIMEOUT)
-		resv:close()
 
-		local err, resv = h.dns:resolver(port, addr, path)
-		local err, records = resv:query("imgx.com", "A", 20)
+		local err, records = h.dns:resolve("imgx.com", "A", opts)
 		assert(not err)
 		assert.equal(#records, 1)
-		resv:close()
 	end,
 }

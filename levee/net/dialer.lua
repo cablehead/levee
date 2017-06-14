@@ -141,21 +141,15 @@ function Dialer_mt:__dial_async(family, socktype, node, service, timeout)
 
 	local err = _.inet_pton(family, node)
 	if err and (family == C.AF_INET or family == C.AF_INET6) then
-		local err, resv = self.hub.dns:resolver()
-		if err then return err end
-
 		local qtype = (family == C.AF_INET and "A" or "AAAA")
-		local err, records = resv:query(node, qtype)
+		local err, records = self.hub.dns:resolve(node, qtype)
 		if err then return err end
 		if #records == 0 then
-			resv:close()
 			return errors.addr.ENONAME
 		end
 
 		nodes = {}
 		for __, r in ipairs(records) do table.insert(nodes, r.record) end
-
-		resv:close()
 	end
 
 	return connect_all_async(self.hub, family, socktype, nodes, service, timeout)
