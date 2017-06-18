@@ -93,7 +93,6 @@ return {
 			type="A",
 			ttl=414,
 			record="162.255.119.249",
-			section="ANSWER"
 		})
 		assert.same(records[1], expect)
 	end,
@@ -119,7 +118,6 @@ return {
 			type="TXT",
 			ttl=983,
 			record="\"v=spf1 include:spf.efwd.registrar-servers.com ~all\"",
-			section="ANSWER"
 		})
 		assert.same(records[1], expect)
 	end,
@@ -145,7 +143,6 @@ return {
 			type="AAAA",
 			ttl=60,
 			record="2a01:4f8:201:620f::2001",
-			section="ANSWER"
 		})
 		assert.same(records[1], expect)
 	end,
@@ -172,21 +169,18 @@ return {
 				type="A",
 				ttl=3600,
 				record="98.138.253.109",
-				section="ANSWER"
 			}),
 			record({
 				name="yahoo.com.",
 				type="A",
 				ttl=3600,
 				record="98.139.183.24",
-				section="ANSWER"
 			}),
 			record({
 				name="yahoo.com.",
 				type="A",
 				ttl=3600,
 				record="206.190.36.45",
-				section="ANSWER"
 			}),
 		}
 		assert.same(records, expect)
@@ -213,7 +207,6 @@ return {
 			type="A",
 			ttl=300,
 			record="67.215.92.210",
-			section="ANSWER"
 		})
 		assert.same(records[1], expect)
 	end,

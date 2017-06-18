@@ -56,7 +56,7 @@ local function parse(packet, qtype)
 			local err, r = parse_record(rr, packet)
 			if err then return err end
 
-			r = {name=n, type=t, record=r, ttl=rr.ttl, section=s}
+			r = {name=n, type=t, record=r, ttl=rr.ttl}
 			table.insert(recs, r)
 		end
 	end
