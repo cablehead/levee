@@ -31,6 +31,9 @@ end
 
 
 local function parse(packet, qtype)
+	local rcerror = _.dns_rcerror(packet.header.rcode)
+	if rcerror ~= errors.dns.NOERROR then return rcerror end
+
 	local rr = ffi.new("struct dns_rr")
 	local rri = ffi.new("struct dns_rr_i [1]")
 	local recs = {}

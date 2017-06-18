@@ -81,6 +81,30 @@ local errors_ = {
 	ELAST=C.DNS_ELAST,
 }
 
+local rcerror_base = errors_.ELAST + 1
+
+-- RCODEs from https://tools.ietf.org/html/rfc2929#section-2.3
+local rcodes = {
+	[0]={name="NOERROR", msg="No error"},
+	[1]={name="FORMERR", msg="Format Error"},
+	[2]={name="SERVFAIL", msg="Server failure"},
+	[3]={name="NXDOMAIN", msg="Non-existent Domain"},
+	[4]={name="NOTIMP", msg="Unsupported query (Not implemented)"},
+	[5]={name="REFUSED", msg="Query refused"},
+	[6]={name="YXDOMAIN", msg="Name exists when it should not"},
+	[7]={name="YXRRSET", msg="RR set exists when it should not"},
+	[8]={name="NXRRSET", msg="RR set that should exist does not"},
+	[9]={name="NOTAUTH", msg="Server not Authoritative for zone"},
+	[10]={name="NOTZONE", msg="Name not contained in zone"},
+	-- 11-15 are unassigned
+	[16]={name="BADVERS", msg="Bad OPT Version"},
+	[17]={name="BADKEY", msg="Key not recognized"},
+	[18]={name="BADTIME", msg="Signature out of time window"},
+	[19]={name="BADMODE", msg="Bad TKEY Mode"},
+	[20]={name="BADNAME", msg="Duplicate key name"},
+	[21]={name="BADALG", msg="Algorithm not supported"},
+}
+
 _.dns_strerror = function(code)
 	-- dont' override standard EAI errors
 	if code == C.DNS_ENONAME then return tostring(errors.addr.ENONAME) end
@@ -90,8 +114,16 @@ _.dns_strerror = function(code)
 	return C.dns_strerror(code)
 end
 
+_.dns_rcerror = function(code)
+	return errors.get(rcerror_base+code)
+end
+
 for name,code in pairs(errors_) do
 	errors.add(code, "dns", name, ffi.string(_.dns_strerror(code)))
+end
+
+for code,value in pairs(rcodes) do
+	errors.add(rcerror_base+code, "dns", value.name, value.msg)
 end
 
 _.dns_section = function(rr)

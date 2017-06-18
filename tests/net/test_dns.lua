@@ -15,6 +15,7 @@ local TEST_PACK_SIZE = 766
 local function response(rtype)
 	local records = {
 		["imgx-com-a"]="dns-imgx-com-a.data",
+		["imgx-com-aaaa"]="dns-imgx-com-aaaa.data",
 		["imgx-com-txt"]="dns-imgx-com-txt.data",
 		["lua-org-aaaa"]="dns-lua-org-aaaa.data",
 		["opendns-org-cname-a"]="dns-opendns-org-cname-a.data",
@@ -275,4 +276,22 @@ return {
 		assert(not err)
 		assert.equal(#records, 1)
 	end,
+
+	test_rcode = function()
+		local h = levee.Hub()
+
+		local host = "127.0.0.1"
+		local port = 1053
+
+		local function server()
+			local err, s = h.dgram:bind(port, host)
+			respond(s, "imgx-com-aaaa")
+			s:close()
+		end
+		h:spawn(server)
+
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("imgx.com", "AAAA", opts)
+		assert(err.is_dns_NOTIMP)
+	end
 }

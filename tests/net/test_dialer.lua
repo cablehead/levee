@@ -27,7 +27,9 @@ __test_core = function(async)
 	assert(not conn)
 
 	local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "kdkd", port, nil, async)
-	assert.equal(err, errors.addr.ENONAME)
+	local want = errors.addr.ENONAME
+	if async then want = errors.dns.NXDOMAIN end
+	assert.equal(err, want)
 
 	-- timeout
 	local err, conn = h.dialer:dial(C.AF_INET, C.SOCK_STREAM, "10.244.245.246", port, 20, async)
