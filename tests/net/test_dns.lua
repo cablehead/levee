@@ -5,6 +5,7 @@ local errors = require("levee.errors")
 
 local filename = debug.getinfo(1, 'S').source:sub(2)
 local path = _.path.dirname(filename)
+local path = _.path.join(path, "..", "mock", "dns")
 
 
 local DNS_PACK_SIZE = 768
@@ -14,12 +15,12 @@ local TEST_PACK_SIZE = 766
 
 local function response(rtype)
 	local records = {
-		["imgx-com-a"]="dns-imgx-com-a.data",
-		["imgx-com-aaaa"]="dns-imgx-com-aaaa.data",
-		["imgx-com-txt"]="dns-imgx-com-txt.data",
-		["lua-org-aaaa"]="dns-lua-org-aaaa.data",
-		["opendns-org-cname-a"]="dns-opendns-org-cname-a.data",
-		["yahoo-com-a"]="dns-yahoo-com-a.data",
+		["imgx-com-a"]="imgx-com-a.packet",
+		["imgx-com-aaaa"]="imgx-com-aaaa.packet",
+		["imgx-com-txt"]="imgx-com-txt.packet",
+		["lua-org-aaaa"]="lua-org-aaaa.packet",
+		["opendns-org-cname-a"]="opendns-org-cname-a.packet",
+		["yahoo-com-a"]="yahoo-com-a.packet",
 	}
 
 	local f = io.open(path.."/"..records[rtype], "rb")
