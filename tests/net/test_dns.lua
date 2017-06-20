@@ -97,6 +97,31 @@ return {
 		assert.same(records[1], expect)
 	end,
 
+	test_default = function()
+		local h = levee.Hub()
+
+		local host = "127.0.0.1"
+		local port = 1053
+
+		local function server()
+			local err, s = h.dgram:bind(port, host)
+			respond(s, "imgx-com-a")
+			s:close()
+		end
+		h:spawn(server)
+
+		local opts = {port=port, host=host}
+		local err, records = h.dns:resolve("imgx.com", nil, opts)
+		assert(not err)
+		local expect = record({
+			name="imgx.com.",
+			type="A",
+			ttl=414,
+			record="162.255.119.249",
+		})
+		assert.same(records[1], expect)
+	end,
+
 	test_txt = function()
 		local h = levee.Hub()
 
@@ -215,13 +240,13 @@ return {
 		local h = levee.Hub()
 
 		local err = h.dns:resolve("148.251.24.173")
-		assert.equal(err, errors.addr.ENONAME)
+		assert.equal(err, errors.dns.NXDOMAIN)
 
 		local err = h.dns:resolve("2a01:4f8:201:620f::2001")
-		assert.equal(err, errors.addr.ENONAME)
+		assert.equal(err, errors.dns.NXDOMAIN)
 
 		local err = h.dns:resolve("2a01:4f8:201:620f::2001", "AAAA")
-		assert.equal(err, errors.addr.ENONAME)
+		assert.equal(err, errors.dns.NXDOMAIN)
 	end,
 
 	test_timeout = function()
@@ -233,12 +258,12 @@ return {
 	end,
 
 	test_failover = function()
-		 local h = levee.Hub()
+		local h = levee.Hub()
 
-		 local host = "127.0.0.1"
-		 local port = 1153
+		local host = "127.0.0.1"
+		local port = 1153
 
-		 local function server()
+		local function server()
 				local err, s = h.dgram:bind(port, host)
 
 				local buf = levee.d.Buffer(4096)

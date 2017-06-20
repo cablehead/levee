@@ -146,12 +146,14 @@ function Resolver_mt:query(qname, qtype)
 
 	if not qtype then qtype = "A" end
 
-	-- don't resolve IP addresses
+	-- Don't resolve IP addresses
+	-- Some DNS servers return NXDOMAIN in this case, others return no
+	-- error. Let's make it consistent.
 	if not _.inet_pton(C.AF_INET, qname) then
-		return self:error(errors.addr.ENONAME)
+		return self:error(errors.dns.NXDOMAIN)
 	end
 	if not _.inet_pton(C.AF_INET6, qname) then
-		return self:error(errors.addr.ENONAME)
+		return self:error(errors.dns.NXDOMAIN)
 	end
 
 	local err, conf = self:load()
