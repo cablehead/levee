@@ -1,6 +1,7 @@
 local path = "levee.p.http."
 local default = require(path.."0_3")
 local mods = {
+	parse=require(path.."parse"),
 }
 
 local Version_mt = {}
