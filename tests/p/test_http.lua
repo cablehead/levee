@@ -733,7 +733,7 @@ return {
 	end,
 
 	test_map = function()
-		local Map = require("levee.p.http").Map
+		local Map = require("levee.d.map")
 		local Iovec = require("levee.d.iovec")
 
 		local map = Map()
