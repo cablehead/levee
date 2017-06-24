@@ -13,7 +13,7 @@ return {
 
 		local path = "/fa"
 		-- use an array to maintain params order
-		local params = {"fe", "fi"}
+		local params = {"fe", "fi 😬"}
 		local headers = {fa="fe", fi="fo"}
 		local data = "fum\n"
 		local buf = Buffer(4096)
@@ -28,11 +28,11 @@ return {
 		local err, rc = p:next(buf, 5)
 		assert.equal(rc, 0)
 
-		local len = 116
+		local len = 129
 		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), false)
-		assert.same({p:value(buf)}, {"GET", "/fa?1=fe&2=fi", 1})
+		assert.same({p:value(buf)}, {"GET", "/fa?1=fe&2=fi+%F0%9F%98%AC", 1})
 		buf = buf + rc
 		len = len - rc
 
