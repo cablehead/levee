@@ -1,8 +1,9 @@
 local prefix = "levee.p.http."
 local default = require(prefix.."0_3")
 local mods = {
-	parse=require(prefix.."parse"),
 	["0_4"]=require(prefix.."0_4"),
+	parse=require(prefix.."parse"),
+	status=require(prefix.."status"),
 }
 
 local Version_mt = {}
