@@ -1,7 +1,8 @@
-local path = "levee.p.http."
-local default = require(path.."0_3")
+local prefix = "levee.p.http."
+local default = require(prefix.."0_3")
 local mods = {
-	parse=require(path.."parse"),
+	parse=require(prefix.."parse"),
+	["0_4"]=require(prefix.."0_4"),
 }
 
 local Version_mt = {}
