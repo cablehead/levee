@@ -11,18 +11,6 @@ local CRLF = "\r\n"
 local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
 
 
-function encode_headers(headers)
-	-- TODO: Host
-	local ret = {
-		["User-Agent"] = USER_AGENT,
-		Accept = "*/*", }
-	for key, value in pairs(headers or {}) do
-		ret[key] = value
-	end
-	return ret
-end
-
-
 -- TODO make this part of levee.p.uri when it makes sense
 local function encode_url(value)
 	local buf = ffi.cast("char *", value)
@@ -50,7 +38,10 @@ function encode_request(method, path, params, headers, data, buf)
 	buf:push(("%s %s %s%s"):format(method, path, VERSION, CRLF))
 	if err then return err end
 
-	headers = encode_headers(headers)
+	-- TODO: Host
+	if not headers["User-Agent"] then headers["User-Agent"] = USER_AGENT end
+	if not headers["Accept"] then headers["Accept"] = "*/*" end
+
 	if data then
 		headers["Content-Length"] = tostring(#data)
 	end
