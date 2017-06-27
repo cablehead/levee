@@ -1,5 +1,6 @@
 local ffi = require('ffi')
 local meta = require("levee.meta")
+local Status = require("levee.p.http.status")
 
 
 local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
@@ -105,6 +106,110 @@ return {
 			["User-Agent"]=USER_AGENT,
 			["Content-Length"]="4",
 			Accept="*/*",
+			fa="fe",
+			fi="fo",
+		}
+		assert.same(headers, want)
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), true)
+		buf = buf + rc
+		len = len - rc
+
+		assert.equal(ffi.string(buf, len), "fum\n")
+	end,
+
+	test_encode_response = function()
+		local HTTP = require("levee.p.http.0_4")
+		local Buffer = require("levee.d.buffer")
+		local parser = require("levee.p.http").parser
+
+		local headers = {fa="fe", fi="fo", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
+		local buf = Buffer(4096)
+
+		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		assert(not err)
+
+		local p = parser.Response()
+		p:init_response()
+
+		buf = buf:value()
+		local err, rc = p:next(buf, 5)
+		assert.equal(rc, 0)
+
+		local len = 72
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), false)
+		assert.same({p:value(buf)}, {200, "OK", 1})
+		buf = buf + rc
+		len = len - rc
+
+		local headers = {}
+		for i=1,3 do
+			local err, rc = p:next(buf, len)
+			assert(rc > 0)
+			assert.equal(p:is_done(), false)
+			local k,v = p:value(buf)
+			headers[k] = v
+			buf = buf + rc
+			len = len - rc
+		end
+
+		local want = {
+			["Date"]="Sun, 18 Oct 2009 08:56:53 GMT",
+			fa="fe",
+			fi="fo",
+		}
+		assert.same(headers, want)
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), true)
+	end,
+
+	test_encode_response_body = function()
+		local HTTP = require("levee.p.http.0_4")
+		local Buffer = require("levee.d.buffer")
+		local parser = require("levee.p.http").parser
+
+		local headers = {fa="fe", fi="fo", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
+		local data = "fum\n"
+		local buf = Buffer(4096)
+
+		local err = HTTP.encode_response(Status(200), headers, data, buf)
+		assert(not err)
+
+		local p = parser.Response()
+		p:init_response()
+
+		buf = buf:value()
+		local err, rc = p:next(buf, 5)
+		assert.equal(rc, 0)
+
+		local len = 95
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), false)
+		assert.same({p:value(buf)}, {200, "OK", 1})
+		buf = buf + rc
+		len = len - rc
+
+		local headers = {}
+		for i=1,4 do
+			local err, rc = p:next(buf, len)
+			assert(rc > 0)
+			assert.equal(p:is_done(), false)
+			local k,v = p:value(buf)
+			headers[k] = v
+			buf = buf + rc
+			len = len - rc
+		end
+
+		local want = {
+			["Date"]="Sun, 18 Oct 2009 08:56:53 GMT",
+			["Content-Length"]="4",
 			fa="fe",
 			fi="fo",
 		}
