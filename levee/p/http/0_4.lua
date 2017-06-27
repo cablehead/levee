@@ -38,8 +38,9 @@ local function encode_url(value)
 	local buf = ffi.cast("char *", value)
 	local e =  encoder()
 	local flag = bit.bor(C.SP_UTF8_URI, C.SP_UTF8_SPACE_PLUS)
-	local n = e:encode(buf, #value, flag)
-	return ffi.string(e.buf, n)
+	local err, n = e:encode(buf, #value, flag)
+	if err then return err end
+	return nil, ffi.string(e.buf, n)
 end
 
 
@@ -55,11 +56,12 @@ function encode_request(method, path, params, headers, data, buf)
 		table.remove(s)
 		path = table.concat(s)
 	end
-	path = encode_url(path)
-
-	buf:push(("%s %s %s%s"):format(method, path, VERSION, CRLF))
+	local err, path = encode_url(path)
 	if err then return err end
 
+	buf:push(("%s %s %s%s"):format(method, path, VERSION, CRLF))
+
+	if not headers then headers = {} end
 	-- TODO: Host
 	if not headers["User-Agent"] then headers["User-Agent"] = USER_AGENT end
 	if not headers["Accept"] then headers["Accept"] = "*/*" end
@@ -72,18 +74,15 @@ function encode_request(method, path, params, headers, data, buf)
 		if type(v) == "table" then
 			for _,item in pairs(v) do
 				buf:push(k..FIELD_SEP..item..CRLF)
-				if err then return err end
 			end
 		else
 			buf:push(k..FIELD_SEP..v..CRLF)
-			if err then return err end
 		end
 	end
 	buf:push(CRLF)
 
 	if data then
-		local err = buf:push(data)
-		if err then return err end
+		buf:push(data)
 	end
 end
 
@@ -92,6 +91,7 @@ function encode_response(status, headers, body, buf)
 	local no_content = status:no_content()
 	buf:push(tostring(status))
 
+	if not headers then headers = {} end
 	if not headers["Date"] then headers["Date"] = httpdate() end
 
 	if no_content or not body then
@@ -106,11 +106,9 @@ function encode_response(status, headers, body, buf)
 		if type(v) == "table" then
 			for _,item in pairs(v) do
 				buf:push(k..FIELD_SEP..item..CRLF)
-				if err then return err end
 			end
 		else
 			buf:push(k..FIELD_SEP..v..CRLF)
-			if err then return err end
 		end
 	end
 	buf:push(CRLF)

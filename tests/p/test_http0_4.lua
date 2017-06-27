@@ -11,6 +11,14 @@ local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
 
 
 return {
+	test_encode_url_error = function()
+		local params = {"fe", "\222"}
+		local buf = Buffer(4096)
+
+		local err = HTTP.encode_request("GET", "/", params, nil, nil, buf)
+		assert(err.is_utf8_ETOOSHORT)
+	end,
+
 	test_encode_request = function()
 		local path = "/fa"
 		-- use an array to maintain params order
