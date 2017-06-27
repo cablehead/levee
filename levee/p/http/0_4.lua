@@ -35,16 +35,29 @@ end
 
 -- TODO make this part of levee.p.uri when it makes sense
 local function encode_url(value)
-	local buf = ffi.cast("char *", value)
 	local e =  encoder()
 	local flag = bit.bor(C.SP_UTF8_URI, C.SP_UTF8_SPACE_PLUS)
-	local err, n = e:encode(buf, #value, flag)
+	local err, n = e:encode(value, #value, flag)
 	if err then return err end
 	return nil, ffi.string(e.buf, n)
 end
 
 
-function encode_request(method, path, params, headers, data, buf)
+local function encode_headers(headers, buf)
+	for k, v in pairs(headers) do
+		if type(v) == "table" then
+			for _,item in pairs(v) do
+				buf:push(k..FIELD_SEP..item..CRLF)
+			end
+		else
+			buf:push(k..FIELD_SEP..v..CRLF)
+		end
+	end
+	buf:push(CRLF)
+end
+
+
+function encode_request(method, path, params, headers, body, buf)
 	if params then
 		local s = {path, "?"}
 		for key, value in pairs(params) do
@@ -66,58 +79,37 @@ function encode_request(method, path, params, headers, data, buf)
 	if not headers["User-Agent"] then headers["User-Agent"] = USER_AGENT end
 	if not headers["Accept"] then headers["Accept"] = "*/*" end
 
-	if data then
-		headers["Content-Length"] = tostring(#data)
+	if not body then
+		encode_headers(headers, buf)
+		return
 	end
 
-	for k, v in pairs(headers) do
-		if type(v) == "table" then
-			for _,item in pairs(v) do
-				buf:push(k..FIELD_SEP..item..CRLF)
-			end
-		else
-			buf:push(k..FIELD_SEP..v..CRLF)
-		end
-	end
-	buf:push(CRLF)
-
-	if data then
-		buf:push(data)
-	end
+	headers["Content-Length"] = tostring(#body)
+	encode_headers(headers, buf)
+	buf:push(body)
 end
 
 
 function encode_response(status, headers, body, buf)
-	local no_content = status:no_content()
 	buf:push(tostring(status))
 
 	if not headers then headers = {} end
 	if not headers["Date"] then headers["Date"] = httpdate() end
 
-	if no_content or not body then
-		headers["Content-Length"] = nil
-	elseif type(body) == "string" then
-		headers["Content-Length"] = tostring(#body)
-	else
+	if status:no_content() or not body then
+		encode_headers(headers, buf)
+		return
+	end
+
+	if type(body) ~= "string" then
 		headers["Content-Length"] = tostring(tonumber(body))
+		encode_headers(headers, buf)
+		return
 	end
 
-	for k, v in pairs(headers) do
-		if type(v) == "table" then
-			for _,item in pairs(v) do
-				buf:push(k..FIELD_SEP..item..CRLF)
-			end
-		else
-			buf:push(k..FIELD_SEP..v..CRLF)
-		end
-	end
-	buf:push(CRLF)
-
-	if not no_content and type(body) == "string" then
-		buf:push(body)
-	end
-
-	return nil, buf
+	headers["Content-Length"] = tostring(#body)
+	encode_headers(headers, buf)
+	buf:push(body)
 end
 
 
