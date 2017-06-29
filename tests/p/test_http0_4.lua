@@ -45,15 +45,55 @@ local function assert_response_chunk(buf)
 
 		local err, rc = p:next(buf, len)
 		assert(rc > 0)
-		-- TODO why doesn't the parser return true here?
 		assert.equal(p:is_done(), false)
 		buf = buf + rc
 		len = len - rc
 
-		local r = "\r\n"
-		local w = "4%sfafe%s2%sfi%s2%sfo%s0%s%s"
-		local w = w:format(r,r,r,r,r,r,r,r)
-		assert.equal(ffi.string(buf, len), w)
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), false)
+		assert.same({p:value(buf)}, {true, 4LL})
+		buf = buf + rc
+		len = len - rc
+
+		rc = p.as.body_chunk.length
+		assert(ffi.string(buf, rc), "fafe")
+		buf = buf + rc
+		len = len - rc
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.same({p:value(buf)}, {true, 2LL})
+		assert.equal(p:is_done(), false)
+		buf = buf + rc
+		len = len - rc
+
+		rc = p.as.body_chunk.length
+		assert(ffi.string(buf, rc), "fi")
+		buf = buf + rc
+		len = len - rc
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.same({p:value(buf)}, {true, 2LL})
+		assert.equal(p:is_done(), false)
+		buf = buf + rc
+		len = len - rc
+
+		rc = p.as.body_chunk.length
+		assert(ffi.string(buf, rc), "fa")
+		buf = buf + rc
+		len = len - rc
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), false)
+		buf = buf + rc
+		len = len - rc
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), true)
 end
 
 
