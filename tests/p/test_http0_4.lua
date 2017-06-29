@@ -6,8 +6,55 @@ local Status = require("levee.p.http.status")
 local Parser = require("levee.p.http.parse")
 
 
-
 local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
+
+
+local function assert_response_chunk(buf)
+		local p = Parser()
+		p:init_response()
+
+		buf = buf:value()
+		local err, rc = p:next(buf, 5)
+		assert.equal(rc, 0)
+
+		local len= 120
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		assert.equal(p:is_done(), false)
+		assert.same({p:value(buf)}, {200, "OK", 1})
+		buf = buf + rc
+		len = len - rc
+
+		local headers = {}
+		for i=1,3 do
+			local err, rc = p:next(buf, len)
+			assert(rc > 0)
+			assert.equal(p:is_done(), false)
+			local k,v = p:value(buf)
+			headers[k] = v
+			buf = buf + rc
+			len = len - rc
+		end
+
+		local want = {
+			["Date"]="Sun, 18 Oct 2009 08:56:53 GMT",
+			["Transfer-Encoding"]="chunked",
+			fe="fi",
+		}
+		assert.same(headers, want)
+
+		local err, rc = p:next(buf, len)
+		assert(rc > 0)
+		-- TODO why doesn't the parser return true here?
+		assert.equal(p:is_done(), false)
+		buf = buf + rc
+		len = len - rc
+
+		local r = "\r\n"
+		local w = "4%sfafe%s2%sfi%s2%sfo%s0%s%s"
+		local w = w:format(r,r,r,r,r,r,r,r)
+		assert.equal(ffi.string(buf, len), w)
+end
 
 
 return {
@@ -219,5 +266,60 @@ return {
 		local err, rc = p:next(buf, len)
 		assert(rc > 0)
 		assert.equal(p:is_done(), true)
+	end,
+
+	test_encode_response_chunk = function()
+		local headers = {fe="fi", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
+		local buf = Buffer(4096)
+		-- TODO memset here until Buffer adopts it
+		C.memset(buf.buf, 0, 4096)
+
+		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		assert(not err)
+
+		HTTP.encode_chunk("fafe", buf)
+		HTTP.encode_chunk("fi", buf)
+		HTTP.encode_chunk("fo", buf)
+		HTTP.encode_chunk(nil, buf)
+
+		assert_response_chunk(buf)
+	end,
+
+	test_encode_response_chunk_push_encode = function()
+		local headers = {fe="fi", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
+		local buf = Buffer(4096)
+		-- TODO memset here until Buffer adopts it
+		C.memset(buf.buf, 0, 4096)
+
+		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		assert(not err)
+
+		HTTP.encode_chunk(4, buf)
+		buf:push("fafe")
+		HTTP.encode_chunk("fi", buf)
+		HTTP.encode_chunk(2, buf)
+		buf:push("fo")
+		HTTP.encode_chunk(nil, buf)
+
+		assert_response_chunk(buf)
+	end,
+
+	test_encode_response_chunk_encode_push = function()
+		local headers = {fe="fi", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
+		local buf = Buffer(4096)
+		-- TODO memset here until Buffer adopts it
+		C.memset(buf.buf, 0, 4096)
+
+		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		assert(not err)
+
+		HTTP.encode_chunk(4, buf)
+		buf:push("fafe")
+		HTTP.encode_chunk(2, buf)
+		buf:push("fi")
+		HTTP.encode_chunk("fo", buf)
+		HTTP.encode_chunk(nil, buf)
+
+		assert_response_chunk(buf)
 	end,
 }
