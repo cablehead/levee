@@ -57,7 +57,7 @@ local function encode_url(value)
 end
 
 
-local function encode_headers(headers, buf, nosep)
+local function encode_headers(buf, headers, nosep)
 	for k, v in pairs(headers) do
 		if type(v) == "table" then
 			for _,item in pairs(v) do
@@ -71,7 +71,7 @@ local function encode_headers(headers, buf, nosep)
 end
 
 
-function encode_request(method, path, params, headers, body, buf)
+function encode_request(buf, method, path, params, headers, body)
 	if params then
 		local s = {path, "?"}
 		for key, value in pairs(params) do
@@ -94,48 +94,48 @@ function encode_request(method, path, params, headers, body, buf)
 	if not headers["Accept"] then headers["Accept"] = "*/*" end
 
 	if not body then
-		encode_headers(headers, buf)
+		encode_headers(buf, headers)
 		return
 	end
 
 	headers["Content-Length"] = tostring(#body)
-	encode_headers(headers, buf)
+	encode_headers(buf, headers)
 	buf:push(body)
 end
 
 
-function encode_response(status, headers, body, buf)
+function encode_response(buf, status, headers, body)
 	buf:push(tostring(status))
 
 	if not headers then headers = {} end
 	if not headers["Date"] then headers["Date"] = httpdate() end
 
 	if status:no_content() then
-		encode_headers(headers, buf)
+		encode_headers(buf, headers)
 		return
 	end
 
 	if type(body) == "string" then
 		headers["Content-Length"] = tostring(#body)
-		encode_headers(headers, buf)
+		encode_headers(buf, headers)
 		buf:push(body)
 		return
 	end
 
 	if body then
 		headers["Content-Length"] = tostring(tonumber(body))
-		encode_headers(headers, buf)
+		encode_headers(buf, headers)
 		return
 	end
 
 	headers["Transfer-Encoding"] = "chunked"
 	-- do not add the closing CRLF to headers. It will be added when
 	-- the first `encode_chunk` is called
-	encode_headers(headers, buf, true)
+	encode_headers(buf, headers, true)
 end
 
 
-function encode_chunk(chunk, buf)
+function encode_chunk(buf, chunk)
 	buf:push(CRLF)
 	if not chunk then buf:push("0"..CRLF..CRLF) return end
 

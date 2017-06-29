@@ -62,7 +62,7 @@ return {
 		local params = {"fe", "\222"}
 		local buf = Buffer(4096)
 
-		local err = HTTP.encode_request("GET", "/", params, nil, nil, buf)
+		local err = HTTP.encode_request(buf, "GET", "/", params)
 		assert(err.is_utf8_ETOOSHORT)
 	end,
 
@@ -73,7 +73,7 @@ return {
 		local headers = {fa="fe", fi="fo"}
 		local buf = Buffer(4096)
 
-		local err = HTTP.encode_request("GET", path, params, headers, nil, buf)
+		local err = HTTP.encode_request(buf, "GET", path, params, headers)
 		assert(not err)
 
 
@@ -124,7 +124,7 @@ return {
 		local data = "fum\n"
 		local buf = Buffer(4096)
 
-		local err = HTTP.encode_request("POST", path, params, headers, data, buf)
+		local err = HTTP.encode_request(buf, "POST", path, params, headers, data)
 		assert(not err)
 
 		local p = Parser()
@@ -176,7 +176,7 @@ return {
 		local data = "fum\n"
 		local buf = Buffer(4096)
 
-		local err = HTTP.encode_response(Status(200), headers, data, buf)
+		local err = HTTP.encode_response(buf, Status(200), headers, data)
 		assert(not err)
 
 		local p = Parser()
@@ -226,7 +226,7 @@ return {
 		local headers = {fa="fe", fi="fo", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
 		local buf = Buffer(4096)
 
-		local err = HTTP.encode_response(Status(200), headers, 6, buf)
+		local err = HTTP.encode_response(buf, Status(200), headers, 6)
 		assert(not err)
 
 		local p = Parser()
@@ -274,13 +274,13 @@ return {
 		-- TODO memset here until Buffer adopts it
 		C.memset(buf.buf, 0, 4096)
 
-		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		local err = HTTP.encode_response(buf, Status(200), headers)
 		assert(not err)
 
-		HTTP.encode_chunk("fafe", buf)
-		HTTP.encode_chunk("fi", buf)
-		HTTP.encode_chunk("fo", buf)
-		HTTP.encode_chunk(nil, buf)
+		HTTP.encode_chunk(buf, "fafe")
+		HTTP.encode_chunk(buf, "fi")
+		HTTP.encode_chunk(buf, "fo")
+		HTTP.encode_chunk(buf)
 
 		assert_response_chunk(buf)
 	end,
@@ -291,15 +291,15 @@ return {
 		-- TODO memset here until Buffer adopts it
 		C.memset(buf.buf, 0, 4096)
 
-		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		local err = HTTP.encode_response(buf, Status(200), headers)
 		assert(not err)
 
-		HTTP.encode_chunk(4, buf)
+		HTTP.encode_chunk(buf, 4)
 		buf:push("fafe")
-		HTTP.encode_chunk("fi", buf)
-		HTTP.encode_chunk(2, buf)
+		HTTP.encode_chunk(buf, "fi")
+		HTTP.encode_chunk(buf, 2)
 		buf:push("fo")
-		HTTP.encode_chunk(nil, buf)
+		HTTP.encode_chunk(buf)
 
 		assert_response_chunk(buf)
 	end,
@@ -310,15 +310,15 @@ return {
 		-- TODO memset here until Buffer adopts it
 		C.memset(buf.buf, 0, 4096)
 
-		local err = HTTP.encode_response(Status(200), headers, nil, buf)
+		local err = HTTP.encode_response(buf, Status(200), headers)
 		assert(not err)
 
-		HTTP.encode_chunk(4, buf)
+		HTTP.encode_chunk(buf, 4)
 		buf:push("fafe")
-		HTTP.encode_chunk(2, buf)
+		HTTP.encode_chunk(buf, 2)
 		buf:push("fi")
-		HTTP.encode_chunk("fo", buf)
-		HTTP.encode_chunk(nil, buf)
+		HTTP.encode_chunk(buf, "fo")
+		HTTP.encode_chunk(buf)
 
 		assert_response_chunk(buf)
 	end,
