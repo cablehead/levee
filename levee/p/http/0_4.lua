@@ -3,6 +3,7 @@ local C = ffi.C
 local meta = require("levee.meta")
 local encoder = require("levee.p.utf8").Utf8
 local status = require("levee.p.http.status")
+local parser = require("levee.p.http.parse")
 
 
 local VERSION = "HTTP/1.1"
@@ -10,6 +11,23 @@ local FIELD_SEP = ": "
 local CRLF = "\r\n"
 
 local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
+
+
+--
+-- Request
+--
+local Request_mt = {}
+Request_mt.__index = Request_mt
+
+
+function Request_mt:uri()
+	-- TODO
+end
+
+
+function Request_mt:__tostring()
+	return ("levee.http.0_4.Request: %s %s"):format(self.method, self.path)
+end
 
 
 --
@@ -150,9 +168,48 @@ function encode_chunk(buf, chunk)
 end
 
 
+function decode_request(parser, stream)
+	parser:init_request()
+
+	local err, value = parser:stream_next(stream)
+	if err then return err end
+
+	local req = setmetatable({
+		method=value[1],
+		path=value[2],
+		headers={}}, Request_mt)
+
+	repeat
+		err, value = parser:stream_next(stream)
+		if err then return err end
+		local key = value[1]
+		if not key then break end
+		local current = req.headers[key]
+		if type(current) == "string" then
+			 req.headers[key] = {current,value[2]}
+		elseif type(current) == "table" then
+			 table.insert(req.headers[key], value[2])
+		else
+			req.headers[key] = value[2]
+		end
+	until parser.type ~= C.SP_HTTP_FIELD
+
+	if not value[2] then
+		-- content-length request
+		local len = tonumber(value[3])
+		-- TODO what happens when there's no body and no chunks?
+		if len > 0 then req.len = len end
+	end
+	-- chunked requests do not set `len`
+	return nil, req
+end
+
+
 return {
 	Status=status,
+	Parser=parser,
 	encode_request=encode_request,
 	encode_response=encode_response,
 	encode_chunk=encode_chunk,
+	decode_request=decode_request,
 }

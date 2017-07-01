@@ -3,14 +3,13 @@ local meta = require("levee.meta")
 local HTTP = require("levee.p.http.0_4")
 local Buffer = require("levee.d.buffer")
 local Status = require("levee.p.http.status")
-local Parser = require("levee.p.http.parse")
 
 
 local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
 
 
 local function assert_response_chunk(buf)
-		local p = Parser()
+		local p = HTTP.Parser()
 		p:init_response()
 
 		buf = buf:value()
@@ -111,63 +110,13 @@ return {
 		-- use an array to maintain params order
 		local params = {"fe", "fi 😬"}
 		local headers = {fa="fe", fi="fo"}
-		local buf = Buffer(4096)
-
-		local err = HTTP.encode_request(buf, "GET", path, params, headers)
-		assert(not err)
-
-
-		local p = Parser()
-		p:init_request()
-
-		buf = buf:value()
-		local err, rc = p:next(buf, 5)
-		assert.equal(rc, 0)
-
-		local len = 129
-		local err, rc = p:next(buf, len)
-		assert(rc > 0)
-		assert.equal(p:is_done(), false)
-		assert.same({p:value(buf)}, {"GET", "/fa?1=fe&2=fi+%F0%9F%98%AC", 1})
-		buf = buf + rc
-		len = len - rc
-
-		local headers = {}
-		for i=1,4 do
-			local err, rc = p:next(buf, len)
-			assert(rc > 0)
-			assert.equal(p:is_done(), false)
-			local k,v = p:value(buf)
-			headers[k] = v
-			buf = buf + rc
-			len = len - rc
-		end
-
-		local want = {
-			["User-Agent"]=USER_AGENT,
-			Accept="*/*",
-			fa="fe",
-			fi="fo",
-		}
-		assert.same(headers, want)
-
-		local err, rc = p:next(buf, len)
-		assert(rc > 0)
-		assert.equal(p:is_done(), true)
-	end,
-
-	test_encode_request_post = function()
-		local path = "/fa"
-		-- use an array to maintain params order
-		local params = {"fe", "fi 😬"}
-		local headers = {fa="fe", fi="fo"}
 		local data = "fum\n"
 		local buf = Buffer(4096)
 
 		local err = HTTP.encode_request(buf, "POST", path, params, headers, data)
 		assert(not err)
 
-		local p = Parser()
+		local p = HTTP.Parser()
 		p:init_request()
 
 		buf = buf:value()
@@ -219,7 +168,7 @@ return {
 		local err = HTTP.encode_response(buf, Status(200), headers, data)
 		assert(not err)
 
-		local p = Parser()
+		local p = HTTP.Parser()
 		p:init_response()
 
 		buf = buf:value()
@@ -269,7 +218,7 @@ return {
 		local err = HTTP.encode_response(buf, Status(200), headers, 6)
 		assert(not err)
 
-		local p = Parser()
+		local p = HTTP.Parser()
 		p:init_response()
 
 		buf = buf:value()
@@ -361,5 +310,32 @@ return {
 		HTTP.encode_chunk(buf)
 
 		assert_response_chunk(buf)
+	end,
+
+	test_decode_request = function()
+		local levee = require("levee")
+
+		local request = "" ..
+			"GET /some/path HTTP/1.1\r\n" ..
+			"H1: one\r\n" ..
+			"H2: two\r\n" ..
+			"Content-Length: 13\r\n" ..
+			"\r\n" ..
+			"Hello World!\n"
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(request)
+
+		parser = HTTP.Parser()
+		local err, req = HTTP.decode_request(parser, stream)
+		assert(not err)
+		assert.equal(req.method, "GET")
+		assert.equal(req.path, "/some/path")
+		assert.same(req.headers, {["Content-Length"]="13", H1="one", H2="two"})
+		assert.same(req.len, 13)
+
+		assert.equal(ffi.string(stream:value(), req.len), "Hello World!\n")
 	end,
 }
