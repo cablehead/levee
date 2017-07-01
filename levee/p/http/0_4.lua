@@ -1,9 +1,10 @@
 local ffi = require('ffi')
 local C = ffi.C
 local meta = require("levee.meta")
-local encoder = require("levee.p.utf8").Utf8
-local status = require("levee.p.http.status")
-local parser = require("levee.p.http.parse")
+local Map = require("levee.d.map")
+local Encoder = require("levee.p.utf8").Utf8
+local Status = require("levee.p.http.status")
+local Parser = require("levee.p.http.parse")
 
 
 local VERSION = "HTTP/1.1"
@@ -67,7 +68,7 @@ end
 
 -- TODO make this part of levee.p.uri when it makes sense
 local function encode_url(value)
-	local e =  encoder()
+	local e =  Encoder()
 	local flag = bit.bor(C.SP_UTF8_URI, C.SP_UTF8_SPACE_PLUS)
 	local err, n = e:encode(value, #value, flag)
 	if err then return err end
@@ -76,6 +77,13 @@ end
 
 
 local function encode_headers(buf, headers, nosep)
+	if type(headers) == "cdata" then
+		-- assume it's a d.Map
+		local last = nosep and "" or CRLF
+		buf:push(tostring(headers)..last)
+		return
+	end
+
 	for k, v in pairs(headers) do
 		if type(v) == "table" then
 			for _,item in pairs(v) do
@@ -86,6 +94,24 @@ local function encode_headers(buf, headers, nosep)
 		end
 	end
 	if not nosep then buf:push(CRLF) end
+end
+
+
+local function add_header(headers, key, value)
+	if type(headers) == "cdata" then
+		-- assume it's a d.Map
+		headers:add(key, value)
+		return
+	end
+
+	if headers[key] then
+		if type(headers[key]) == "string" then
+			headers[key] = {headers[key]}
+		end
+		table.insert(headers[key], value)
+	else
+		headers[key] = value
+	end
 end
 
 
@@ -106,17 +132,21 @@ function encode_request(buf, method, path, params, headers, body)
 
 	buf:push(("%s %s %s%s"):format(method, path, VERSION, CRLF))
 
-	if not headers then headers = {} end
+	if not headers then headers = Map() end
 	-- TODO: Host
-	if not headers["User-Agent"] then headers["User-Agent"] = USER_AGENT end
-	if not headers["Accept"] then headers["Accept"] = "*/*" end
+	if not headers["User-Agent"] then
+		add_header(headers, "User-Agent", USER_AGENT)
+	end
+	if not headers["Accept"] then
+		add_header(headers, "Accept", "*/*")
+	end
 
 	if not body then
 		encode_headers(buf, headers)
 		return
 	end
 
-	headers["Content-Length"] = tostring(#body)
+	add_header(headers, "Content-Length", tostring(#body))
 	encode_headers(buf, headers)
 	buf:push(body)
 end
@@ -206,8 +236,8 @@ end
 
 
 return {
-	Status=status,
-	Parser=parser,
+	Status=Status,
+	Parser=Parser,
 	encode_request=encode_request,
 	encode_response=encode_response,
 	encode_chunk=encode_chunk,
