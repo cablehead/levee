@@ -115,6 +115,31 @@ local function add_header(headers, key, value)
 end
 
 
+function decode_headers(parser, stream)
+	local headers = Map()
+	repeat
+		err, value = parser:stream_next(stream)
+		if err then return err end
+		local key = value[1]
+		if not key then break end
+		headers:add(key, value[2])
+	until parser.type ~= C.SP_HTTP_FIELD
+
+	return headers, value
+end
+
+
+function decode_len(value)
+	if not value[2] then
+		-- content-length response
+		local len = tonumber(value[3])
+		-- TODO what happens when there's no body and no chunks?
+		if len > 0 then return len end
+	end
+	-- chunked responses do not set `len`
+end
+
+
 function encode_request(buf, method, path, params, headers, body)
 	if params then
 		local s = {path, "?"}
@@ -204,27 +229,30 @@ function decode_request(parser, stream)
 	local err, value = parser:stream_next(stream)
 	if err then return err end
 
-	local req = setmetatable({
-		method=value[1],
-		path=value[2],
-		headers=Map()}, Request_mt)
+	local req = setmetatable({method=value[1], path=value[2]}, Request_mt)
+	local headers, value = decode_headers(parser, stream)
+	req.headers = headers
+	local len = decode_len(value)
+	if len then req.len = len end
 
-	repeat
-		err, value = parser:stream_next(stream)
-		if err then return err end
-		local key = value[1]
-		if not key then break end
-		req.headers:add(key, value[2])
-	until parser.type ~= C.SP_HTTP_FIELD
-
-	if not value[2] then
-		-- content-length request
-		local len = tonumber(value[3])
-		-- TODO what happens when there's no body and no chunks?
-		if len > 0 then req.len = len end
-	end
-	-- chunked requests do not set `len`
 	return nil, req
+end
+
+
+function decode_response(parser, stream)
+	parser:init_response()
+
+	local err, value = parser:stream_next(stream)
+	if err then return err end
+
+	-- TODO version
+	local res = {code=value[1], reason=value[2]}
+	local headers, value = decode_headers(parser, stream)
+	res.headers = headers
+	local len = decode_len(value)
+	if len then res.len = len end
+
+	return nil, res
 end
 
 
@@ -235,4 +263,5 @@ return {
 	encode_response=encode_response,
 	encode_chunk=encode_chunk,
 	decode_request=decode_request,
+	decode_response=decode_response,
 }

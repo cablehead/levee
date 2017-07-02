@@ -311,7 +311,7 @@ return {
 		assert.equal(p:is_done(), true)
 	end,
 
-	test_encode_response_chunk = function()
+	test_encode_chunk = function()
 		local headers = {fe="fi", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
 		local buf = buffer_zero()
 
@@ -344,7 +344,7 @@ return {
 	end,
 
 
-	test_encode_response_chunk_push_encode = function()
+	test_encode_chunk_push_encode = function()
 		local headers = {fe="fi", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
 		local buf = buffer_zero()
 
@@ -361,7 +361,7 @@ return {
 		assert_response_chunk(buf)
 	end,
 
-	test_encode_response_chunk_encode_push = function()
+	test_encode_chunk_encode_push = function()
 		local headers = {fe="fi", Date="Sun, 18 Oct 2009 08:56:53 GMT"}
 		local buf = buffer_zero()
 
@@ -394,7 +394,7 @@ return {
 		local stream = r:stream()
 		w:write(request)
 
-		parser = HTTP.Parser()
+		local parser = HTTP.Parser()
 		local err, req = HTTP.decode_request(parser, stream)
 		assert(not err)
 		assert.equal(req.method, "GET")
@@ -424,7 +424,7 @@ return {
 		local stream = r:stream()
 		w:write(request)
 
-		parser = HTTP.Parser()
+		local parser = HTTP.Parser()
 		local err, req = HTTP.decode_request(parser, stream)
 		assert(not err)
 		assert.equal(req.method, "GET")
@@ -432,5 +432,58 @@ return {
 		assert.equal(req.headers["H1"], "one")
 		assert.same(req.headers["H2"], {"two", "too", "to"})
 		assert(not req.len)
+	end,
+
+	test_decode_response = function()
+		local levee = require("levee")
+
+		local response = "" ..
+			"HTTP/1.1 200 OK\r\n" ..
+			"Date: Sun, 18 Oct 2009 08:56:53 GMT\r\n" ..
+			"Content-Length: 13\r\n" ..
+			"\r\n" ..
+			"Hello World!\n"
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(response)
+
+		local parser = HTTP.Parser()
+		local err, res = HTTP.decode_response(parser, stream)
+		assert(not err)
+		assert.equal(res.code, 200)
+		assert.equal(res.reason, "OK")
+		assert.equal(res.headers["Date"], "Sun, 18 Oct 2009 08:56:53 GMT")
+		assert.equal(res.headers["Content-Length"], "13")
+		assert.equal(res.len, 13)
+
+		assert.equal(ffi.string(stream:value(), res.len), "Hello World!\n")
+	end,
+
+	test_decode_response_map = function()
+		local levee = require("levee")
+
+		local response = "" ..
+			"HTTP/1.1 200 OK\r\n" ..
+			"H1: one\r\n" ..
+			"H2: two\r\n" ..
+			"H2: too\r\n" ..
+			"H2: to\r\n" ..
+			"\r\n"
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(response)
+
+		local parser = HTTP.Parser()
+		local err, res = HTTP.decode_response(parser, stream)
+		assert(not err)
+		assert.equal(res.code, 200)
+		assert.equal(res.reason, "OK")
+		assert.equal(res.headers["H1"], "one")
+		assert.same(res.headers["H2"], {"two", "too", "to"})
+		assert(not res.len)
 	end,
 }
