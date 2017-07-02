@@ -399,9 +399,38 @@ return {
 		assert(not err)
 		assert.equal(req.method, "GET")
 		assert.equal(req.path, "/some/path")
-		assert.same(req.headers, {["Content-Length"]="13", H1="one", H2="two"})
-		assert.same(req.len, 13)
+		assert.equal(req.headers["Content-Length"], "13")
+		assert.equal(req.headers["H1"], "one")
+		assert.equal(req.headers["H2"], "two")
+		assert.equal(req.len, 13)
 
 		assert.equal(ffi.string(stream:value(), req.len), "Hello World!\n")
+	end,
+
+	test_decode_request_map = function()
+		local levee = require("levee")
+
+		local request = "" ..
+			"GET /some/path HTTP/1.1\r\n" ..
+			"H1: one\r\n" ..
+			"H2: two\r\n" ..
+			"H2: too\r\n" ..
+			"H2: to\r\n" ..
+			"\r\n" ..
+			""
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(request)
+
+		parser = HTTP.Parser()
+		local err, req = HTTP.decode_request(parser, stream)
+		assert(not err)
+		assert.equal(req.method, "GET")
+		assert.equal(req.path, "/some/path")
+		assert.equal(req.headers["H1"], "one")
+		assert.same(req.headers["H2"], {"two", "too", "to"})
+		assert(not req.len)
 	end,
 }

@@ -207,21 +207,14 @@ function decode_request(parser, stream)
 	local req = setmetatable({
 		method=value[1],
 		path=value[2],
-		headers={}}, Request_mt)
+		headers=Map()}, Request_mt)
 
 	repeat
 		err, value = parser:stream_next(stream)
 		if err then return err end
 		local key = value[1]
 		if not key then break end
-		local current = req.headers[key]
-		if type(current) == "string" then
-			 req.headers[key] = {current,value[2]}
-		elseif type(current) == "table" then
-			 table.insert(req.headers[key], value[2])
-		else
-			req.headers[key] = value[2]
-		end
+		req.headers:add(key, value[2])
 	until parser.type ~= C.SP_HTTP_FIELD
 
 	if not value[2] then
