@@ -486,4 +486,44 @@ return {
 		assert.same(res.headers["H2"], {"two", "too", "to"})
 		assert(not res.len)
 	end,
+
+	test_decode_chunk = function()
+		local levee = require("levee")
+
+		local response = "" ..
+			"HTTP/1.1 200 OK\r\n" ..
+			"Transfer-Encoding: chunked\r\n"..
+			"\r\n" ..
+			"2\r\nHe\r\n"..
+			"4\r\nllo \r\n"..
+			"7\r\nWorld!\n\r\n"..
+			"\r\n"
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(response)
+
+		local parser = HTTP.Parser()
+		HTTP.decode_response(parser, stream)
+
+		local err, n = decode_chunk(parser, stream)
+		assert(not err)
+		assert.equal(ffi.string(stream:value(), n), "He")
+		stream:trim(n)
+
+		local err, n = decode_chunk(parser, stream)
+		assert(not err)
+		assert.equal(ffi.string(stream:value(), n), "llo ")
+		stream:trim(n)
+
+		local err, n = decode_chunk(parser, stream)
+		assert(not err)
+		assert.equal(ffi.string(stream:value(), n), "World!\n")
+		stream:trim(n)
+
+		local err, n = decode_chunk(parser, stream)
+		assert(not err)
+		assert.equal(n, 0)
+	end,
 }

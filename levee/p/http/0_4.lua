@@ -256,6 +256,14 @@ function decode_response(parser, stream)
 end
 
 
+function decode_chunk(parser, stream)
+	local err, value = parser:stream_next(stream)
+	if err then return err end
+
+	return nil, tonumber(value[2])
+end
+
+
 return {
 	Status=Status,
 	Parser=Parser,
@@ -264,4 +272,5 @@ return {
 	encode_chunk=encode_chunk,
 	decode_request=decode_request,
 	decode_response=decode_response,
+	decode_chunk=decode_chunk,
 }
