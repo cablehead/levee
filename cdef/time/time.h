@@ -58,3 +58,5 @@ static const int RUSAGE_CHILDREN =  -1;
 
 int
 getrusage(int who, struct rusage *r_usage);
+
+time_t timegm(struct tm *tm);

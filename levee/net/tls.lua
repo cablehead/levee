@@ -197,6 +197,7 @@ end
 
 function RW_mt:handshake()
 	local rc = C.tls_handshake(self.ctx)
+	if rc == -1 then return ffi.string(C.tls_error(self.ctx)) end
 	if rc >= 0 then return nil, tonumber(rc) end
 
 	local err, rc = self:__WANT_POLL(rc)
@@ -245,6 +246,36 @@ function RW_mt:write(buf, len)
 	if err then return err end
 
 	return self:write(buf, len)
+end
+
+
+function RW_mt:writev(iov, n)
+	if self.closed then return errors.CLOSED end
+
+	local len
+	local i, total = 0, 0
+
+	while true do
+		err, len = self:write(iov[i].iov_base, iov[i].iov_len)
+		if err then return err end
+		total = total + len
+
+		while true do
+			if iov[i].iov_len > len then break end
+			len = len - iov[i].iov_len
+			i = i + 1
+			if i == n then
+				assert(len == 0)
+				self.hub:continue()
+				return nil, total
+			end
+		end
+
+		if len > 0 then
+			iov[i].iov_base = iov[i].iov_base + len
+			iov[i].iov_len = iov[i].iov_len - len
+		end
+	end
 end
 
 

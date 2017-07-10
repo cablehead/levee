@@ -48,8 +48,6 @@ return {
 	end,
 
 	test_core = function()
-		local TLS = require("levee.net.tls")
-
 		local h = levee.Hub()
 
 		local err, serve = h.stream:listen({tls=SERVER_OPTIONS})
@@ -71,8 +69,6 @@ return {
 	end,
 
 	test_handshake_server_fail = function()
-		local TLS = require("levee.net.tls")
-
 		local h = levee.Hub()
 
 		local err, serve = h.stream:listen()
@@ -87,5 +83,48 @@ return {
 		-- client
 		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
 		assert(err)
+	end,
+
+	test_writev = function()
+		local h = levee.Hub()
+
+		local err, serve = h.stream:listen({tls=SERVER_OPTIONS})
+		local err, addr = serve:addr()
+
+		local iov = h.io.iovec(32)
+
+		-- to prevent gc
+		local keep = {}
+		local want = {}
+		for i = 1, 12 do
+			 local s = tostring(i):rep(10000+i)
+			 iov:write(s)
+			 table.insert(keep, s)
+			 table.insert(want, s)
+		end
+		want = table.concat(want)
+
+		local err, total
+		local function server()
+			local err, conn = serve:recv()
+			err, total = conn:writev(iov:value())
+			conn:close()
+		end
+		h:spawn(server)
+
+		-- client
+		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
+		local got = {}
+		while true do
+			local s = conn:reads(64*1024)
+			if not s then break end
+			table.insert(got, s)
+		end
+		got = table.concat(got)
+
+		assert.equal(#want, #got)
+		assert.equal(want, got)
+		assert.equal(total, #got)
+		assert(not err)
 	end,
 }

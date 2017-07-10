@@ -1016,6 +1016,20 @@ function Listener_mt:close()
 end
 
 
+local function Options(port, host, options)
+	if type(port) == "table" then
+		return port
+	elseif type(host) == "table" then
+		return host
+	end
+
+	local o = {port = port, host = host}
+	for k, v in pairs(options) do
+		o[k] = v
+	end
+	return o
+end
+
 --
 -- HTTP module interface
 --
@@ -1030,15 +1044,17 @@ function HTTP_mt:connect(port, host, options)
 
 	host = host or "127.0.0.1"
 
-	local err, conn = self.hub.tcp:connect(port, host, options.timeout, options.connect_timeout)
+	options = Options(port, host, options)
+
+	local err, conn = self.hub.tcp:connect(options)
 	if err then return err end
 
 	local err, peer = _.getpeername(conn.no)
 
 	if peer:port() ~= 80 then
-		m.HOST = ("%s:%s"):format(host, port)
+		m.HOST = ("%s:%s"):format(options.host, options.port)
 	else
-		m.HOST = host
+		m.HOST = options.host
 	end
 
 	m.hub = self.hub
@@ -1056,15 +1072,11 @@ end
 
 
 function HTTP_mt:listen(port, host, config)
-	if type(port) == "table" then
-		config = port
-		port = nil
-		host = nil
-	elseif type(host) == "table" then
-		config = host
-		host = nil
-	end
-	local err, serve = self.hub.tcp:listen(port, host)
+	config = config or {}
+
+	options = Options(port, host, config)
+
+	local err, serve = self.hub.tcp:listen(options)
 	if err then return err end
 	local m = setmetatable(
 		{hub = self.hub, serve = serve, config = config},

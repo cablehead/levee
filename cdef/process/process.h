@@ -4,6 +4,8 @@ int kill(int pid, int sig);
 int fork(void);
 
 static const int WNOHANG = 1;
+static const int WUNTRACED = 2;
+static const int WCONTINUED = 8;
 
 int waitpid(int pid, int *stat_loc, int options);
 

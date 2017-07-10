@@ -220,6 +220,43 @@ return {
 		assert(not h:in_use())
 	end,
 
+	test_tls = function()
+		local levee = require("levee")
+		local _ = levee._
+		local filename = debug.getinfo(1, 'S').source:sub(2)
+		local path = _.path.dirname(filename)
+		local path = _.path.join(path, "..", "net")
+
+		local SERVER_OPTIONS = {
+				key_file=path.."/tls_key", cert_file=path.."/tls_key.pub"}
+
+		local CLIENT_OPTIONS = {
+				server_name="www.imgix.com", ca_file=path.."/tls_key.pub"}
+
+		local h = levee.Hub()
+
+		local err, serve = h.http:listen({tls=SERVER_OPTIONS})
+		local err, addr = serve:addr()
+
+		local err, c =  h.http:connect({port=addr:port(), tls=CLIENT_OPTIONS})
+		local err, response = c:get("/path", {headers={H1="one"}})
+
+		local err, s = serve:recv()
+		local err, req = s:recv()
+		assert.equal(req.path, "/path")
+		assert.same(req.headers["H1"], "one")
+		req.response:send({levee.HTTPStatus(200), {H2="two"}, "Hello world\n"})
+
+		local err, response = response:recv()
+		assert.equal(response.code, 200)
+		assert.same(response.headers["H2"], "two")
+		assert.equal(response.body:tostring(), "Hello world\n")
+
+		c:close()
+		serve:close()
+		assert(not h:in_use())
+	end,
+
 	test_post = function()
 		local levee = require("levee")
 

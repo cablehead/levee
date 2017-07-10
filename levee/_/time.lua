@@ -369,8 +369,11 @@ end
 
 local function try_http(self, str)
 	if C.strptime (str, "%a, %d %b %Y %H:%M:%S %Z", self.base) ~= nil then
-		self.tv.tv_sec = C.mktime(self.base)
-		self.base.tm_isdst = -1
+		if ffi.os:lower() == "linux" then
+			self.tv.tv_sec = C.timegm(self.base)
+		else
+			self.tv.tv_sec = C.mktime(self.base)
+		end
 		C.gmtime_r(ffi.cast('time_t *', self), self.base)
 		return true
 	end
