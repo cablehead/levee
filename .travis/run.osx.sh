@@ -1,3 +1,4 @@
+export LD_LIBRARY_PATH=./tls/lib
 levee test -vv tests/
 CODE=$?
 if [[ $CODE -eq 139 ]]; then
