@@ -11,7 +11,7 @@ tar -xzf ${LIBRESSL}.tar.gz
 cd ${LIBRESSL}
 ./configure
 make
-make install
+sudo make install
 cd ..
 
 ./${CMAKE}/bin/cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
