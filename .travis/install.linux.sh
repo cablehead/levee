@@ -9,7 +9,7 @@ LIBRESSL=libressl-2.5.4
 wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${LIBRESSL}.tar.gz
 tar -xzf ${LIBRESSL}.tar.gz
 cd ${LIBRESSL}
-./configure --prefix=../tls
+./configure
 make
 make install
 cd ..
