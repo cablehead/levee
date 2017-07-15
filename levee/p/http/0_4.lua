@@ -234,7 +234,10 @@ function decode_request(parser, stream)
 	local err, value = parser:stream_next(stream)
 	if err then return err end
 
-	local req = setmetatable({method=value[1], path=value[2]}, Request_mt)
+	local req = setmetatable({
+		method=value[1],
+		path=value[2],
+		version=value[3]}, Request_mt)
 	local headers, value = decode_headers(parser, stream)
 	req.headers = headers
 	local len = decode_len(value)
@@ -251,7 +254,7 @@ function decode_response(parser, stream)
 	if err then return err end
 
 	-- TODO version
-	local res = {code=value[1], reason=value[2]}
+	local res = {code=value[1], reason=value[2], version=value[3]}
 	local headers, value = decode_headers(parser, stream)
 	res.headers = headers
 	local len = decode_len(value)
