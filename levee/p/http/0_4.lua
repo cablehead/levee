@@ -2,6 +2,7 @@ local ffi = require('ffi')
 local C = ffi.C
 local meta = require("levee.meta")
 local Map = require("levee.d.map")
+local Uri = require("levee.p.uri")
 local Encoder = require("levee.p.utf8").Utf8
 local Status = require("levee.p.http.status")
 local Parser = require("levee.p.http.parse")
@@ -22,7 +23,11 @@ Request_mt.__index = Request_mt
 
 
 function Request_mt:uri()
-	-- TODO
+	local host = self.headers["host"]
+	-- TODO should the scheme always be http since decrypting takes place
+	-- somewhere else?
+	local host = host and "http://"..host or ""
+	return Uri(host..self.path)
 end
 
 

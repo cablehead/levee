@@ -16,6 +16,7 @@ local function buffer_zero()
 	return buf
 end
 
+
 local function parse_headers(p, buf, len, count)
 	local headers = {}
 	for i=1,count do
@@ -24,10 +25,10 @@ local function parse_headers(p, buf, len, count)
 		assert.equal(p:is_done(), false)
 		local key, value = p:value(buf)
 		if headers[key] then
-			 if type(headers[key]) == "string" then
-					headers[key] = {headers[key]}
-			 end
-			 table.insert(headers[key], value)
+			if type(headers[key]) == "string" then
+				headers[key] = {headers[key]}
+			end
+			table.insert(headers[key], value)
 		else
 			headers[key] = value
 		end
@@ -407,6 +408,53 @@ return {
 		assert.equal(req.len, 13)
 
 		assert.equal(ffi.string(stream:value(), req.len), "Hello World!\n")
+	end,
+
+	test_decode_request_uri = function()
+		local levee = require("levee")
+
+		local request = "" ..
+			"GET /fa?fe=fi&fo=fum+%F0%9F%98%AC HTTP/1.1\r\n" ..
+			"Host: 127.0.0.1:8000\r\n" ..
+			"\r\n"
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(request)
+
+		local parser = HTTP.Parser()
+		local err, req = HTTP.decode_request(parser, stream)
+		local err, uri = req:uri()
+		assert(not err)
+		assert.equal(uri.host, "127.0.0.1")
+		assert.equal(uri.port, "8000")
+		local err, params = uri:params()
+		assert(not err)
+		assert.same(params, {fe="fi", fo="fum 😬"})
+	end,
+
+	test_decode_request_uri_no_host = function()
+		local levee = require("levee")
+
+		local request = "" ..
+			"GET /fa?fe=fi&fo=fum+%F0%9F%98%AC HTTP/1.1\r\n" ..
+			"\r\n"
+
+		local h = levee.Hub()
+		local r, w = h.io:pipe()
+		local stream = r:stream()
+		w:write(request)
+
+		local parser = HTTP.Parser()
+		local err, req = HTTP.decode_request(parser, stream)
+		local err, uri = req:uri()
+		assert(not err)
+		assert(not uri.host)
+		assert(not uri.port)
+		local err, params = uri:params()
+		assert(not err)
+		assert.same(params, {fe="fi", fo="fum 😬"})
 	end,
 
 	test_decode_response = function()
