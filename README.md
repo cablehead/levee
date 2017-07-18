@@ -9,18 +9,12 @@ appliances.
 
 ## Installing
 
-### On Mac
-
-```bash
-brew install imgix/brew/levee
-```
-
-### On Debian / Ubuntu
 
 First, you will need a few dependencies:
 
 ```bash
-apt-get install ragel
+apt-get install ragel  # ubuntu, or
+brew install ragel     # macos
 ```
 
 Next, install Levee:
