@@ -176,6 +176,31 @@ function recv_headers(parser, stream)
 end
 
 
+function recv_chunks(parser, stream, chunks)
+	while true do
+			local err, value = parser:stream_next(stream)
+			if err then return err end
+			if not value[1] then break end
+
+			local len = tonumber(value[2])
+
+			if stream.buf.sav > 0 then
+				len = len + stream.buf.sav
+				stream.buf:thaw()
+			end
+
+			local chunk = stream:chunk(len)
+			chunks:send(chunk)
+			-- TODO: still need to package this up better
+			chunk.done:recv()
+			if chunk.len > 0 then
+				chunk:readin(chunk.len)
+				stream.buf:freeze(chunk.len)
+			end
+	end
+end
+
+
 --
 -- Client
 
@@ -334,32 +359,14 @@ function Client_mt:reader(responses)
 				if len > 0 then res.body.done:recv() end
 
 			else
-				-- chunked tranfer
+				-- chunked transfer
 				local chunks
 				chunks, res.chunks = self.hub:pipe()
 				response:send(res)
 
-				while true do
-					err, value = self.parser:stream_next(self.stream)
-					if err then goto __cleanup end
-					if not value[1] then break end
+				err = recv_chunks(self.parser, self.stream, chunks)
+				if err then goto __cleanup end
 
-					local len = tonumber(value[2])
-
-					if self.stream.buf.sav > 0 then
-						len = len + self.stream.buf.sav
-						self.stream.buf:thaw()
-					end
-
-					local chunk = self.stream:chunk(len)
-					chunks:send(chunk)
-					-- TODO: still need to package this up better
-					chunk.done:recv()
-					if chunk.len > 0 then
-						chunk:readin(chunk.len)
-						self.stream.buf:freeze(chunk.len)
-					end
-				end
 				err, value = self.parser:stream_next(self.stream)
 				if err then goto __cleanup end
 				-- TODO: trailing headers
