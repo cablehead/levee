@@ -153,6 +153,29 @@ function send_headers(conn, headers)
 end
 
 
+function recv_headers(parser, stream)
+	local headers = {}, err, value
+	while true do
+		err, value = parser:stream_next(stream)
+		if err then return err end
+		local key = value[1]
+		if not key then break end
+		local current = headers[key]
+		if type(current) == "string" then
+			 headers[key] = {current,value[2]}
+		elseif type(current) == "table" then
+			table.insert(headers[key], value[2])
+		else
+			headers[key] = value[2]
+		end
+	end
+
+	local len
+	if not value[2] then len = tonumber(value[3]) end
+	return nil, headers, len
+end
+
+
 --
 -- Client
 
@@ -282,7 +305,7 @@ function Client_mt:reader(responses)
 		local request = self.response_to_request[response]
 		self.response_to_request[response] = nil
 
-		local err, value
+		local err, value, len
 		err, value = self.parser:stream_next(self.stream)
 		if err then goto __cleanup end
 		assert(self.parser.type == C.SP_HTTP_RESPONSE)
@@ -295,20 +318,8 @@ function Client_mt:reader(responses)
 			version = value[3],
 			headers = {}, }, Response_mt)
 
-		while true do
-			err, value = self.parser:stream_next(self.stream)
-			if err then goto __cleanup end
-			local key = value[1]
-			if not key then break end
-			local current = res.headers[key]
-			if type(current) == "string" then
-				res.headers[key] = {current,value[2]}
-			elseif type(current) == "table" then
-				table.insert(res.headers[key], value[2])
-			else
-				res.headers[key] = value[2]
-			end
-		end
+		err, res.headers, len = recv_headers(self.parser, self.stream)
+		if err then goto __cleanup end
 
 		-- handle body
 		if request.method == "HEAD" then
@@ -316,9 +327,8 @@ function Client_mt:reader(responses)
 			self.parser:reset()
 
 		else
-			if not value[2] then
+			if len then
 				-- content-length
-				local len = tonumber(value[3])
 				if len > 0 then res.body = self.stream:chunk(len) end
 				response:send(res)
 				if len > 0 then res.body.done:recv() end
@@ -576,7 +586,7 @@ end
 
 function Server_mt:reader(requests, responses, response_to_request)
 	while true do
-		local err, value
+		local err, value, len
 
 		err, value = self.parser:stream_next(self.stream)
 		if err then goto __cleanup end
@@ -593,24 +603,11 @@ function Server_mt:reader(requests, responses, response_to_request)
 			conn = self.conn,
 			response = res_sender, }, Request_mt)
 
-		while true do
-			err, value = self.parser:stream_next(self.stream)
-			if err then goto __cleanup end
-			local key = value[1]
-			if not key then break end
-			local current = req.headers[key]
-			if type(current) == "string" then
-				req.headers[key] = {current,value[2]}
-			elseif type(current) == "table" then
-				table.insert(req.headers[key], value[2])
-			else
-				req.headers[key] = value[2]
-			end
-		end
+		err, req.headers, len = recv_headers(self.parser, self.stream)
+		if err then goto __cleanup end
 
-		if value[2] then error("TODO: chunked") end
+		if not len then error("TODO: chunked") end
 
-		local len = tonumber(value[3])
 		if len > 0 then req.body = self.stream:chunk(len) end
 		response_to_request[res_recver] = req
 		requests:send(req)
