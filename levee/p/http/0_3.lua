@@ -176,6 +176,26 @@ function recv_headers(parser, stream)
 end
 
 
+function send_chunks(conn, response)
+	local err, chunk = response:recv()
+	while not err do
+		if type(chunk) == "string" then
+			conn:send(num2hex(#chunk), EOL, chunk, EOL)
+			err, chunk = response:recv()
+
+		else
+			conn:send(num2hex(chunk), EOL)
+			-- wait until headers have been sent
+			conn.empty:recv()
+			-- next chunk signals continue
+			err, chunk = response:recv()
+			conn:send(EOL)
+		end
+	end
+	return conn:send("0", EOL, EOL)
+end
+
+
 function recv_chunks(parser, stream, chunks)
 	while true do
 			local err, value = parser:stream_next(stream)
@@ -557,22 +577,7 @@ function Server_mt:_response(request, response)
 		return
 	end
 
-	local err, chunk = response:recv()
-	while not err do
-		if type(chunk) == "string" then
-			self.conn:send(num2hex(#chunk), EOL, chunk, EOL)
-			err, chunk = response:recv()
-
-		else
-			self.conn:send(num2hex(chunk), EOL)
-			-- wait until headers have been sent
-			self.conn.empty:recv()
-			-- next chunk signals continue
-			err, chunk = response:recv()
-			self.conn:send(EOL)
-		end
-	end
-	return self.conn:send("0", EOL, EOL)
+	return send_chunks(self.conn, response)
 end
 
 
