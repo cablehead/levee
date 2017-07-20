@@ -137,6 +137,22 @@ function num2hex(num)
 end
 
 
+function send_headers(conn, headers)
+	for k, v in pairs(headers) do
+		if type(v) == "table" then
+			for _,item in pairs(v) do
+				local err = conn:send(k, FIELD_SEP, item, EOL)
+				if err then return err end
+			end
+		else
+			local err = conn:send(k, FIELD_SEP, v, EOL)
+			if err then return err end
+		end
+	end
+	return conn:send(EOL)
+end
+
+
 --
 -- Client
 
@@ -351,7 +367,7 @@ function Client_mt:reader(responses)
 end
 
 
-function Client_mt:__headers(headers)
+function Client_mt:_headers(headers)
 	-- TODO: Host
 	local ret = {
 		Host = self.HOST,
@@ -381,23 +397,13 @@ function Client_mt:request(method, path, params, headers, data)
 	local err = self.conn:send(("%s %s %s\r\n"):format(method, path, VERSION))
 	if err then return err end
 
-	headers = self:__headers(headers)
+	headers = self:_headers(headers)
 	if data then
 		headers["Content-Length"] = tostring(#data)
 	end
 
-	for k, v in pairs(headers) do
-		if type(v) == "table" then
-			for _,item in pairs(v) do
-				local err = self.conn:send(k, FIELD_SEP, item, EOL)
-				if err then return err end
-			end
-		else
-			local err = self.conn:send(k, FIELD_SEP, v, EOL)
-			if err then return err end
-		end
-	end
-	self.conn:send(EOL)
+	local err = send_headers(self.conn, headers)
+	if err then return err end
 
 	if data then
 		local err = self.conn:send(data)
@@ -515,18 +521,8 @@ function Server_mt:_response(request, response)
 		headers["Transfer-Encoding"] = "chunked"
 	end
 
-	for k, v in pairs(headers) do
-		if type(v) == "table" then
-			for _, item in pairs(v) do
-				local err = self.conn:send(k, FIELD_SEP, item, EOL)
-				if err then return err end
-			end
-		else
-			local err = self.conn:send(k, FIELD_SEP, v, EOL)
-			if err then return err end
-		end
-	end
-	self.conn:send(EOL)
+	local err = send_headers(self.conn, headers)
+	if err then return err end
 
 	if no_content or request.method == "HEAD" then
 		return
