@@ -63,4 +63,5 @@ return {
 	utf8 = require("levee.p.utf8"),
 	uri = require("levee.p.uri"),
 	line = require("levee.p.line"),
+	base64 = require("levee.p.base64"),
 }
