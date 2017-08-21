@@ -13,5 +13,6 @@ ret.version = require("levee._.version")
 for k, v in pairs(require("levee._.syscalls")) do ret[k] = v end
 for k, v in pairs(require("levee._.process")) do ret[k] = v end
 for k, v in pairs(require("levee._.types")) do ret[k] = v end
+for k, v in pairs(require("levee._.dns")) do ret[k] = v end
 
 return ret

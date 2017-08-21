@@ -433,7 +433,7 @@ end
 function Hub_mt:in_use()
 	for no in pairs(self.registered) do
 		if not self.dialer.state or
-				(no ~= self.dialer.r and no ~= self.dialer.state.io[1]) then
+			(no ~= self.dialer.r and no ~= self.dialer.state.io[1]) then
 			return true
 		end
 	end
@@ -536,6 +536,7 @@ local function Hub(options)
 	self.stream = require("levee.net.stream")(self)
 	self.dgram = require("levee.net.dgram")(self)
 	self.dialer = require("levee.net.dialer")(self)
+	self.dns = require("levee.net.dns")(self)
 	self.tcp = self.stream
 
 	self.http = require("levee.p.http")(self)
