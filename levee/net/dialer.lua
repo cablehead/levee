@@ -6,6 +6,9 @@ local _ = levee._
 local errors = levee.errors
 
 
+local log = _.log.Log("levee.net.dialer")
+
+
 --
 -- Dialer Request
 
@@ -141,6 +144,7 @@ function Dialer_mt:__dial_async(family, socktype, node, service, timeout)
 
 	local err = _.inet_pton(family, node)
 	if err and (family == C.AF_INET or family == C.AF_INET6) then
+		log:info("ASYNC: %s", node)
 		local qtype = (family == C.AF_INET and "A" or "AAAA")
 		local err, records = self.hub.dns:resolve(node, qtype)
 		if err then return err end
@@ -150,6 +154,8 @@ function Dialer_mt:__dial_async(family, socktype, node, service, timeout)
 
 		nodes = {}
 		for __, r in ipairs(records) do table.insert(nodes, r.record) end
+	else
+		log:info("INET_PTON: %s", node)
 	end
 
 	return connect_all_async(self.hub, family, socktype, nodes, service, timeout)
@@ -245,10 +251,15 @@ end
 
 
 function Dialer_mt:dial(family, socktype, node, service, timeout, async)
+	if async == nil then
+		async = self.defaults.async
+	end
+
 	if async then
 		return self:__dial_async(family, socktype, node, service, timeout)
 	end
 
+	log:info("SYNC: %s", node)
 	self:init()
 	local sender, recver = self.hub:pipe()
 	self.q_sender:send({sender, family, socktype, node, service, timeout or -1})
@@ -257,5 +268,5 @@ end
 
 
 return function(hub)
-	return setmetatable({hub = hub}, Dialer_mt)
+	return setmetatable({hub = hub, defaults={}, }, Dialer_mt)
 end
