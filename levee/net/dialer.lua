@@ -145,7 +145,7 @@ function Dialer_mt:__dial_async(family, socktype, node, service, timeout)
 		local err, records = self.hub.dns:resolve(node, qtype)
 		if err then return err end
 		if #records == 0 then
-			return errors.addr.ENONAME
+			return errors.addr.ENODATA
 		end
 
 		nodes = {}
