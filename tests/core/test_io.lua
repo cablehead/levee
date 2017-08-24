@@ -939,4 +939,16 @@ return {
 			assert(not h:in_use())
 		end,
 	},
+
+	p = {
+		test_core = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+			assert(r.p.rbuf)
+			assert(w.p.wbuf)
+			assert(not r.p.wbuf)
+			assert(not w.p.rbuf)
+		end,
+	},
 }

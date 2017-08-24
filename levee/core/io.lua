@@ -13,10 +13,53 @@ local MIN_SPLICE_SIZE = 4 * _.pagesize
 
 
 --
+-- Protocol conveniences for R / W / RW
+--
+local P_mt = {}
+
+
+function P_mt.__index(self, key)
+	return P_mt[key]
+end
+
+
+function P_mt:take(n)
+	if n then
+		local err, n = self:readin(n)
+		if err then return end
+	end
+	return self.rbuf:take(n)
+end
+
+
+function P_mt:readin(n)
+	return self.io:readinto(self.rbuf, n)
+end
+
+
+function P_mt:value()
+	return self.rbuf:value()
+end
+
+
+function P_mt:trim(n)
+	return self.rbuf:trim(n)
+end
+
+
+--
 -- Read
 --
 local R_mt = {}
-R_mt.__index = R_mt
+
+
+function R_mt.__index(self, key)
+	if key == "p" then
+		self.p = setmetatable({io=self, rbuf=d.Buffer(4096)}, P_mt)
+		return self.p
+	end
+	return R_mt[key]
+end
 
 
 function R_mt:read(buf, len)
@@ -170,7 +213,17 @@ end
 -- Write
 --
 local W_mt = {}
-W_mt.__index = W_mt
+
+
+function W_mt.__index(self, key)
+	if key == "p" then
+		self.p = setmetatable({io=self, wbuf=d.Buffer(4096)}, P_mt)
+		return self.p
+	end
+	return W_mt[key]
+end
+
+
 W_mt.stat = R_mt.stat
 
 
@@ -334,7 +387,15 @@ end
 -- Read / Write
 --
 local RW_mt = {}
-RW_mt.__index = RW_mt
+
+
+function RW_mt.__index(self, key)
+	if key == "p" then
+		self.p = setmetatable({io=self, rbuf=d.Buffer(4096), wbuf=d.Buffer(4096)}, P_mt)
+		return self.p
+	end
+	return RW_mt[key]
+end
 
 
 RW_mt.read = R_mt.read
@@ -881,6 +942,8 @@ function Chunk(stream, len)
 	self.done = message.Pair(self.hub:value())
 	return self
 end
+
+
 
 --
 -- IO module interface
