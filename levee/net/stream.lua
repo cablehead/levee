@@ -117,7 +117,8 @@ function TCP_mt:dial(port, host, timeout, connect_timeout)
 			C.SOCK_STREAM,
 			options.host,
 			options.port,
-			options.connect_timeout)
+			options.connect_timeout,
+			options.async)
 		if err then return err end
 	end
 

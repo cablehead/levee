@@ -1,7 +1,10 @@
 local ffi = require('ffi')
 local C = ffi.C
 
+local errors = require("levee").errors
+
 local _ = require("levee")._
+
 
 
 return {
@@ -198,5 +201,30 @@ return {
 		_.close(s)
 		local fds = _.fds()
 		assert.not_contains(s, fds)
-	end
+	end,
+
+	test_inet_pton = function()
+		local err, addr = _.inet_pton(C.AF_INET, "127.0.0.1")
+		assert(not err)
+
+		local buf = ffi.new("char[INET_ADDRSTRLEN]")
+		C.inet_ntop(C.AF_INET, addr, buf, C.INET_ADDRSTRLEN)
+		assert.equal(ffi.string(buf), "127.0.0.1")
+
+		-- test ipv6
+		local err, addr = _.inet_pton(C.AF_INET6, "1:0:0:0:0:0:0:8")
+		assert(not err)
+
+		local buf = ffi.new("char[INET6_ADDRSTRLEN]")
+		C.inet_ntop(C.AF_INET6, addr, buf, C.INET6_ADDRSTRLEN)
+		assert.equal(ffi.string(buf), "1::8")
+
+		-- test address err
+		local err, addr = _.inet_pton(C.AF_INET6, "foo")
+		assert.equal(err, errors.system.EINVAL)
+
+		-- test family err
+		local err, addr = _.inet_pton(-1, "127.0.0.1")
+		assert.equal(err, errors.system.EAFNOSUPPORT)
+	end,
 }

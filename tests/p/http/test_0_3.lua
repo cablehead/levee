@@ -87,13 +87,13 @@ return {
 		local _ = levee._
 		local filename = debug.getinfo(1, 'S').source:sub(2)
 		local path = _.path.dirname(filename)
-		local path = _.path.join(path, "..", "..", "net")
+		local path = _.path.join(path, "..", "..", "mock", "tls")
 
 		local SERVER_OPTIONS = {
-				key_file=path.."/tls_key", cert_file=path.."/tls_key.pub"}
+			key_file=path.."/key", cert_file=path.."/key.pub"}
 
 		local CLIENT_OPTIONS = {
-				server_name="www.imgix.com", ca_file=path.."/tls_key.pub"}
+			server_name="www.imgix.com", ca_file=path.."/key.pub"}
 
 		local h = levee.Hub()
 

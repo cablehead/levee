@@ -422,6 +422,23 @@ _.endpoint_unix = function(name)
 end
 
 
+_.inet_pton = function(family, address)
+	if family ~= C.AF_INET and family ~= C.AF_INET6 then
+		return errors.system.EAFNOSUPPORT
+	end
+
+	local typ_ = (family == C.AF_INET) and "struct in_addr" or "struct in6_addr"
+	local size = ffi.sizeof(typ_)
+	local src = ffi.new("char[INET6_ADDRSTRLEN]", address)
+	local dst = ffi.new("unsigned char[?]", size)
+	local rc = C.inet_pton(family, src, dst)
+	if rc == -1 then return errors.system.EAFNOSUPPORT end
+	if rc == 0 then return errors.system.EINVAL end
+
+	return nil, ffi.cast(typ_.."*", dst)
+end
+
+
 _.socket = function(domain, socktype, protocol)
 	local no = C.socket(domain, socktype, protocol or 0)
 	if no < 0 then return errors.get(ffi.errno()) end
