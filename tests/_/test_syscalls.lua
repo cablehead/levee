@@ -227,4 +227,17 @@ return {
 		local err, addr = _.inet_pton(-1, "127.0.0.1")
 		assert.equal(err, errors.system.EAFNOSUPPORT)
 	end,
+
+	test_getservbyname = function()
+		local s = _.getservbyname("http")
+		assert.equal(s:name(), "http")
+		assert.equal(s:port(), 80)
+		assert(s:aliases())
+
+		assert.equal(_.getservbyname("http", "tcp"):proto(), "tcp")
+		assert.equal(_.getservbyname("http", "udp"):proto(), "udp")
+
+
+		assert.equal(_.getservbyname("xxx"), nil)
+	end,
 }
