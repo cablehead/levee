@@ -68,20 +68,45 @@ local Dialer_mt = {}
 Dialer_mt.__index = Dialer_mt
 
 
+local function service_tons(service)
+	local port = tonumber(service)
+
+	if not port then
+		local s = _.getservbyname(service)
+		if not s then
+			return errors.addr.ENONAME
+		end
+		return nil, s.s_port
+	end
+
+	if port < 0 or port > 65535 then
+		return errors.addr.ENONAME
+	end
+
+	return nil, C.htons(port)
+end
+
+
 local function sockaddr(family, node, service)
 	local sa
 	if family == C.AF_INET then
+		local err, port = service_tons(service)
+		if err then return err end
+
 		sa = ffi.new("struct sockaddr_in[1]")
 		sa[0].sin_family = family
 		C.inet_aton(node, sa[0].sin_addr)
-		sa[0].sin_port = C.htons(service)
+		sa[0].sin_port = port
 	end
 
 	if family == C.AF_INET6 then
+		local err, port = service_tons(service)
+		if err then return err end
+
 		sa = ffi.new("struct sockaddr_in6[1]")
 		sa[0].sin6_family = family
 		sa[0].sin6_addr.__in6_u.__u6_addr8 = node
-		sa[0].sin6_port = service
+		sa[0].sin6_port = port
 	end
 
 	if family == C.AF_UNIX then

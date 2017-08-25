@@ -505,4 +505,45 @@ _.getcurrentrss = function()
 end
 
 
+local Servent_mt = {}
+Servent_mt.__index = Servent_mt
+
+
+function Servent_mt:name()
+	return ffi.string(self.s_name)
+end
+
+
+function Servent_mt:aliases()
+	local ret = {}
+	local ptr = self.s_aliases
+	while ptr[0] ~= ffi.NULL do
+		table.insert(ret, ffi.string(ptr[0]))
+		ptr = ptr + 1
+	end
+	return ret
+end
+
+
+function Servent_mt:port()
+	return tonumber(C.ntohs(self.s_port))
+end
+
+
+function Servent_mt:proto()
+	return ffi.string(self.s_proto)
+end
+
+
+ffi.metatype("struct servent", Servent_mt)
+
+
+
+_.getservbyname = function(service, proto)
+	local servent = C.getservbyname(service, proto)
+	if servent == ffi.NULL then return end
+	return servent
+end
+
+
 return _

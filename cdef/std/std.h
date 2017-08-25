@@ -31,3 +31,12 @@ unsigned int sleep(unsigned int seconds);
 int usleep(unsigned int useconds);
 
 int dirfd(void *);
+
+struct servent {
+	char    *s_name;        /* official name of service */
+	char    **s_aliases;    /* alias list */
+	int     s_port;         /* port service resides at */
+	char    *s_proto;       /* protocol to use */
+};
+
+struct servent* getservbyname(const char *name, const char *proto);
