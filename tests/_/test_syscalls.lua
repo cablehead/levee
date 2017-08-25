@@ -237,7 +237,6 @@ return {
 		assert.equal(_.getservbyname("http", "tcp"):proto(), "tcp")
 		assert.equal(_.getservbyname("http", "udp"):proto(), "udp")
 
-
 		assert.equal(_.getservbyname("xxx"), nil)
 	end,
 }
