@@ -74,6 +74,20 @@ local function __tests(async)
 				C.AF_INET, C.SOCK_STREAM, "10.244.245.246", 5555, 20, async)
 			assert.equal(err, errors.TIMEOUT)
 		end,
+
+		test_port_out_of_range = function()
+			local h = levee.Hub()
+			local err, conn = h.dialer:dial(
+				C.AF_INET, C.SOCK_STREAM, "127.0.0.1", 70000, nil, async)
+			assert.equal(err, errors.addr.ENONAME)
+		end,
+
+		test_unknown_service = function()
+			local h = levee.Hub()
+			local err, conn = h.dialer:dial(
+				C.AF_INET, C.SOCK_STREAM, "127.0.0.1", "xxx", nil, async)
+			assert.equal(err, errors.addr.ENONAME)
+		end,
 	}
 end
 
