@@ -60,6 +60,7 @@ msgpack.StringStream = StringStream
 local registered = {}
 
 registered.msgpack = msgpack.io
+registered.json = json.io
 
 
 local M = {

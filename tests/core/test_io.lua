@@ -962,5 +962,17 @@ return {
 			local err, data = r.p.msgpack:read()
 			assert.same(data, {foo="bar"})
 		end,
+
+		test_json = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+
+			local err = w.p.json:write({foo="bar"})
+			assert(not err)
+
+			local err, data = r.p.json:read()
+			assert.same(data, {foo="bar"})
+		end,
 	},
 }
