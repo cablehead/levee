@@ -512,22 +512,22 @@ return {
 		local parser = HTTP.Parser()
 		HTTP.decode_response(parser, stream)
 
-		local err, n = decode_chunk(parser, stream)
+		local err, n = HTTP.decode_chunk(parser, stream)
 		assert(not err)
 		assert.equal(ffi.string(stream:value(), n), "He")
 		stream:trim(n)
 
-		local err, n = decode_chunk(parser, stream)
+		local err, n = HTTP.decode_chunk(parser, stream)
 		assert(not err)
 		assert.equal(ffi.string(stream:value(), n), "llo ")
 		stream:trim(n)
 
-		local err, n = decode_chunk(parser, stream)
+		local err, n = HTTP.decode_chunk(parser, stream)
 		assert(not err)
 		assert.equal(ffi.string(stream:value(), n), "World!\n")
 		stream:trim(n)
 
-		local err, n = decode_chunk(parser, stream)
+		local err, n = HTTP.decode_chunk(parser, stream)
 		assert(not err)
 		assert.equal(n, 0)
 	end,

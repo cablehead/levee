@@ -59,7 +59,7 @@ end
 
 --- Returns HEX representation of num
 local hexstr = '0123456789abcdef'
-function num2hex(num)
+local function num2hex(num)
 	local s = ''
 	while num > 0 do
 		local mod = math.fmod(num, 16)
@@ -120,7 +120,7 @@ local function add_header(headers, key, value)
 end
 
 
-function decode_headers(parser, stream)
+local function decode_headers(parser, stream)
 	local headers = Map()
 	repeat
 		err, value = parser:stream_next(stream)
@@ -134,7 +134,7 @@ function decode_headers(parser, stream)
 end
 
 
-function decode_len(value)
+local function decode_len(value)
 	if not value[2] then
 		-- content-length response
 		local len = tonumber(value[3])
@@ -145,7 +145,7 @@ function decode_len(value)
 end
 
 
-function encode_request(buf, method, path, params, headers, body)
+local function encode_request(buf, method, path, params, headers, body)
 	if params then
 		local s = {path, "?"}
 		for key, value in pairs(params) do
@@ -182,7 +182,7 @@ function encode_request(buf, method, path, params, headers, body)
 end
 
 
-function encode_response(buf, status, headers, body)
+local function encode_response(buf, status, headers, body)
 	buf:push(tostring(status))
 
 	if not headers then headers = {} end
@@ -213,7 +213,7 @@ function encode_response(buf, status, headers, body)
 end
 
 
-function encode_chunk(buf, chunk)
+local function encode_chunk(buf, chunk)
 	buf:push(CRLF)
 	if not chunk then buf:push("0"..CRLF..CRLF) return end
 
@@ -228,7 +228,7 @@ function encode_chunk(buf, chunk)
 end
 
 
-function decode_request(parser, stream)
+local function decode_request(parser, stream)
 	parser:init_request()
 
 	local err, value = parser:stream_next(stream)
@@ -247,7 +247,7 @@ function decode_request(parser, stream)
 end
 
 
-function decode_response(parser, stream)
+local function decode_response(parser, stream)
 	parser:init_response()
 
 	local err, value = parser:stream_next(stream)
@@ -264,7 +264,7 @@ function decode_response(parser, stream)
 end
 
 
-function decode_chunk(parser, stream)
+local function decode_chunk(parser, stream)
 	local err, value = parser:stream_next(stream)
 	if err then return err end
 
