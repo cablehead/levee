@@ -294,6 +294,11 @@ function P_mt:read_request()
 end
 
 
+function P_mt:read_response()
+	return decode_response(self.parser, self.p)
+end
+
+
 function P_mt:write_request(method, path, params, headers, body)
 	local err = M.encode_request(self.p.wbuf, method, path, params, headers, body)
 	if err then return err end
@@ -302,6 +307,14 @@ function P_mt:write_request(method, path, params, headers, body)
 	return err, n
 end
 
+
+function P_mt:write_response(status, headers, body)
+	local err = M.encode_response(self.p.wbuf, status, headers, body)
+	if err then return err end
+	local err, n = self.p.io:write(self.p.wbuf:value())
+	self.p.wbuf:trim()
+	return err, n
+end
 
 
 function M.io(p)
