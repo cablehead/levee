@@ -57,16 +57,9 @@ json.StringStream = StringStream
 msgpack.StringStream = StringStream
 
 
-local registered = {}
-
-registered.msgpack = msgpack.io
-registered.json = json.io
-
-
 local M = {
 	json = json,
 	msgpack = msgpack,
-	registered = registered,
 
 	http = require("levee.p.http"),
 	utf8 = require("levee.p.utf8"),
@@ -76,7 +69,10 @@ local M = {
 }
 
 
+M.registered = {}
+M.registered.msgpack = M.msgpack.io
+M.registered.json = M.json.io
+M.registered.http = M.http["0_4"].io
+
+
 return M
-
-
-

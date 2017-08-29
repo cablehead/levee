@@ -272,7 +272,7 @@ function decode_chunk(parser, stream)
 end
 
 
-return {
+local M = {
 	Status=Status,
 	Parser=Parser,
 	encode_request=encode_request,
@@ -282,3 +282,31 @@ return {
 	decode_response=decode_response,
 	decode_chunk=decode_chunk,
 }
+
+
+-- io conveniences, still sketching
+local P_mt = {}
+P_mt.__index = P_mt
+
+
+function P_mt:read_request()
+	return decode_request(self.parser, self.p)
+end
+
+
+function P_mt:write_request(method, path, params, headers, body)
+	local err = M.encode_request(self.p.wbuf, method, path, params, headers, body)
+	if err then return err end
+	local err, n = self.p.io:write(self.p.wbuf:value())
+	self.p.wbuf:trim()
+	return err, n
+end
+
+
+
+function M.io(p)
+	return setmetatable({p=p, parser=M.Parser()}, P_mt)
+end
+
+
+return M

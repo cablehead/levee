@@ -974,5 +974,22 @@ return {
 			local err, data = r.p.json:read()
 			assert.same(data, {foo="bar"})
 		end,
+
+		test_http = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+			w.p.http:write_request("GET", "/foo", {foo="bar"}, {H1="H1"}, "OH HAI")
+
+			local err, req = r.p.http:read_request()
+			local err, uri = req:uri()
+			local err, params = uri:params()
+
+			assert.equal(req.method, "GET")
+			assert.equal(req.headers["h1"], "H1")
+			assert.equal(uri.path, "/foo")
+			assert.same(params, {foo="bar"})
+			assert.equal(r.p:take(req.len), "OH HAI")
+		end,
 	},
 }
