@@ -250,6 +250,7 @@ function P_mt:write(data)
 	if err then return err end
 	local err, n = self.p.io:write(self.p.wbuf:value())
 	self.p.wbuf:trim()
+	return err, n
 end
 
 
