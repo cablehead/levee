@@ -308,4 +308,28 @@ function M.decode(s, len)
 	return decoder():stream(M.StringStream(s, len))
 end
 
+
+-- io conveniences, still sketching
+local P_mt = {}
+P_mt.__index = P_mt
+
+
+function P_mt:read()
+	return self.decoder:stream(self.p)
+end
+
+
+function P_mt:write(data)
+	local err = M.encode(data, self.p.wbuf)
+	if err then return err end
+	local err, n = self.p.io:write(self.p.wbuf:value())
+	self.p.wbuf:trim()
+end
+
+
+function M.io(p)
+	return setmetatable({p=p, decoder=M.decoder()}, P_mt)
+end
+
+
 return M

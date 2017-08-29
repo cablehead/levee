@@ -19,6 +19,10 @@ local P_mt = {}
 
 
 function P_mt.__index(self, key)
+	local convenience = p.registered[key]
+	if convenience then
+		return convenience(self)
+	end
 	return P_mt[key]
 end
 

@@ -56,11 +56,25 @@ local msgpack = require("levee.p.msgpack")
 json.StringStream = StringStream
 msgpack.StringStream = StringStream
 
-return {
+
+local registered = {}
+
+registered.msgpack = msgpack.io
+
+
+local M = {
 	json = json,
 	msgpack = msgpack,
+	registered = registered,
+
 	http = require("levee.p.http"),
 	utf8 = require("levee.p.utf8"),
 	uri = require("levee.p.uri"),
 	line = require("levee.p.line"),
 }
+
+
+return M
+
+
+

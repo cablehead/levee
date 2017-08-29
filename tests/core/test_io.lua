@@ -950,5 +950,17 @@ return {
 			assert(not r.p.wbuf)
 			assert(not w.p.rbuf)
 		end,
+
+		test_msgpack = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+
+			local err = w.p.msgpack:write({foo="bar"})
+			assert(not err)
+
+			local err, data = r.p.msgpack:read()
+			assert.same(data, {foo="bar"})
+		end,
 	},
 }
