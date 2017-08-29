@@ -3,10 +3,11 @@ local C = ffi.C
 
 local errors = require("levee.errors")
 local _ = require("levee._")
-local d = require("levee.d")
 local json = require("levee.p.json")
 local meta = require("levee.meta")
-local Buffer = require("levee.d.buffer")
+local Map = require("levee.d.map")
+local Parser = require("levee.p.http.parse")
+local Status = require("levee.p.http.status")
 
 
 local VERSION = "HTTP/1.1"
@@ -15,123 +16,6 @@ local EOL = "\r\n"
 
 local USER_AGENT = ("%s/%s"):format(meta.name, meta.version.string)
 
-local tmp_iov = ffi.new("struct iovec[1]")
-local tmp_buf = Buffer()
-
-
---
--- Status
-
-local Status_mt = {}
-Status_mt.__index = Status_mt
-
-
-function Status_mt:__tostring()
-	if not self._line then
-		self._line = string.format("HTTP/1.1 %d %s\r\n", self.code, self.reason)
-	end
-	return self._line
-end
-
-
-function Status_mt:no_content()
-	return self.code == 204 or self.code == 304
-end
-
-
-local Status = {}
-
-function Status:__call(code, reason)
-	local s = Status[code]
-	if s == nil or (reason and reason ~= s.reason) then
-		s = setmetatable({ code=code, reason=reason }, Status_mt)
-	end
-	return s
-end
-
-setmetatable(Status, Status)
-
-Status[100] = Status(100, "Continue")
-Status[101] = Status(101, "Switching Protocols")
-Status[102] = Status(102, "Processing")
-Status[200] = Status(200, "OK")
-Status[201] = Status(201, "Created")
-Status[202] = Status(202, "Accepted")
-Status[203] = Status(203, "Non-Authoritative Information")
-Status[204] = Status(204, "No Content")
-Status[205] = Status(205, "Reset Content")
-Status[206] = Status(206, "Partial Content")
-Status[207] = Status(207, "Multi-Status")
-Status[208] = Status(208, "Already Reported")
-Status[226] = Status(226, "IM Used")
-Status[300] = Status(300, "Multiple Choices")
-Status[301] = Status(301, "Moved Permanently")
-Status[302] = Status(302, "Found")
-Status[303] = Status(303, "See Other")
-Status[304] = Status(304, "Not Modified")
-Status[305] = Status(305, "Use Proxy")
-Status[306] = Status(306, "Switch Proxy")
-Status[307] = Status(307, "Temporary Redirect")
-Status[308] = Status(308, "Permanent Redirect")
-Status[400] = Status(400, "Bad Request")
-Status[401] = Status(401, "Unauthorized")
-Status[402] = Status(402, "Payment Required")
-Status[403] = Status(403, "Forbidden")
-Status[404] = Status(404, "Not Found")
-Status[405] = Status(405, "Method Not Allowed")
-Status[406] = Status(406, "Not Acceptable")
-Status[407] = Status(407, "Proxy Authentication Required")
-Status[408] = Status(408, "Request Timeout")
-Status[409] = Status(409, "Conflict")
-Status[410] = Status(410, "Gone")
-Status[411] = Status(411, "Length Required")
-Status[412] = Status(412, "Precondition Failed")
-Status[413] = Status(413, "Request Entity Too Large")
-Status[414] = Status(414, "Request-URI Too Long")
-Status[415] = Status(415, "Unsupported Media Type")
-Status[416] = Status(416, "Requested Range Not Satisfiable")
-Status[417] = Status(417, "Expectation Failed")
-Status[418] = Status(418, "I'm a teapot")
-Status[419] = Status(419, "Authentication Timeout")
-Status[420] = Status(420, "Enhance Your Calm")
-Status[421] = Status(421, "Misdirected Request")
-Status[422] = Status(422, "Unprocessable Entity")
-Status[423] = Status(423, "Locked")
-Status[424] = Status(424, "Failed Dependency")
-Status[426] = Status(426, "Upgrade Required")
-Status[428] = Status(428, "Precondition Required")
-Status[429] = Status(429, "Too Many Requests")
-Status[431] = Status(431, "Request Header Fields Too Large")
-Status[440] = Status(440, "Login Timeout")
-Status[444] = Status(444, "No Response")
-Status[449] = Status(449, "Retry With")
-Status[450] = Status(450, "Blocked by Windows Parental Controls")
-Status[451] = Status(451, "Unavailable For Legal Reasons")
-Status[494] = Status(494, "Request Header Too Large")
-Status[495] = Status(495, "Cert Error")
-Status[496] = Status(496, "No Cert")
-Status[497] = Status(497, "HTTP to HTTPS")
-Status[498] = Status(498, "Token expired/invalid")
-Status[499] = Status(499, "Client Closed Request")
-Status[500] = Status(500, "Internal Server Error")
-Status[501] = Status(501, "Not Implemented")
-Status[502] = Status(502, "Bad Gateway")
-Status[503] = Status(503, "Service Unavailable")
-Status[504] = Status(504, "Gateway Timeout")
-Status[505] = Status(505, "HTTP Version Not Supported")
-Status[506] = Status(506, "Variant Also Negotiates")
-Status[507] = Status(507, "Insufficient Storage")
-Status[508] = Status(508, "Loop Detected")
-Status[509] = Status(509, "Bandwidth Limit Exceeded")
-Status[510] = Status(510, "Not Extended")
-Status[511] = Status(511, "Network Authentication Required")
-Status[520] = Status(520, "Origin Error")
-Status[521] = Status(521, "Web server is down")
-Status[522] = Status(522, "Connection timed out")
-Status[523] = Status(523, "Proxy Declined Request")
-Status[524] = Status(524, "A timeout occurred")
-Status[598] = Status(598, "Network read timeout error")
-Status[599] = Status(599, "Network connect timeout error")
 
 --
 -- Droplet
@@ -199,130 +83,8 @@ local function Droplet(hub, port, host, config)
 end
 
 
---
--- Parser
-
-local Parser_mt = {}
-Parser_mt.__index = Parser_mt
-
-
-function Parser_mt:__new()
-	return ffi.new(self)
-end
-
-
-function Parser_mt:__tostring()
-	return string.format(
-		"levee.http.Parser: %s", self.response and "response" or "request")
-end
-
-
-function Parser_mt:init_request(config)
-	C.sp_http_init_request(self, false)
-	self:config(config)
-end
-
-
-function Parser_mt:init_response(config)
-	C.sp_http_init_response(self, false)
-	self:config(config)
-end
-
-
-function Parser_mt:reset()
-	C.sp_http_reset(self)
-end
-
-
-function Parser_mt:config(t)
-	if type(t) ~= "table" then return end
-	if t.max_method then self.max_method = t.max_method end
-	if t.max_uri then self.max_uri = t.max_uri end
-	if t.max_reason then self.max_reason = t.max_reason end
-	if t.max_field then self.max_field = t.max_field end
-	if t.max_value then self.max_value = t.max_value end
-end
-
-
-function Parser_mt:next(buf, len)
-	local rc = C.sp_http_next(self, buf, len)
-	if rc >= 0 then
-		return nil, rc
-	end
-	return errors.get(rc)
-end
-
-
-function Parser_mt:is_done()
-	return C.sp_http_is_done(self)
-end
-
-
-function Parser_mt:has_value()
-	return
-		self.type == C.SP_HTTP_REQUEST or
-		self.type == C.SP_HTTP_RESPONSE or
-		self.type == C.SP_HTTP_FIELD or
-		self.type == C.SP_HTTP_BODY_START or
-		self.type == C.SP_HTTP_BODY_CHUNK
-end
-
-
-function Parser_mt:value(buf)
-	if self.type == C.SP_HTTP_REQUEST then
-		return
-			ffi.string(
-				buf + self.as.request.method_off, self.as.request.method_len),
-			ffi.string(buf + self.as.request.uri_off, self.as.request.uri_len),
-			self.as.request.version
-	elseif self.type == C.SP_HTTP_RESPONSE then
-		return
-			self.as.response.status,
-			ffi.string(
-				buf + self.as.response.reason_off, self.as.response.reason_len),
-			self.as.request.version
-	elseif self.type == C.SP_HTTP_FIELD then
-		return
-			ffi.string(buf + self.as.field.name_off, self.as.field.name_len),
-			ffi.string(buf + self.as.field.value_off, self.as.field.value_len)
-	elseif self.type == C.SP_HTTP_BODY_START then
-		return
-			false,
-			self.as.body_start.chunked,
-			self.as.body_start.content_length
-	elseif self.type == C.SP_HTTP_BODY_CHUNK then
-		return
-			true,
-			self.as.body_chunk.length
-	elseif self.type == C.SP_HTTP_BODY_END then
-		return
-			false,
-			0
-	end
-end
-
-
-function Parser_mt:stream_next(stream)
-	local err, n = self:next(stream:value())
-	if err then return err end
-
-	if n > 0 then
-		local value = {self:value(stream:value())}
-		stream:trim(n)
-		if self:is_done() then
-			self:reset()
-		end
-		return nil, value
-	end
-
-	local err, n = stream:readin()
-	if err then return err end
-	return self:stream_next(stream)
-end
-
-
-local Parser = ffi.metatype("SpHttp", Parser_mt)
-
+---
+--- parser
 
 local parser = {}
 
@@ -375,87 +137,88 @@ function num2hex(num)
 end
 
 
---
--- Map
--- TODO: redo the scatter/scatter_count interface
-
-
-local Map_mt = {}
-
-
-function Map_mt:__tostring()
-	local n = C.sp_http_map_encode_size(self)
-	tmp_buf:ensure(n)
-	local buf = tmp_buf:tail()
-	C.sp_http_map_encode(self, buf)
-	tmp_buf:bump(n)
-	return tmp_buf:take(n)
-end
-
-
-local function map_add(self, name, value)
-	C.sp_http_map_put(self, name, #name, value, #value)
-end
-
-
-local function map_value(entry, idx)
-	if C.sp_http_entry_value(entry, idx-1, tmp_iov) then
-		return ffi.string(tmp_iov[0].iov_base, tmp_iov[0].iov_len)
-	end
-end
-
-
-local function map_writeinto_iovec(self, iov)
-	local n = C.sp_http_map_scatter_count(self)
-	iov:ensure(n)
-	C.sp_http_map_scatter(self, iov.iov + iov.n)
-	iov:bump(n, C.sp_http_map_encode_size(self))
-end
-
-
-function Map_mt:__index(key)
-	if key == "add" then return map_add end
-	if key == "writeinto_iovec" then return map_writeinto_iovec end
-
-	local e = C.sp_http_map_get(self, key, #key)
-	local n = C.sp_http_entry_count(e)
-	if n == 1 then
-		return map_value(e, 1)
-	elseif n > 1 then
-		local list = {}
-		for i=1,tonumber(n) do
-			list[i] = map_value(e, i)
-		end
-		return list
-	end
-end
-
-
-function Map_mt:__newindex(key, val)
-	C.sp_http_map_del(self, key, #key)
-	if type(val) == "table" then
-		for _,v in ipairs(val) do
-			map_add(self, key, v)
-		end
-	elseif val then
-		map_add(self, key, val)
-	end
-end
-
-
-local function Map(t)
-	local m = ffi.gc(C.sp_http_map_new(), C.sp_http_map_free)
-	if t then
-		for k,v in pairs(t) do
-			m:set(k, v)
+function send_headers(conn, headers)
+	for k, v in pairs(headers) do
+		if type(v) == "table" then
+			for _,item in pairs(v) do
+				local err = conn:send(k, FIELD_SEP, item, EOL)
+				if err then return err end
+			end
+		else
+			local err = conn:send(k, FIELD_SEP, v, EOL)
+			if err then return err end
 		end
 	end
-	return m
+	return conn:send(EOL)
 end
 
 
-ffi.metatype("SpHttpMap", Map_mt)
+function recv_headers(parser, stream)
+	local headers = {}, err, value
+	while true do
+		err, value = parser:stream_next(stream)
+		if err then return err end
+		local key = value[1]
+		if not key then break end
+		local current = headers[key]
+		if type(current) == "string" then
+			 headers[key] = {current,value[2]}
+		elseif type(current) == "table" then
+			table.insert(headers[key], value[2])
+		else
+			headers[key] = value[2]
+		end
+	end
 
+	local len
+	if not value[2] then len = tonumber(value[3]) end
+	return nil, headers, len
+end
+
+
+function send_chunks(conn, response)
+	local err, chunk = response:recv()
+	while not err do
+		if type(chunk) == "string" then
+			conn:send(num2hex(#chunk), EOL, chunk, EOL)
+			err, chunk = response:recv()
+
+		else
+			conn:send(num2hex(chunk), EOL)
+			-- wait until headers have been sent
+			conn.empty:recv()
+			-- next chunk signals continue
+			err, chunk = response:recv()
+			conn:send(EOL)
+		end
+	end
+	return conn:send("0", EOL, EOL)
+end
+
+
+function recv_chunks(parser, stream, chunks)
+	while true do
+			local err, value = parser:stream_next(stream)
+			if err then return err end
+			if not value[1] then break end
+
+			local len = tonumber(value[2])
+
+			if stream.buf.sav > 0 then
+				len = len + stream.buf.sav
+				stream.buf:thaw()
+			end
+
+			local chunk = stream:chunk(len)
+			chunks:send(chunk)
+			-- TODO: still need to package this up better
+			chunk.done:recv()
+			if chunk.len > 0 then
+				chunk:readin(chunk.len)
+				stream.buf:freeze(chunk.len)
+			end
+	end
+end
 
 
 --
@@ -587,7 +350,7 @@ function Client_mt:reader(responses)
 		local request = self.response_to_request[response]
 		self.response_to_request[response] = nil
 
-		local err, value
+		local err, value, len
 		err, value = self.parser:stream_next(self.stream)
 		if err then goto __cleanup end
 		assert(self.parser.type == C.SP_HTTP_RESPONSE)
@@ -600,20 +363,8 @@ function Client_mt:reader(responses)
 			version = value[3],
 			headers = {}, }, Response_mt)
 
-		while true do
-			err, value = self.parser:stream_next(self.stream)
-			if err then goto __cleanup end
-			local key = value[1]
-			if not key then break end
-			local current = res.headers[key]
-			if type(current) == "string" then
-				res.headers[key] = {current,value[2]}
-			elseif type(current) == "table" then
-				table.insert(res.headers[key], value[2])
-			else
-				res.headers[key] = value[2]
-			end
-		end
+		err, res.headers, len = recv_headers(self.parser, self.stream)
+		if err then goto __cleanup end
 
 		-- handle body
 		if request.method == "HEAD" then
@@ -621,40 +372,21 @@ function Client_mt:reader(responses)
 			self.parser:reset()
 
 		else
-			if not value[2] then
+			if len then
 				-- content-length
-				local len = tonumber(value[3])
 				if len > 0 then res.body = self.stream:chunk(len) end
 				response:send(res)
 				if len > 0 then res.body.done:recv() end
 
 			else
-				-- chunked tranfer
+				-- chunked transfer
 				local chunks
 				chunks, res.chunks = self.hub:pipe()
 				response:send(res)
 
-				while true do
-					err, value = self.parser:stream_next(self.stream)
-					if err then goto __cleanup end
-					if not value[1] then break end
+				err = recv_chunks(self.parser, self.stream, chunks)
+				if err then goto __cleanup end
 
-					local len = tonumber(value[2])
-
-					if self.stream.buf.sav > 0 then
-						len = len + self.stream.buf.sav
-						self.stream.buf:thaw()
-					end
-
-					local chunk = self.stream:chunk(len)
-					chunks:send(chunk)
-					-- TODO: still need to package this up better
-					chunk.done:recv()
-					if chunk.len > 0 then
-						chunk:readin(chunk.len)
-						self.stream.buf:freeze(chunk.len)
-					end
-				end
 				err, value = self.parser:stream_next(self.stream)
 				if err then goto __cleanup end
 				-- TODO: trailing headers
@@ -672,7 +404,7 @@ function Client_mt:reader(responses)
 end
 
 
-function Client_mt:__headers(headers)
+function Client_mt:_headers(headers)
 	-- TODO: Host
 	local ret = {
 		Host = self.HOST,
@@ -702,23 +434,13 @@ function Client_mt:request(method, path, params, headers, data)
 	local err = self.conn:send(("%s %s %s\r\n"):format(method, path, VERSION))
 	if err then return err end
 
-	headers = self:__headers(headers)
+	headers = self:_headers(headers)
 	if data then
 		headers["Content-Length"] = tostring(#data)
 	end
 
-	for k, v in pairs(headers) do
-		if type(v) == "table" then
-			for _,item in pairs(v) do
-				local err = self.conn:send(k, FIELD_SEP, item, EOL)
-				if err then return err end
-			end
-		else
-			local err = self.conn:send(k, FIELD_SEP, v, EOL)
-			if err then return err end
-		end
-	end
-	self.conn:send(EOL)
+	local err = send_headers(self.conn, headers)
+	if err then return err end
 
 	if data then
 		local err = self.conn:send(data)
@@ -836,18 +558,8 @@ function Server_mt:_response(request, response)
 		headers["Transfer-Encoding"] = "chunked"
 	end
 
-	for k, v in pairs(headers) do
-		if type(v) == "table" then
-			for _, item in pairs(v) do
-				local err = self.conn:send(k, FIELD_SEP, item, EOL)
-				if err then return err end
-			end
-		else
-			local err = self.conn:send(k, FIELD_SEP, v, EOL)
-			if err then return err end
-		end
-	end
-	self.conn:send(EOL)
+	local err = send_headers(self.conn, headers)
+	if err then return err end
 
 	if no_content or request.method == "HEAD" then
 		return
@@ -865,22 +577,7 @@ function Server_mt:_response(request, response)
 		return
 	end
 
-	local err, chunk = response:recv()
-	while not err do
-		if type(chunk) == "string" then
-			self.conn:send(num2hex(#chunk), EOL, chunk, EOL)
-			err, chunk = response:recv()
-
-		else
-			self.conn:send(num2hex(chunk), EOL)
-			-- wait until headers have been sent
-			self.conn.empty:recv()
-			-- next chunk signals continue
-			err, chunk = response:recv()
-			self.conn:send(EOL)
-		end
-	end
-	return self.conn:send("0", EOL, EOL)
+	return send_chunks(self.conn, response)
 end
 
 
@@ -901,7 +598,7 @@ end
 
 function Server_mt:reader(requests, responses, response_to_request)
 	while true do
-		local err, value
+		local err, value, len
 
 		err, value = self.parser:stream_next(self.stream)
 		if err then goto __cleanup end
@@ -918,24 +615,11 @@ function Server_mt:reader(requests, responses, response_to_request)
 			conn = self.conn,
 			response = res_sender, }, Request_mt)
 
-		while true do
-			err, value = self.parser:stream_next(self.stream)
-			if err then goto __cleanup end
-			local key = value[1]
-			if not key then break end
-			local current = req.headers[key]
-			if type(current) == "string" then
-				req.headers[key] = {current,value[2]}
-			elseif type(current) == "table" then
-				table.insert(req.headers[key], value[2])
-			else
-				req.headers[key] = value[2]
-			end
-		end
+		err, req.headers, len = recv_headers(self.parser, self.stream)
+		if err then goto __cleanup end
 
-		if value[2] then error("TODO: chunked") end
+		if not len then error("TODO: chunked") end
 
-		local len = tonumber(value[3])
 		if len > 0 then req.body = self.stream:chunk(len) end
 		response_to_request[res_recver] = req
 		requests:send(req)

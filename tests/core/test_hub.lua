@@ -203,7 +203,7 @@ return {
 		h.trace:stop()
 
 		local filename = debug.getinfo(1, 'S').source:sub(2)
-		local M = loadfile(_.path.dirname(filename) .. "/../p/test_http.lua")()
+		local M = loadfile(_.path.dirname(filename) .. "/../p/http/test_0_3.lua")()
 
 		h.trace:start()
 		M.test_proxy(h)

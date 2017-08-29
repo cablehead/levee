@@ -132,4 +132,3 @@ sp_http_entry_count (const SpHttpEntry *e);
 
 bool
 sp_http_entry_value (const SpHttpEntry *e, size_t idx, struct iovec *iov);
-
