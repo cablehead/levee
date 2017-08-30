@@ -299,6 +299,19 @@ local M = {
 
 
 -- io conveniences, still sketching
+
+local P_Body_mt = {}
+P_Body_mt.__index = P_Body_mt
+
+
+function P_Body_mt:tostring()
+	if self.res.len then
+		return self.p:take(self.res.len)
+	end
+	assert("TODO: chunk transfer")
+end
+
+
 local P_mt = {}
 P_mt.__index = P_mt
 
@@ -316,7 +329,10 @@ end
 
 
 function P_mt:read_response()
-	return decode_response(self.parser, self.p)
+	local err, res = decode_response(self.parser, self.p)
+	if err then return err end
+	res.body = setmetatable({p=self.p, res=res}, P_Body_mt)
+	return nil, res
 end
 
 

@@ -1013,7 +1013,7 @@ return {
 				local err, conn = h.stream:dial(serve:port())
 				local err, res = conn.p.http:get("/foo")
 				assert.equal(res.code, 200)
-				assert.equal(conn.p:take(res.len), "YARG")
+				assert.equal(res.body:tostring(), "YARG")
 			end,
 		},
 	},
