@@ -183,8 +183,7 @@ end
 
 
 local function encode_response(buf, status, headers, body)
-	local code = tonumber(status)
-	if code then status = Status(code) end
+	if type(status) == "number" then status = Status(status) end
 
 	buf:push(tostring(status))
 
