@@ -1011,9 +1011,7 @@ return {
 				end)
 
 				local err, conn = h.stream:dial(serve:port())
-
-				conn.p.http:write_request("GET", "/foo")
-				local err, res = conn.p.http:read_response()
+				local err, res = conn.p.http:get("/foo")
 				assert.equal(res.code, 200)
 				assert.equal(conn.p:take(res.len), "YARG")
 			end,

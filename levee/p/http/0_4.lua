@@ -329,6 +329,38 @@ function P_mt:write_request(method, path, params, headers, body)
 end
 
 
+function P_mt:get(path, options)
+	options = options or {}
+	local err = self:write_request("GET", path, options.params, options.headers)
+	if err then return err end
+	return self:read_response()
+end
+
+
+function P_mt:head(path, options)
+	options = options or {}
+	local err = self:write_request("HEAD", path, options.params, options.headers)
+	if err then return err end
+	return self:read_response()
+end
+
+
+function P_mt:put(path, options)
+	options = options or {}
+	local err = self:write_request("PUT", path, options.params, options.headers, options.body)
+	if err then return err end
+	return self:read_response()
+end
+
+
+function P_mt:post(path, options)
+	options = options or {}
+	local err = self:write_request("POST", path, options.params, options.headers, options.body)
+	if err then return err end
+	return self:read_response()
+end
+
+
 function P_mt:write_response(status, headers, body)
 	local err = M.encode_response(self.p.wbuf, status, headers, body)
 	if err then return err end
