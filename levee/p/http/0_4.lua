@@ -215,6 +215,9 @@ local function encode_response(buf, status, headers, body)
 
 	if body then
 		headers["Content-Length"] = tostring(tonumber(body))
+	end
+
+	if headers["Content-Length"] then
 		encode_headers(buf, headers)
 		return
 	end
