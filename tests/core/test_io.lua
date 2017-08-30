@@ -976,26 +976,47 @@ return {
 			assert.same(data, {foo="bar"})
 		end,
 
-		test_http = function()
-			local h = levee.Hub()
+		http = {
+			test_basics = function()
+				local h = levee.Hub()
 
-			local r, w = h.io:pipe()
+				local r, w = h.io:pipe()
 
-			w.p.http:write_request("GET", "/foo", {foo="bar"}, {H1="H1"}, "OH HAI")
-			local err, req = r.p.http:read_request()
-			local err, uri = req:uri()
-			local err, params = uri:params()
-			assert.equal(req.method, "GET")
-			assert.equal(req.headers["h1"], "H1")
-			assert.equal(uri.path, "/foo")
-			assert.same(params, {foo="bar"})
-			assert.equal(r.p:take(req.len), "OH HAI")
+				w.p.http:write_request("GET", "/foo", {foo="bar"}, {H1="H1"}, "OH HAI")
+				local err, req = r.p.http:read_request()
+				local err, uri = req:uri()
+				local err, params = uri:params()
+				assert.equal(req.method, "GET")
+				assert.equal(req.headers["h1"], "H1")
+				assert.equal(uri.path, "/foo")
+				assert.same(params, {foo="bar"})
+				assert.equal(r.p:take(req.len), "OH HAI")
 
-			w.p.http:write_response(p.http.status(200), {H2="H2"}, "YARG")
-			local err, res = r.p.http:read_response()
-			assert.equal(res.code, 200)
-			assert.equal(res.headers["h2"], "H2")
-			assert.equal(r.p:take(res.len), "YARG")
-		end,
+				w.p.http:write_response(p.http.status(200), {H2="H2"}, "YARG")
+				local err, res = r.p.http:read_response()
+				assert.equal(res.code, 200)
+				assert.equal(res.headers["h2"], "H2")
+				assert.equal(r.p:take(res.len), "YARG")
+			end,
+
+			test_conveniences = function()
+				local h = levee.Hub()
+
+				local err, serve = h.stream:listen()
+
+				h:spawn_every(serve, function(conn)
+					for req in conn.p.http do
+						conn.p.http:write_response(200, {}, "YARG")
+					end
+				end)
+
+				local err, conn = h.stream:dial(serve:port())
+
+				conn.p.http:write_request("GET", "/foo")
+				local err, res = conn.p.http:read_response()
+				assert.equal(res.code, 200)
+				assert.equal(conn.p:take(res.len), "YARG")
+			end,
+		},
 	},
 }
