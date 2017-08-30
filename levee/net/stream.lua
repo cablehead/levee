@@ -52,6 +52,14 @@ function Listener_mt:addr()
 end
 
 
+function Listener_mt:port()
+	local err, addr = self:addr()
+	if not err then
+		return addr:port()
+	end
+end
+
+
 Listener_mt.sockname = Listener_mt.addr
 
 
