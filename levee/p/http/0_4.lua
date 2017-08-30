@@ -291,6 +291,13 @@ local P_mt = {}
 P_mt.__index = P_mt
 
 
+function P_mt:__call()
+	local err, req = self:read_request()
+	if err then return end
+	return req
+end
+
+
 function P_mt:read_request()
 	return decode_request(self.parser, self.p)
 end
