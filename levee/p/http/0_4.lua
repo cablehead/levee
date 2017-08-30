@@ -37,6 +37,17 @@ end
 
 
 --
+-- Response
+
+local Response_mt = {}
+Response_mt.__index = Response_mt
+
+function Response_mt:__tostring()
+	return ("levee.http.0_4..Response: %s %s"):format(self.code, self.reason)
+end
+
+
+--
 -- Date response header cache
 
 local http_time = ffi.new("time_t [1]")
@@ -256,7 +267,8 @@ local function decode_response(parser, stream)
 	if err then return err end
 
 	-- TODO version
-	local res = {code=value[1], reason=value[2], version=value[3]}
+	local res = setmetatable(
+		{code=value[1], reason=value[2], version=value[3]}, Response_mt)
 	local headers, value = decode_headers(parser, stream)
 	res.headers = headers
 	local len = decode_len(value)
