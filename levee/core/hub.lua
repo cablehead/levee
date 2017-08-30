@@ -357,6 +357,13 @@ function Hub_mt:spawn_later(ms, f)
 end
 
 
+function Hub_mt:spawn_every(iter, f)
+	self:spawn(function()
+		for item in iter do self:spawn(f, item) end
+	end)
+end
+
+
 function Hub_mt:sleep(ms)
 	ms = self.poller:abstime(ms)
 	self.scheduled:push(ms, coroutine.running())
