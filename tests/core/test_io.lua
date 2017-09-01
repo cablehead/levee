@@ -1024,18 +1024,27 @@ return {
 			test_conveniences = function()
 				local h = levee.Hub()
 
-				local err, serve = h.stream:listen()
+				local BODY = ("X"):rep(64*1024+10)
 
-				h:spawn_every(serve, function(conn)
-					for req in conn.p.http do
-						conn.p.http:write_response(200, {}, "YARG")
+				local err, serve = h.stream:listen()
+				serve:spawn_every(function(conn)
+					for req in conn.p.http do conn.p.http:write_response(200, {}, BODY) end
+				end)
+
+				local err, proxy = h.stream:listen()
+				proxy:spawn_every(function(down)
+					for req in down.p.http do
+						local err, up = h.stream:connect(serve:port())
+						local err, res = up.p.http:get(req.path, {headers=req.headers})
+						down.p.http:write_response(res.code, res.headers)
+						res.body:splice(down)
 					end
 				end)
 
-				local err, conn = h.stream:dial(serve:port())
+				local err, conn = h.stream:dial(proxy:port())
 				local err, res = conn.p.http:get("/foo")
 				assert.equal(res.code, 200)
-				assert.equal(res.body:tostring(), "YARG")
+				assert.equal(res.body:tostring(), BODY)
 			end,
 		},
 	},

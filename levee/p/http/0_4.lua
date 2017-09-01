@@ -315,6 +315,14 @@ function P_Body_mt:tostring()
 end
 
 
+function P_Body_mt:splice(target)
+	if self.res.len then
+		return self.p:splice(target, self.res.len)
+	end
+	assert("TODO: chunk transfer")
+end
+
+
 local P_mt = {}
 P_mt.__index = P_mt
 

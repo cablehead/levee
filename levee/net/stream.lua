@@ -60,6 +60,11 @@ function Listener_mt:port()
 end
 
 
+function Listener_mt:spawn_every(f)
+	return self.hub:spawn_every(self, f)
+end
+
+
 Listener_mt.sockname = Listener_mt.addr
 
 
