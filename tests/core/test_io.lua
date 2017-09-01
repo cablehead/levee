@@ -952,6 +952,28 @@ return {
 			assert(not w.p.rbuf)
 		end,
 
+		test_splice = function()
+			local h = levee.Hub()
+
+			local s1 = {}
+			s1.r, s1.w = h.io:pipe()
+			local s2 = {}
+			s2.r, s2.w = h.io:pipe()
+
+			s1.w:write(("X"):rep(64*1024))
+			s1.w:close()
+
+			s1.r.p:readin(1)
+			local err, n = s1.r.p:splice(s2.w, 32*1024-10)
+			assert.equal(n, 32*1024-10)
+
+			s2.r.p:readin(32*1024-10)
+			assert.equal(s2.r.p:take(), ("X"):rep(32*1024-10))
+
+			local err, n = s1.r.p:splice(s2.w)
+			assert.equal(n, 32*1024+10)
+		end,
+
 		test_msgpack = function()
 			local h = levee.Hub()
 

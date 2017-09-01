@@ -41,13 +41,39 @@ function P_mt:readin(n)
 end
 
 
-function P_mt:value()
-	return self.rbuf:value()
+function P_mt:value(len)
+	return self.rbuf:value(len)
 end
 
 
 function P_mt:trim(n)
 	return self.rbuf:trim(n)
+end
+
+
+function P_mt:splice(target, len)
+	local sent = 0
+
+	while true do
+		local err = self:readin(1)
+		if err then
+			if not len and err == errors.CLOSED then
+				break
+			end
+			return err
+		end
+
+		local err, n = target:write(self:value(len and len - sent))
+		if err then return err end
+
+		self:trim(n)
+		sent = sent + n
+		if len then
+			if sent == len then break end
+		end
+	end
+
+	return nil, sent
 end
 
 
