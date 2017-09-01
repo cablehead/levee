@@ -1031,10 +1031,11 @@ return {
 					for req in conn.p.http do conn.p.http:write_response(200, {}, BODY) end
 				end)
 
+				local err, up = h.stream:connect(serve:port())
+
 				local err, proxy = h.stream:listen()
 				proxy:spawn_every(function(down)
 					for req in down.p.http do
-						local err, up = h.stream:connect(serve:port())
 						local err, res = up.p.http:get(req.path, {headers=req.headers})
 						down.p.http:write_response(res.code, res.headers)
 						res.body:splice(down)
@@ -1042,6 +1043,11 @@ return {
 				end)
 
 				local err, conn = h.stream:dial(proxy:port())
+
+				local err, res = conn.p.http:get("/foo")
+				assert.equal(res.code, 200)
+				assert.equal(res.body:tostring(), BODY)
+
 				local err, res = conn.p.http:get("/foo")
 				assert.equal(res.code, 200)
 				assert.equal(res.body:tostring(), BODY)
