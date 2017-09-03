@@ -284,7 +284,6 @@ end
 local function decode_chunk(parser, stream)
 	local err, value = parser:stream_next(stream)
 	if err then return err end
-
 	return nil, tonumber(value[2])
 end
 
@@ -347,6 +346,11 @@ function P_mt:read_response()
 end
 
 
+function P_mt:read_chunk()
+	return decode_chunk(self.parser, self.p)
+end
+
+
 function P_mt:write_request(method, path, params, headers, body)
 	local err = M.encode_request(self.p.wbuf, method, path, params, headers, body)
 	if err then return err end
@@ -390,6 +394,15 @@ end
 
 function P_mt:write_response(status, headers, body)
 	local err = M.encode_response(self.p.wbuf, status, headers, body)
+	if err then return err end
+	local err, n = self.p.io:write(self.p.wbuf:value())
+	self.p.wbuf:trim()
+	return err, n
+end
+
+
+function P_mt:write_chunk(chunk)
+	local err = M.encode_chunk(self.p.wbuf, chunk)
 	if err then return err end
 	local err, n = self.p.io:write(self.p.wbuf:value())
 	self.p.wbuf:trim()
