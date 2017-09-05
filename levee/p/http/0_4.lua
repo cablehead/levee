@@ -310,7 +310,7 @@ function P_Body_mt:tostring()
 	if self.res.len then
 		return self.p:take(self.res.len)
 	end
-	assert("TODO: chunk transfer")
+	assert(false, "TODO: chunk transfer")
 end
 
 
@@ -318,7 +318,7 @@ function P_Body_mt:splice(target)
 	if self.res.len then
 		return self.p:splice(target, self.res.len)
 	end
-	assert("TODO: chunk transfer")
+	assert(false, "TODO: chunk transfer")
 end
 
 
