@@ -1069,27 +1069,52 @@ return {
 
 				local err, serve = h.stream:listen()
 				serve:spawn_every(function(conn)
-					for req in conn.p.http do conn.p.http:write_response(200, {}, BODY) end
+					for req in conn.p.http do
+						if req.path == "/content" then
+							conn.p.http:write_response(200, {}, BODY)
+						else
+							conn.p.http:write_response(200, {})
+							for i = 1, 6 do
+								conn.p.http:write_chunk(("X"):rep(10*1024))
+							end
+							conn.p.http:write_chunk(("X"):rep(4*1024+10))
+							conn.p.http:write_chunk(0)
+						end
+					end
 				end)
 
 				local err, up = h.stream:connect(serve:port())
 
+				-- TODO: think through error handling
 				local err, proxy = h.stream:listen()
 				proxy:spawn_every(function(down)
 					for req in down.p.http do
 						local err, res = up.p.http:get(req.path, {headers=req.headers})
+
 						down.p.http:write_response(res.code, res.headers)
-						res.body:splice(down)
+						if res.len then
+							up.p:splice(down, res.len)
+						else
+							while true do
+								local err, len = up.p.http:read_chunk()
+								if err or len == 0 then
+									break
+								end
+								down.p.http:write_chunk(len)
+								up.p:splice(down, len)
+							end
+							down.p.http:write_chunk(0)
+						end
 					end
 				end)
 
 				local err, conn = h.stream:dial(proxy:port())
 
-				local err, res = conn.p.http:get("/foo")
+				local err, res = conn.p.http:get("/content")
 				assert.equal(res.code, 200)
 				assert.equal(res.body:tostring(), BODY)
 
-				local err, res = conn.p.http:get("/foo")
+				local err, res = conn.p.http:get("/chunked")
 				assert.equal(res.code, 200)
 				assert.equal(res.body:tostring(), BODY)
 			end,

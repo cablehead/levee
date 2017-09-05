@@ -310,7 +310,15 @@ function P_Body_mt:tostring()
 	if self.res.len then
 		return self.p:take(self.res.len)
 	end
-	assert(false, "TODO: chunk transfer")
+
+	-- Don't look at this, still sketching!
+	local ret = {}
+	while true do
+		local err, len = self.p.http:read_chunk()
+		if err or len == 0 then break end
+		table.insert(ret, self.p:take(len))
+	end
+	return table.concat(ret)
 end
 
 
