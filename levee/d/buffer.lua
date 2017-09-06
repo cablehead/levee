@@ -125,13 +125,13 @@ function Buffer_mt:value(off, len)
 		len = off
 		off = 0
 	else
-		off = math.min(off, self.len)
+		if off > self.len then off = self.len end
 	end
 
 	if not len then
 		len = self.len - off
 	else
-		len = math.min(len, self.len - off)
+		if len > self.len - off then len = self.len - off end
 	end
 	return self.buf + self.off + off, len
 end
