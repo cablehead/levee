@@ -2,8 +2,10 @@ local ffi = require("ffi")
 
 local errors = require("levee.errors")
 
+
 local StringStream_mt = {}
 StringStream_mt.__index = StringStream_mt
+
 
 function StringStream_mt:readin()
 	if self.n <= 0 then
@@ -11,15 +13,18 @@ function StringStream_mt:readin()
 	end
 end
 
+
 function StringStream_mt:value()
 	return self.buf, self.n
 end
+
 
 function StringStream_mt:trim(n)
 	assert(self.n >= n)
 	self.buf = self.buf + n
 	self.n = self.n - n
 end
+
 
 function StringStream_mt:peek(n)
 	if n then
@@ -31,13 +36,16 @@ function StringStream_mt:peek(n)
 	return ffi.string(self.buf, n)
 end
 
+
 function StringStream_mt:take(n)
 	local value = self:peek(n)
 	self:trim(#value)
 	return value
 end
 
+
 local ctype_buffer = ffi.typeof("LeveeBuffer")
+
 
 local function StringStream(s, len)
 	local buf, n
@@ -49,6 +57,7 @@ local function StringStream(s, len)
 	end
 	return setmetatable({buf=buf, n=n}, StringStream_mt)
 end
+
 
 local json = require("levee.p.json")
 local msgpack = require("levee.p.msgpack")
@@ -66,6 +75,8 @@ local M = {
 	uri = require("levee.p.uri"),
 	line = require("levee.p.line"),
 	base64 = require("levee.p.base64"),
+
+	StringStream = StringStream,
 }
 
 
