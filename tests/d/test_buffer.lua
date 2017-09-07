@@ -85,4 +85,29 @@ return {
 		assert.equal(check + 9, buf:available())
 		assert.equal(buf:peek(), "01234567899oh hai")
 	end,
+
+	test_butt = function()
+		local buf = d.Buffer()
+		buf:write("xxxfoobar123")
+		buf:trim(3)
+
+		local butt = buf:butt(3)
+
+		assert.equal(#butt, 6)
+		assert.equal(butt:peek(), "bar123")
+		assert.equal(butt:peek(3), "bar")
+		assert.equal(butt:peek(3, 1), "1")
+		assert.equal(butt:peek(3, true), "123")
+
+		butt:write("456")
+		assert.equal(butt:peek(), "bar123456")
+
+		butt:trim(3)
+		assert.equal(buf:peek(), "foo123456")
+		assert.equal(butt:peek(), "123456")
+
+		butt:trim()
+		assert.equal(buf:peek(), "foo")
+		assert.equal(butt:peek(), "")
+	end,
 }

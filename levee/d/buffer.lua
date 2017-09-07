@@ -5,6 +5,69 @@ local C = ffi.C
 local errors = require("levee.errors")
 
 
+local Butt_mt = {}
+Butt_mt.__index = Butt_mt
+
+
+function Butt_mt:__len()
+	return #self.buf - self.off
+end
+
+
+function Butt_mt:peek(off, len)
+	return ffi.string(self:value(off, len))
+end
+
+
+function Butt_mt:value(off, len)
+	if not len then
+		len = off
+		off = 0
+	end
+	return self.buf:value(self.off+off, len or true)
+end
+
+
+function Butt_mt:trim(n)
+	local limit = #self
+
+	if not n or n >= limit then
+		self.buf.len = self.buf.len - limit
+		return limit
+	end
+
+	local start = self.buf.buf + self.buf.off + self.off
+	C.memmove(start, start + n, limit - n)
+	self.buf.len = self.buf.len - n
+	return n
+end
+
+
+function Butt_mt:ensure(...)
+	return self.buf:ensure(...)
+end
+
+
+function Butt_mt:write(...)
+	return self.buf:write(...)
+end
+
+
+function Butt_mt:tail(...)
+	return self.buf:tail(...)
+end
+
+
+function Butt_mt:bump(...)
+	return self.buf:bump(...)
+end
+
+
+local function Butt(buf, off)
+	return setmetatable({buf=buf, off=off}, Butt_mt)
+end
+
+
 local Buffer_mt = {}
 Buffer_mt.__index = Buffer_mt
 
@@ -212,6 +275,11 @@ Buffer_mt.push = Buffer_mt.write
 
 function Buffer_mt:writeinto_iovec(iov)
 	iov:writeraw(self:value())
+end
+
+
+function Buffer_mt:butt(off)
+	return Butt(self, off)
 end
 
 
