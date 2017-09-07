@@ -28,22 +28,13 @@ function P_mt.__index(self, key)
 end
 
 
-function P_mt:take(n)
-	if n then
-		local err, n = self:readin(n)
-		if err then return end
-	end
-	return self.rbuf:take(n)
-end
-
-
 function P_mt:readin(n)
 	return self.io:readinto(self.rbuf, n)
 end
 
 
-function P_mt:value(len)
-	return self.rbuf:value(len)
+function P_mt:value(off, len)
+	return self.rbuf:value(off, len)
 end
 
 
@@ -75,6 +66,25 @@ function P_mt:splice(target, len)
 	end
 
 	return nil, sent
+end
+
+
+function P_mt:tostring(len)
+	while true do
+		local err = self:readin(len)
+		if err then
+			if not len and err == errors.CLOSED then
+				break
+			end
+			return err
+		end
+
+		if len then
+			if #self.rbuf >= len then break end
+		end
+	end
+
+	return nil, self.rbuf:take(len)
 end
 
 

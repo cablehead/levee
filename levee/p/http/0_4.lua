@@ -308,17 +308,20 @@ P_Body_mt.__index = P_Body_mt
 
 function P_Body_mt:tostring()
 	if self.res.len then
-		return self.p:take(self.res.len)
+		return self.p:tostring(self.res.len)
 	end
 
 	-- Don't look at this, still sketching!
 	local ret = {}
 	while true do
 		local err, len = self.p.http:read_chunk()
-		if err or len == 0 then break end
-		table.insert(ret, self.p:take(len))
+		if err then return err end
+		if len == 0 then break end
+		local err, s = self.p:tostring(len)
+		if err then return err end
+		table.insert(ret, s)
 	end
-	return table.concat(ret)
+	return nil, table.concat(ret)
 end
 
 

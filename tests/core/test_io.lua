@@ -968,7 +968,8 @@ return {
 			assert.equal(n, 32*1024-10)
 
 			s2.r.p:readin(32*1024-10)
-			assert.equal(s2.r.p:take(), ("X"):rep(32*1024-10))
+			assert.equal(ffi.string(s2.r.p:value()), ("X"):rep(32*1024-10))
+			s2.r.p:trim()
 
 			local err, n = s1.r.p:splice(s2.w)
 			assert.equal(n, 32*1024+10)
@@ -1012,13 +1013,13 @@ return {
 				assert.equal(req.headers["h1"], "H1")
 				assert.equal(uri.path, "/foo")
 				assert.same(params, {foo="bar"})
-				assert.equal(r.p:take(req.len), "OH HAI")
+				assert.same({r.p:tostring(req.len)}, {nil, "OH HAI"})
 
 				w.p.http:write_response(p.http.status(200), {H2="H2"}, "YARG")
 				local err, res = r.p.http:read_response()
 				assert.equal(res.code, 200)
 				assert.equal(res.headers["h2"], "H2")
-				assert.equal(r.p:take(res.len), "YARG")
+				assert.same({r.p:tostring(res.len)}, {nil, "YARG"})
 			end,
 
 			test_chunk_transfer = function()
@@ -1035,7 +1036,7 @@ return {
 				assert.equal(req.headers["h1"], "H1")
 				assert.equal(uri.path, "/foo")
 				assert.same(params, {foo="bar"})
-				assert.equal(r.p:take(req.len), "OH HAI")
+				assert.same({r.p:tostring(req.len)}, {nil, "OH HAI"})
 
 				-- TODO: with the current write strategy you need to write the first
 				-- chunk before the beginning of the request can be read
@@ -1047,15 +1048,15 @@ return {
 				assert.equal(res.code, 200)
 				assert.equal(res.headers["h2"], "H2")
 				local err, len = r.p.http:read_chunk()
-				assert.equal(r.p:take(len), "YARG")
+				assert.same({r.p:tostring(len)}, {nil, "YARG"})
 
 				w.p.http:write_chunk("YARG")
 				local err, len = r.p.http:read_chunk()
-				assert.equal(r.p:take(len), "YARG")
+				assert.same({r.p:tostring(len)}, {nil, "YARG"})
 
 				w.p.http:write_chunk("YARG")
 				local err, len = r.p.http:read_chunk()
-				assert.equal(r.p:take(len), "YARG")
+				assert.same({r.p:tostring(len)}, {nil, "YARG"})
 
 				w.p.http:write_chunk(0)
 				local err, len = r.p.http:read_chunk()
@@ -1112,11 +1113,11 @@ return {
 
 				local err, res = conn.p.http:get("/content")
 				assert.equal(res.code, 200)
-				assert.equal(res.body:tostring(), BODY)
+				assert.same({res.body:tostring()}, {nil, BODY})
 
 				local err, res = conn.p.http:get("/chunked")
 				assert.equal(res.code, 200)
-				assert.equal(res.body:tostring(), BODY)
+				assert.same({res.body:tostring()}, {nil, BODY})
 			end,
 		},
 	},

@@ -277,7 +277,14 @@ function Msgpack_mt:stream_value(stream)
 		return nil, self.tag.f64
 
 	elseif self.type == C.SP_MSGPACK_STRING then
-		return nil, stream:take(self.tag.count)
+		local buf, len = stream:value()
+		if len < self.tag.count then
+			local err = stream:readin(self.tag.count)
+			if err then return err end
+		end
+		local s = ffi.string(stream:value(), self.tag.count)
+		stream:trim(self.tag.count)
+		return nil, s
 
 	else
 		-- should only be SP_MSGPACK_MAP_END and SP_MSGPACK_ARRAY_END
