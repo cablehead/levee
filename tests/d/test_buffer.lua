@@ -40,6 +40,7 @@ return {
 		assert.equal(ffi.string(buf:value()), "foobar")
 		assert.equal(ffi.string(buf:value(8)), "foobar")
 		assert.equal(ffi.string(buf:value(3)), "foo")
+		assert.equal(ffi.string(buf:value(3, true)), "bar")
 		assert.equal(ffi.string(buf:value(3, 1)), "b")
 		assert.equal(ffi.string(buf:value(5, 2)), "r")
 		assert.equal(ffi.string(buf:value(6, 1)), "")

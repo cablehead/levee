@@ -121,6 +121,10 @@ end
 
 
 function Buffer_mt:value(off, len)
+	if len == true then
+		len = self.len
+	end
+
 	if not len then
 		len = off
 		off = 0
