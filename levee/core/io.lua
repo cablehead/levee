@@ -15,6 +15,9 @@ local MIN_SPLICE_SIZE = 4 * _.pagesize
 --
 -- Protocol conveniences for R / W / RW
 --
+local P_Chunk_mt = {}
+
+
 local P_mt = {}
 
 
@@ -84,8 +87,63 @@ function P_mt:tostring(len)
 		end
 	end
 
-	return nil, self.rbuf:take(len)
+	local s = ffi.string(self:value(len))
+	self:trim(len)
+	return nil, s
 end
+
+
+function P_mt:chunk(len)
+	return setmetatable({p=self, len=len}, P_Chunk_mt)
+end
+
+
+function P_Chunk_mt.__index(self, key)
+	local convenience = p.registered[key]
+	if convenience then
+		self[key] = convenience(self)
+		return self[key]
+	end
+	return P_Chunk_mt[key]
+end
+
+
+function P_Chunk_mt:readin(n)
+	local __, len = self:value()
+
+	if self.len - len <= 0 then
+		return errors.CLOSED
+	end
+
+	return self.p:readin(n)
+end
+
+
+function P_Chunk_mt:value(off, len)
+	if not len then
+		len = off
+		off = 0
+	end
+
+	local limit = self.len - off
+	if not len or len == true or len > limit then
+		len = limit
+	end
+
+	return self.p:value(off, len)
+end
+
+
+function P_Chunk_mt:trim(n)
+	if not n or n > self.len then
+		n = self.len
+	end
+	local n = self.p:trim(n)
+	self.len = self.len - n
+end
+
+
+P_Chunk_mt.tostring = P_mt.tostring
 
 
 --

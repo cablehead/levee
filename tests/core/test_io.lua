@@ -952,6 +952,20 @@ return {
 			assert(not w.p.rbuf)
 		end,
 
+		test_chunk = function()
+			local h = levee.Hub()
+
+			local r, w = h.io:pipe()
+
+			w:write("foobar123")
+
+			local chunk = r.p:chunk(6)
+			assert.same({chunk:tostring()}, {nil, "foobar"})
+			assert.same({chunk:tostring()}, {nil, ""})
+
+			assert.equal(ffi.string(r.p:value()), "123")
+		end,
+
 		test_splice = function()
 			local h = levee.Hub()
 
