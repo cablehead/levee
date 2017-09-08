@@ -240,6 +240,13 @@ local P_mt = {}
 P_mt.__index = P_mt
 
 
+function P_mt:__call()
+	local err, data = self:read()
+	if err then return end
+	return data
+end
+
+
 function P_mt:read()
 	return self.decoder:stream(self.p)
 end

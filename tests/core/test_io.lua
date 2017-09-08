@@ -997,8 +997,7 @@ return {
 				w:write("foobar123")
 
 				local chunk = r.p:chunk(14)
-				local err, got = chunk.json:read()
-				assert.same(want, got)
+				assert.same(want, chunk:json())
 
 				local err, got = chunk.json:read()
 				assert.equal(err, levee.errors.CLOSED)
