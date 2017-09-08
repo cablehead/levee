@@ -643,6 +643,31 @@ return {
 				assert.equal(len, 0)
 			end,
 
+			test_proxy = function()
+				local h = levee.Hub()
+
+				local s1 = {}
+				s1.r, s1.w = h.io:pipe()
+				local s2 = {}
+				s2.r, s2.w = h.io:pipe()
+
+				s1.w.p.http:write_response(200, {H2="H2"})
+				s1.w.p.http:write_chunk("Y")
+				s1.w.p.http:write_chunk("A")
+				s1.w.p.http:write_chunk("R")
+				s1.w.p.http:write_chunk("G")
+				s1.w.p.http:write_chunk(0)
+
+				local err, res = s1.r.p.http:read_response()
+
+				s2.w.p.http:write_response(200, {H2="H2"})
+				res.body:proxy(s2.w)
+
+				local err, res = s2.r.p.http:read_response()
+				local err, s = res.body:tostring()
+				assert.equal(s, "YARG")
+			end,
+
 			test_json = function()
 				local h = levee.Hub()
 
