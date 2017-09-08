@@ -320,7 +320,12 @@ function P_mt:read_request()
 end
 
 
-local function chunk_readin(self, n)
+local function body_content_proxy(self, target)
+	return self:splice(target)
+end
+
+
+local function body_chunk_readin(self, n)
 	local P
 	if self.len > 0 then
 		P = setmetatable(
@@ -338,15 +343,30 @@ local function chunk_readin(self, n)
 end
 
 
+local function body_chunk_proxy(self, target)
+	while true do
+		local err, len = decode_chunk(self.p.http.parser, self.p)
+		if err or len == 0 then
+			break
+		end
+		target.p.http:write_chunk(len)
+		self.p:splice(target, len)
+	end
+	target.p.http:write_chunk(0)
+end
+
+
 function P_mt:read_response()
 	local err, res = decode_response(self.parser, self.p)
 	if err then return err end
 
 	if res.len then
 		res.body = self.p:chunk(res.len)
+		res.body.proxy = body_content_proxy
 	else
 		res.body = self.p:chunk(0)
-		res.body.readin = chunk_readin
+		res.body.readin = body_chunk_readin
+		res.body.proxy = body_chunk_proxy
 	end
 
 	return nil, res

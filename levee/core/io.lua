@@ -50,21 +50,25 @@ function P_mt:splice(target, len)
 	local sent = 0
 
 	while true do
+		local buf, n = self:value(len and len - sent)
+
+		if n > 0 then
+			local err, n = target:write(self:value(len and len - sent))
+			if err then return err end
+
+			self:trim(n)
+			sent = sent + n
+			if len then
+				if sent == len then break end
+			end
+		end
+
 		local err = self:readin(1)
 		if err then
 			if not len and err == errors.CLOSED then
 				break
 			end
 			return err
-		end
-
-		local err, n = target:write(self:value(len and len - sent))
-		if err then return err end
-
-		self:trim(n)
-		sent = sent + n
-		if len then
-			if sent == len then break end
 		end
 	end
 

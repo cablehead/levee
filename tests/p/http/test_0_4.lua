@@ -558,6 +558,20 @@ return {
 				assert.same({r.p:tostring(res.len)}, {nil, "YARG"})
 			end,
 
+			test_proxy = function()
+				local h = levee.Hub()
+
+				local s1 = {}
+				s1.r, s1.w = h.io:pipe()
+				local s2 = {}
+				s2.r, s2.w = h.io:pipe()
+
+				s1.w.p.http:write_response(200, {H2="H2"}, "YARG")
+				local err, res = s1.r.p.http:read_response()
+				res.body:proxy(s2.w)
+				assert.equal(s2.r:reads(), "YARG")
+			end,
+
 			test_json = function()
 				local h = levee.Hub()
 
@@ -686,21 +700,8 @@ return {
 			proxy:spawn_every(function(down)
 				for req in down.p.http do
 					local err, res = up.p.http:get(req.path, {headers=req.headers})
-
 					down.p.http:write_response(res.code, res.headers)
-					if res.len then
-						up.p:splice(down, res.len)
-					else
-						while true do
-							local err, len = up.p.http:read_chunk()
-							if err or len == 0 then
-								break
-							end
-							down.p.http:write_chunk(len)
-							up.p:splice(down, len)
-						end
-						down.p.http:write_chunk(0)
-					end
+					res.body:proxy(down)
 				end
 			end)
 
