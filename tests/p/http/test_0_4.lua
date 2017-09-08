@@ -557,6 +557,34 @@ return {
 				assert.equal(res.headers["h2"], "H2")
 				assert.same({r.p:tostring(res.len)}, {nil, "YARG"})
 			end,
+
+			test_json = function()
+				local h = levee.Hub()
+
+				local r, w = h.io:pipe()
+
+				local chunks = {
+					'{"int": 3, "f',
+					'oo": "bar", "neste',
+					'd": {"null": null, "alist": ',
+					'[1, 2, 3], "yes": tr',
+					'ue, "no": false}}{',
+					'"foo": "bar"}}', }
+
+				w.p.http:write_response(200, {}, table.concat(chunks))
+
+				local err, res = r.p.http:read_response()
+				assert.equal(res.code, 200)
+
+				local value = res.body:json()
+				assert.same(value, {
+					int = 3,
+					foo = "bar",
+					nested = {
+						alist = {1, 2, 3},
+						yes = true,
+						no = false, } })
+			end,
 		},
 
 		chunk = {
