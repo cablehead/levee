@@ -346,12 +346,18 @@ end
 local function body_chunk_proxy(self, target)
 	while true do
 		local err, len = decode_chunk(self.p.http.parser, self.p)
-		if err or len == 0 then
-			break
+
+		if err then
+			target:close()
+			return err
 		end
+
+		if len == 0 then break end
+
 		target.p.http:write_chunk(len)
 		self.p:splice(target, len)
 	end
+
 	target.p.http:write_chunk(0)
 end
 
