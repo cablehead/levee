@@ -554,8 +554,7 @@ return {
 				local err, res = r.p.http:read_response()
 				assert.equal(res.code, 200)
 
-				local err, value = res.body:json()
-				assert(not err)
+				local value = res.body:json()
 				assert.same(value, {
 					int = 3,
 					foo = "bar",
