@@ -967,6 +967,26 @@ return {
 				assert.equal(ffi.string(r.p:value()), "123")
 			end,
 
+			test_splice = function()
+				local h = levee.Hub()
+
+				local s1 = {}
+				s1.r, s1.w = h.io:pipe()
+
+				local s2 = {}
+				s2.r, s2.w = h.io:pipe()
+
+				s1.w:write("foobar123")
+
+				local chunk = s1.r.p:chunk(6)
+				chunk:splice(s2.w)
+				s2.w:close()
+
+				assert.same({s2.r.p:tostring()}, {nil, "foobar"})
+				assert.same({s2.r.p:tostring()}, {nil, ""})
+				assert.equal(ffi.string(s1.r.p:value()), "123")
+			end,
+
 			test_json = function()
 				local h = levee.Hub()
 

@@ -144,6 +144,7 @@ end
 
 
 P_Chunk_mt.tostring = P_mt.tostring
+P_Chunk_mt.splice = P_mt.splice
 
 
 --
