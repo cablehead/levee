@@ -1165,13 +1165,15 @@ return {
 
 				local err, conn = h.stream:dial(proxy:port())
 
-				local err, res = conn.p.http:get("/content")
-				assert.equal(res.code, 200)
-				assert.same({res.body:tostring()}, {nil, BODY})
+				for i = 1, 2 do
+					local err, res = conn.p.http:get("/content")
+					assert.equal(res.code, 200)
+					assert.same({res.body:tostring()}, {nil, BODY})
 
-				local err, res = conn.p.http:get("/chunked")
-				assert.equal(res.code, 200)
-				assert.same({res.body:tostring()}, {nil, BODY})
+					local err, res = conn.p.http:get("/chunked")
+					assert.equal(res.code, 200)
+					assert.same({res.body:tostring()}, {nil, BODY})
+				end
 			end,
 		},
 	},

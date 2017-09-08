@@ -1,5 +1,7 @@
 local ffi = require('ffi')
 local C = ffi.C
+
+local errors = require("levee.errors")
 local meta = require("levee.meta")
 local Map = require("levee.d.map")
 local Uri = require("levee.p.uri")
@@ -300,38 +302,7 @@ local M = {
 }
 
 
--- io conveniences, still sketching
-
-local P_Body_mt = {}
-P_Body_mt.__index = P_Body_mt
-
-
-function P_Body_mt:tostring()
-	if self.res.len then
-		return self.p:tostring(self.res.len)
-	end
-
-	-- Don't look at this, still sketching!
-	local ret = {}
-	while true do
-		local err, len = self.p.http:read_chunk()
-		if err then return err end
-		if len == 0 then break end
-		local err, s = self.p:tostring(len)
-		if err then return err end
-		table.insert(ret, s)
-	end
-	return nil, table.concat(ret)
-end
-
-
-function P_Body_mt:splice(target)
-	if self.res.len then
-		return self.p:splice(target, self.res.len)
-	end
-	assert(false, "TODO: chunk transfer")
-end
-
+-- io conveniences
 
 local P_mt = {}
 P_mt.__index = P_mt
@@ -349,10 +320,35 @@ function P_mt:read_request()
 end
 
 
+local function chunk_readin(self, n)
+	local P
+	if self.len > 0 then
+		P = setmetatable(
+			{io=self.p.io, rbuf=self.p.rbuf:butt(self.len)}, getmetatable(self.p))
+	else
+		P = self.p
+	end
+	local err, len = decode_chunk(self.p.http.parser, P)
+	if err then return err end
+	if len == 0 then
+		return errors.CLOSED
+	else
+		self.len = self.len + len
+	end
+end
+
+
 function P_mt:read_response()
 	local err, res = decode_response(self.parser, self.p)
 	if err then return err end
-	res.body = setmetatable({p=self.p, res=res}, P_Body_mt)
+
+	if res.len then
+		res.body = self.p:chunk(res.len)
+	else
+		res.body = self.p:chunk(0)
+		res.body.readin = chunk_readin
+	end
+
 	return nil, res
 end
 

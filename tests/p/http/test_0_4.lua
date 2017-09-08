@@ -1,4 +1,6 @@
 local ffi = require('ffi')
+
+local levee = require("levee")
 local meta = require("levee.meta")
 local HTTP = require("levee.p.http.0_4")
 local Buffer = require("levee.d.buffer")
@@ -531,4 +533,37 @@ return {
 		assert(not err)
 		assert.equal(n, 0)
 	end,
+
+	p = {
+		chunk = {
+			test_json = function()
+				local h = levee.Hub()
+
+				local r, w = h.io:pipe()
+
+				w.p.http:write_response(200, {})
+				local chunks = {
+					'{"int": 3, "f',
+					'oo": "bar", "neste',
+					'd": {"null": null, "alist": ',
+					'[1, 2, 3], "yes": tr',
+					'ue, "no": false}}{',
+					'"foo": "bar"}}', }
+				for __, chunk in pairs(chunks) do w.p.http:write_chunk(chunk) end
+
+				local err, res = r.p.http:read_response()
+				assert.equal(res.code, 200)
+
+				local err, value = res.body:json()
+				assert(not err)
+				assert.same(value, {
+					int = 3,
+					foo = "bar",
+					nested = {
+						alist = {1, 2, 3},
+						yes = true,
+						no = false, } })
+			end,
+		},
+	},
 }
