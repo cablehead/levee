@@ -535,7 +535,72 @@ return {
 	end,
 
 	p = {
+		content = {
+			test_core = function()
+				local h = levee.Hub()
+
+				local r, w = h.io:pipe()
+
+				w.p.http:write_request("POST", "/foo", {foo="bar"}, {H1="H1"}, "OH HAI")
+				local err, req = r.p.http:read_request()
+				local err, uri = req:uri()
+				local err, params = uri:params()
+				assert.equal(req.method, "POST")
+				assert.equal(req.headers["h1"], "H1")
+				assert.equal(uri.path, "/foo")
+				assert.same(params, {foo="bar"})
+				assert.same({r.p:tostring(req.len)}, {nil, "OH HAI"})
+
+				w.p.http:write_response(200, {H2="H2"}, "YARG")
+				local err, res = r.p.http:read_response()
+				assert.equal(res.code, 200)
+				assert.equal(res.headers["h2"], "H2")
+				assert.same({r.p:tostring(res.len)}, {nil, "YARG"})
+			end,
+		},
+
 		chunk = {
+			test_core = function()
+				local h = levee.Hub()
+
+				local r, w = h.io:pipe()
+
+				-- TODO: test using chunk encoding for request
+				w.p.http:write_request("POST", "/foo", {foo="bar"}, {H1="H1"}, "OH HAI")
+				local err, req = r.p.http:read_request()
+				local err, uri = req:uri()
+				local err, params = uri:params()
+				assert.equal(req.method, "POST")
+				assert.equal(req.headers["h1"], "H1")
+				assert.equal(uri.path, "/foo")
+				assert.same(params, {foo="bar"})
+				assert.same({r.p:tostring(req.len)}, {nil, "OH HAI"})
+
+				-- TODO: with the current write strategy you need to write the first
+				-- chunk before the beginning of the request can be read
+				-- Not sure how much of a concern that is
+				w.p.http:write_response(200, {H2="H2"}, nil)
+				w.p.http:write_chunk("YARG")
+
+				local err, res = r.p.http:read_response()
+				assert.equal(res.code, 200)
+				assert.equal(res.headers["h2"], "H2")
+				local err, len = r.p.http:read_chunk()
+				assert.same({r.p:tostring(len)}, {nil, "YARG"})
+
+				w.p.http:write_chunk("YARG")
+				local err, len = r.p.http:read_chunk()
+				assert.same({r.p:tostring(len)}, {nil, "YARG"})
+
+				w.p.http:write_chunk("YARG")
+				local err, len = r.p.http:read_chunk()
+				assert.same({r.p:tostring(len)}, {nil, "YARG"})
+
+				w.p.http:write_chunk(0)
+				local err, len = r.p.http:read_chunk()
+				assert.equal(len, 0)
+			end,
+
 			test_json = function()
 				local h = levee.Hub()
 
@@ -564,5 +629,64 @@ return {
 						no = false, } })
 			end,
 		},
+
+		test_proxy = function()
+			local h = levee.Hub()
+
+			local BODY = ("X"):rep(64*1024+10)
+
+			local err, serve = h.stream:listen()
+			serve:spawn_every(function(conn)
+				for req in conn.p.http do
+					if req.path == "/content" then
+						conn.p.http:write_response(200, {}, BODY)
+					else
+						conn.p.http:write_response(200, {})
+						for i = 1, 6 do
+							conn.p.http:write_chunk(("X"):rep(10*1024))
+						end
+						conn.p.http:write_chunk(("X"):rep(4*1024+10))
+						conn.p.http:write_chunk(0)
+					end
+				end
+			end)
+
+			local err, up = h.stream:connect(serve:port())
+
+			-- TODO: think through error handling
+			local err, proxy = h.stream:listen()
+			proxy:spawn_every(function(down)
+				for req in down.p.http do
+					local err, res = up.p.http:get(req.path, {headers=req.headers})
+
+					down.p.http:write_response(res.code, res.headers)
+					if res.len then
+						up.p:splice(down, res.len)
+					else
+						while true do
+							local err, len = up.p.http:read_chunk()
+							if err or len == 0 then
+								break
+							end
+							down.p.http:write_chunk(len)
+							up.p:splice(down, len)
+						end
+						down.p.http:write_chunk(0)
+					end
+				end
+			end)
+
+			local err, conn = h.stream:dial(proxy:port())
+
+			for i = 1, 2 do
+				local err, res = conn.p.http:get("/content")
+				assert.equal(res.code, 200)
+				assert.same({res.body:tostring()}, {nil, BODY})
+
+				local err, res = conn.p.http:get("/chunked")
+				assert.equal(res.code, 200)
+				assert.same({res.body:tostring()}, {nil, BODY})
+			end
+		end,
 	},
 }
