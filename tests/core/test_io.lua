@@ -952,19 +952,40 @@ return {
 			assert(not w.p.rbuf)
 		end,
 
-		test_chunk = function()
-			local h = levee.Hub()
 
-			local r, w = h.io:pipe()
+		chunk = {
+			test_tostring = function()
+				local h = levee.Hub()
 
-			w:write("foobar123")
+				local r, w = h.io:pipe()
 
-			local chunk = r.p:chunk(6)
-			assert.same({chunk:tostring()}, {nil, "foobar"})
-			assert.same({chunk:tostring()}, {nil, ""})
+				w:write("foobar123")
 
-			assert.equal(ffi.string(r.p:value()), "123")
-		end,
+				local chunk = r.p:chunk(6)
+				assert.same({chunk:tostring()}, {nil, "foobar"})
+				assert.same({chunk:tostring()}, {nil, ""})
+				assert.equal(ffi.string(r.p:value()), "123")
+			end,
+
+			test_json = function()
+				local h = levee.Hub()
+
+				local r, w = h.io:pipe()
+
+				local want = {foo="bar"}
+				w.p.json:write(want)
+				w:write("foobar123")
+
+				local chunk = r.p:chunk(14)
+				local err, got = chunk.json:read()
+				assert.same(want, got)
+
+				local err, got = chunk.json:read()
+				assert.equal(err, levee.errors.CLOSED)
+
+				assert.equal(ffi.string(r.p:value()), "foobar123")
+			end,
+		},
 
 		test_splice = function()
 			local h = levee.Hub()
