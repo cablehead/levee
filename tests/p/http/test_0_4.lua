@@ -685,11 +685,11 @@ return {
 
 				s2.w.p.http:write_response(200, {H2="H2"})
 				local err = res.body:proxy(s2.w)
-				assert.equal(err, levee.errors.CLOSED)
+				assert.equal(err, levee.errors.http.ESYNTAX)
 
 				local err, res = s2.r.p.http:read_response()
 				local err, s = res.body:tostring()
-				assert.equal(err, levee.errors.CLOSED)
+				assert.equal(err, levee.errors.http.ESYNTAX)
 			end,
 
 			test_json = function()

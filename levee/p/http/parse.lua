@@ -118,7 +118,12 @@ function Parser_mt:stream_next(stream)
 	end
 
 	local err, n = stream:readin()
-	if err then return err end
+	if err then
+		if err == errors.CLOSED then
+			return errors.http.ESYNTAX
+		end
+		return err
+	end
 	return self:stream_next(stream)
 end
 
