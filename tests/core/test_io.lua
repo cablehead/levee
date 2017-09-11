@@ -1035,8 +1035,11 @@ return {
 			local s2 = {}
 			s2.r, s2.w = h.io:pipe()
 
-			s1.w:write(("X"):rep(64*1024))
-			s1.w:close()
+			h:spawn(function()
+				local err, n = s1.w:write(("X"):rep(128*1024))
+				assert.equal(n, 128*1024)
+				s1.w:close()
+			end)
 
 			s1.r.p:readin(1)
 			local err, n = s1.r.p:splice(s2.w, 32*1024-10)
@@ -1046,8 +1049,14 @@ return {
 			assert.equal(ffi.string(s2.r.p:value()), ("X"):rep(32*1024-10))
 			s2.r.p:trim()
 
-			local err, n = s1.r.p:splice(s2.w)
-			assert.equal(n, 32*1024+10)
+			h:spawn(function()
+				local err, n = s1.r.p:splice(s2.w)
+				assert.equal(n, 96*1024+10)
+				s2.w:close()
+			end)
+
+			local err, s = s2.r.p:tostring()
+			assert.equal(s, ("X"):rep(96*1024+10))
 		end,
 
 		test_msgpack = function()
