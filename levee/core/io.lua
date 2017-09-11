@@ -50,25 +50,21 @@ function P_mt:splice(target, len)
 	local sent = 0
 
 	while true do
-		local buf, n = self:value(len and len - sent)
-
-		if n > 0 then
-			local err, n = target:write(self:value(len and len - sent))
-			if err then return err end
-
-			self:trim(n)
-			sent = sent + n
-			if len then
-				if sent == len then break end
-			end
-		end
-
 		local err = self:readin(1)
 		if err then
 			if not len and err == errors.CLOSED then
 				break
 			end
 			return err
+		end
+
+		local err, n = target:write(self:value(len and len - sent))
+		if err then return err end
+
+		self:trim(n)
+		sent = sent + n
+		if len then
+			if sent == len then break end
 		end
 	end
 
@@ -113,10 +109,20 @@ end
 
 
 function P_Chunk_mt:readin(n)
+	if self.len <= 0 then
+		return errors.CLOSED
+	end
+
 	local __, len = self:value()
 
-	if self.len - len <= 0 then
-		return errors.CLOSED
+	if n then
+		if n > self.len then n = self.len end
+		if n <= len then return end
+
+	else
+		if self.len - len <= 0 then
+			return errors.CLOSED
+		end
 	end
 
 	return self.p:readin(n)
