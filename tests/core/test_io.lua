@@ -181,12 +181,11 @@ return {
 		test_write_string = function()
 			local h = levee.Hub()
 
-			local S = ("X"):rep(128*1024)
-
 			local r, w = h.io:pipe()
 
 			h:spawn(function()
-				local err = w:write(S)
+				local err = w:write(("X"):rep(128*1024))
+				assert.equal(err, nil)
 				w:close()
 			end)
 
@@ -197,7 +196,7 @@ return {
 				if err then break end
 				buf:bump(n)
 			end
-			assert.equal(buf:take(), S)
+			assert.equal(buf:take(), ("X"):rep(128*1024))
 		end,
 
 		test_writev = function()
