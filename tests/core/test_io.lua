@@ -178,6 +178,28 @@ return {
 			assert(not h:in_use())
 		end,
 
+		test_write_string = function()
+			local h = levee.Hub()
+
+			local S = ("X"):rep(128*1024)
+
+			local r, w = h.io:pipe()
+
+			h:spawn(function()
+				local err = w:write(S)
+				w:close()
+			end)
+
+			local buf = d.Buffer()
+			while true do
+				buf:ensure(4096)
+				local err, n = r:read(buf:tail())
+				if err then break end
+				buf:bump(n)
+			end
+			assert.equal(buf:take(), S)
+		end,
+
 		test_writev = function()
 			local h = levee.Hub()
 

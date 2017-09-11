@@ -338,14 +338,18 @@ function W_mt:write(buf, len)
 		len = #buf
 	end
 
+	local src
+
 	if type(buf) == "string" then
-		buf = ffi.cast("char*", buf)
+		src = ffi.cast("char*", buf)
+	else
+		src = buf
 	end
 
 	local sent = 0
 
 	while true do
-		local err, n = _.write(self.no, buf + sent, len - sent)
+		local err, n = _.write(self.no, src + sent, len - sent)
 
 		if err and not err.is_system_EAGAIN then
 			self:close()
