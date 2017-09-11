@@ -147,7 +147,14 @@ function P_Chunk_mt:trim(n)
 end
 
 
-P_Chunk_mt.tostring = P_mt.tostring
+function P_Chunk_mt.tostring(self, len)
+	local err, s = P_mt.tostring(self, len)
+	if err then return err end
+	if self.len > 0 then return errors.CLOSED end
+	return nil, s
+end
+
+
 P_Chunk_mt.splice = P_mt.splice
 
 

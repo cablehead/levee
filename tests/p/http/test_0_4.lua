@@ -684,7 +684,8 @@ return {
 				local err, res = s1.r.p.http:read_response()
 
 				s2.w.p.http:write_response(200, {H2="H2"})
-				res.body:proxy(s2.w)
+				local err = res.body:proxy(s2.w)
+				assert.equal(err, levee.errors.CLOSED)
 
 				local err, res = s2.r.p.http:read_response()
 				local err, s = res.body:tostring()
