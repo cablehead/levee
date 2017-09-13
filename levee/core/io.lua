@@ -1104,18 +1104,18 @@ function IO_mt:pipe(timeout)
 end
 
 
-function IO_mt:open(name, ...)
-	local err, no, mode = _.open(name, ...)
+function IO_mt:open(name, oflag, mode)
+	local err, no, oflag = _.open(name, oflag, mode)
 	if err then return err end
 
-	if bit.band(C.O_WRONLY, mode) > 0 then
+	if bit.band(C.O_WRONLY, oflag) > 0 then
 		local m = setmetatable({hub = self.hub, no = no}, W_mt)
 		local __
 		__, m.w_ev = self.hub:register_nopoll(no, false, true)
 		return nil, m
 	end
 
-	if bit.band(C.O_RDWR, mode) > 0 then
+	if bit.band(C.O_RDWR, oflag) > 0 then
 		local m = setmetatable({hub = self.hub, no = no}, RW_mt)
 		m.r_ev, m.w_ev = self.hub:register_nopoll(no, true, true)
 		return nil, m

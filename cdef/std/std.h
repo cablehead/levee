@@ -17,7 +17,6 @@ int pipe(int pipefd[2]);
 int open(const char *path, int oflag, ...);
 int dup2(int fd1, int fd2);
 
-
 static const int F_OK = 0;
 int access(const char *path, int amode);
 

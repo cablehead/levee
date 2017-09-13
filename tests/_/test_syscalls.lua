@@ -23,7 +23,7 @@ return {
 	end,
 
 	test_open_stat_fstat = function()
-		local err, no = _.open("foo121", C.O_RDONLY, C.O_NONBLOCK)
+		local err, no = _.open("foo121")
 		assert(err)
 		local err, info = _.stat("foo121")
 		assert(err)
@@ -31,7 +31,7 @@ return {
 		assert(err)
 
 		local path = os.tmpname()
-		local err, no = _.open(path, C.O_RDONLY, C.O_NONBLOCK)
+		local err, no = _.open(path)
 		assert(not err)
 		local err, info = _.stat(path)
 		assert(not err)
@@ -41,9 +41,10 @@ return {
 		assert(not err)
 		assert(info:is_reg())
 		assert(not info:is_dir())
+		_.close(no)
 
 		local dir = _.path.dirname(path)
-		local err, no = _.open(dir, C.O_RDONLY, C.O_NONBLOCK)
+		local err, no = _.open(dir)
 		assert(not err)
 		local err, info = _.stat(dir)
 		assert(not err)
@@ -53,6 +54,16 @@ return {
 		assert(not err)
 		assert(not info:is_reg())
 		assert(info:is_dir())
+		_.close(no)
+
+		os.remove(path)
+
+		local err, no = _.open(path, "w+", "0600")
+		assert(not err)
+		local err, info = _.stat(path)
+		assert(not err)
+		assert.equal(info:mode(), "600")
+		_.close(no)
 
 		os.remove(path)
 	end,

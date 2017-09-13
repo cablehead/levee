@@ -25,6 +25,11 @@ function Stat_mt:is_dir()
 end
 
 
+function Stat_mt:mode()
+	return ("%o"):format(bit.band(self.st_mode, tonumber("777", 8)))
+end
+
+
 function Stat_mt:size()
 	return tonumber(self.st_size)
 end
@@ -147,7 +152,7 @@ local _ = {}
 _.pagesize = C.getpagesize()
 
 
-_.open_modes = {
+_.open_oflag = {
 	["r"]   = C.O_RDONLY,
 	["r+"]  = C.O_RDWR,
 	["w"]   = bit.bor(C.O_WRONLY, C.O_TRUNC),
@@ -163,19 +168,22 @@ _.open_modes = {
 }
 
 
-_.open = function(path, mode, ...)
-	if type(mode) == "string" then
-		mode = _.open_modes[mode]
-		if not mode then
+_.open = function(path, oflag, mode)
+	oflag = oflag or C.O_RDONLY
+	if type(oflag) == "string" then
+		oflag = _.open_oflag[oflag]
+		if not oflag then
 			return errors.system.EINVAL
 		end
-	elseif mode ~= nil then
-		mode = bit.bor(mode, ...)
-	else
-		mode = C.O_RDONLY
 	end
-	local no = C.open(path, mode)
-	if no > 0 then return nil, no, mode end
+
+	mode = mode or "666"
+	if type(mode) == "string" then
+		mode = tonumber(mode, 8)
+	end
+
+	local no = C.open(path, oflag, ffi.cast("int", mode))
+	if no > 0 then return nil, no, oflag end
 	return errors.get(ffi.errno())
 end
 
