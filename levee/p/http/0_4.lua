@@ -332,7 +332,11 @@ local function body_chunk_readin(self, n)
 	end
 
 	if have < self.len then
-		return self.p:readin(n)
+		local err = self.p:readin(n)
+		if err == errors.CLOSED then
+			err = errors.http.ESYNTAX
+		end
+		return err
 	end
 
 	local P
