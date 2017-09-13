@@ -4,6 +4,9 @@ local io = require("io")
 local ffi = require("ffi")
 local C = ffi.load("tls")
 
+local d = require("levee.d")
+local p = require("levee.p")
+
 
 ffi.cdef([[
 static const int TLS_API = 20141031;
@@ -164,12 +167,20 @@ end
 -- Upgraded Read / Write Connection
 --
 
-local IO_RW_mt = require("levee.core.io")().RW_mt
+local IO = require("levee.core.io")()
 
 
 local RW_mt = {}
-for k, v in pairs(IO_RW_mt) do RW_mt[k] = v end
-RW_mt.__index = RW_mt
+
+for k, v in pairs(IO.RW_mt) do RW_mt[k] = v end
+
+function RW_mt.__index(self, key)
+	if key == "p" then
+		self.p = setmetatable({hub=self.hub, io=self, rbuf=d.Buffer(4096), wbuf=d.Buffer(4096)}, IO.P_mt)
+		return self.p
+	end
+	return RW_mt[key]
+end
 
 
 function RW_mt:__WANT_POLL(rc, grace)
@@ -294,7 +305,7 @@ function RW_mt:close()
 
 	-- clear closed so super:close will run
 	self.closed = nil
-	return IO_RW_mt.close(self)
+	return IO.RW_mt.close(self)
 end
 
 

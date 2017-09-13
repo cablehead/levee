@@ -1161,6 +1161,7 @@ IO_mt.W_mt = W_mt
 IO_mt.RW_mt = RW_mt
 IO_mt.Stream_mt = Stream_mt
 IO_mt.Chunk_mt = Chunk_mt
+IO_mt.P_mt = P_mt
 
 
 return function(hub)
