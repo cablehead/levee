@@ -643,6 +643,38 @@ return {
 				assert.equal(len, 0)
 			end,
 
+			test_splice = function()
+				local h = levee.Hub()
+
+				local s1 = {}
+				s1.r, s1.w = h.io:pipe()
+				local s2 = {}
+				s2.r, s2.w = h.io:pipe()
+
+				h:spawn(function()
+					s1.w.p.http:write_response(200, {})
+					for i = 1, 6 do
+						s1.w.p.http:write_chunk(("X"):rep(10*1024))
+					end
+					s1.w.p.http:write_chunk(("X"):rep(4*1024+10))
+					s1.w.p.http:write_chunk(0)
+				end)
+
+				local err, res = s1.r.p.http:read_response()
+				h:spawn(function()
+					res.body:splice(s2.w)
+					s2.w:close()
+				end)
+
+				while true do
+					local err = s2.r.p:readin()
+					if err then break end
+				end
+
+				local err, s = s2.r.p:tostring()
+				assert.equal(s, ("X"):rep(64*1024+10))
+			end,
+
 			test_proxy = function()
 				local h = levee.Hub()
 
@@ -721,7 +753,7 @@ return {
 			end,
 		},
 
-		test_proxy = function()
+		test_complex = function()
 			local h = levee.Hub()
 
 			local BODY = ("X"):rep(64*1024+10)
@@ -756,15 +788,35 @@ return {
 
 			local err, conn = h.stream:dial(proxy:port())
 
-			for i = 1, 2 do
-				local err, res = conn.p.http:get("/content")
-				assert.equal(res.code, 200)
-				assert.same({res.body:tostring()}, {nil, BODY})
+			local err, res = conn.p.http:get("/content")
+			assert.equal(res.code, 200)
+			assert.same({res.body:tostring()}, {nil, BODY})
 
-				local err, res = conn.p.http:get("/chunked")
-				assert.equal(res.code, 200)
-				assert.same({res.body:tostring()}, {nil, BODY})
+			local err, res = conn.p.http:get("/chunked")
+			assert.equal(res.code, 200)
+			assert.same({res.body:tostring()}, {nil, BODY})
+
+			local function cat(path)
+				local f = io.open(path, "rb")
+				local content = f:read("*all")
+				f:close()
+				return content
 			end
+
+			local tmp = os.tmpname()
+			defer(function() os.remove(tmp) end)
+
+			os.remove(tmp)
+			local err, res = conn.p.http:get("/content")
+			assert.equal(res.code, 200)
+			res.body:save(tmp)
+			assert.equal(cat(tmp), BODY)
+
+			os.remove(tmp)
+			local err, res = conn.p.http:get("/chunked")
+			assert.equal(res.code, 200)
+			res.body:save(tmp)
+			assert.equal(cat(tmp), BODY)
 		end,
 	},
 }

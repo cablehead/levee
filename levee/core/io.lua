@@ -72,6 +72,15 @@ function P_mt:splice(target, len)
 end
 
 
+function P_mt:save(name, len)
+	local err, w = self.hub.io:open(name, "w+")
+	if err then return err end
+	local err, sent = self:splice(w, len)
+	w:close()
+	return err, sent
+end
+
+
 function P_mt:tostring(len)
 	while true do
 		local err = self:readin(len)
@@ -94,7 +103,7 @@ end
 
 
 function P_mt:chunk(len)
-	return setmetatable({p=self, len=len}, P_Chunk_mt)
+	return setmetatable({hub=self.hub, p=self, len=len}, P_Chunk_mt)
 end
 
 
@@ -163,6 +172,7 @@ end
 
 P_Chunk_mt.tostring = P_mt.tostring
 P_Chunk_mt.splice = P_mt.splice
+P_Chunk_mt.save = P_mt.save
 
 
 --
@@ -173,7 +183,7 @@ local R_mt = {}
 
 function R_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({io=self, rbuf=d.Buffer(4096)}, P_mt)
+		self.p = setmetatable({hub=self.hub, io=self, rbuf=d.Buffer(4096)}, P_mt)
 		return self.p
 	end
 	return R_mt[key]
@@ -335,7 +345,7 @@ local W_mt = {}
 
 function W_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({io=self, wbuf=d.Buffer(4096)}, P_mt)
+		self.p = setmetatable({hub=self.hub, io=self, wbuf=d.Buffer(4096)}, P_mt)
 		return self.p
 	end
 	return W_mt[key]
@@ -513,7 +523,7 @@ local RW_mt = {}
 
 function RW_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({io=self, rbuf=d.Buffer(4096), wbuf=d.Buffer(4096)}, P_mt)
+		self.p = setmetatable({hub=self.hub, io=self, rbuf=d.Buffer(4096), wbuf=d.Buffer(4096)}, P_mt)
 		return self.p
 	end
 	return RW_mt[key]

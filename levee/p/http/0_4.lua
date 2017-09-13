@@ -326,6 +326,15 @@ end
 
 
 local function body_chunk_readin(self, n)
+	local __, have = self:value()
+	if n then
+		if n - have <= 0 then return end
+	end
+
+	if have < self.len then
+		return self.p:readin(n)
+	end
+
 	local P
 	if self.len > 0 then
 		P = setmetatable(
