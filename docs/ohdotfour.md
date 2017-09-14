@@ -71,13 +71,32 @@ And here's JSON:
     local err, data = r.p.json:read()
 ```
 
-There's some basic conveniences you can power up anything that offers the
+There are some basic conveniences you can power up anything that offers the
 stream interface. The `.p` attribute offers these methods as well:
 
 - local err, s = r.p:tostring([len])
 - local err = r.p:splice(target, [len])
 - local err = r.p:save(name, [len])
 
-HTTP is now just a Protocol Convenience
----------------------------------------
+HTTP is now just a Protocol Convenience!
+----------------------------------------
 
+This has a bunch of advantages. It gave us a chance to rework the API for HTTP,
+and I think it's a lot easier to work with now.
+
+Writing and reading requests and responses are now decoupled from each other.
+An example use case when this is useful is if you capture all HTTP requests
+made to your system, and then tee those requests to a service that processes
+the requests for some sort of analysis.  It doesn't make sense to have to
+respond to these requests, you just want to be able to parse the stream of
+requests.
+
+Note how in the follow example you can work with the HTTP protocol with a file
+descriptor paired pipe. Using HTTP is independent of establishing a connection.
+
+```lua
+    local h = levee.Hub()
+    local r, w = h.io:pipe()
+    local err = w.p.http:write_request("GET", "/oh-hai")
+    local err, req = r.p:http:read_request()
+```
