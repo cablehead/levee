@@ -31,7 +31,7 @@ and a d.Buffer. So, a way to read additional bytes from a source and a
 temporary reusable scratch pad of memory. When paired together it makes it
 possible to parse an incoming stream bytes in a memory efficient way.
 
-A stream is any thing that provides the following interface:
+A stream is anything that provides the following interface:
 
 - :readin([n])
 - :value()
