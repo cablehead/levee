@@ -98,14 +98,22 @@ local function Options(port, host, timeout, connect_timeout)
 		local err, uri = p.uri(port)
 		if not err and uri.host then
 			local options = {
+				scheme = uri.scheme,
 				host = uri.host,
 				port = uri.port or uri.scheme,
 				}
+
 			if host then
 				for k, v in pairs(host) do
 					options[k] = v
 				end
 			end
+
+			if options.scheme == "https" then
+				options.tls = options.tls or {}
+				options.tls.server_name = options.tls.server_name or options.host
+			end
+
 			return options
 		end
 	end
