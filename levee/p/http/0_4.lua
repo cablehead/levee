@@ -398,6 +398,11 @@ end
 
 
 function P_mt:write_request(method, path, params, headers, body)
+	headers = headers or {}
+	if self.options.Host and not headers.Host then
+		headers.Host = self.options.Host
+	end
+
 	local err = M.encode_request(self.p.wbuf, method, path, params, headers, body)
 	if err then return err end
 	local err, n = self.p.io:write(self.p.wbuf:value())
@@ -457,7 +462,24 @@ end
 
 
 function M.io(p)
-	return setmetatable({p=p, parser=M.Parser()}, P_mt)
+	local self = setmetatable({p=p, parser=M.Parser()}, P_mt)
+
+	self.options = {}
+
+	if self.p.options and self.p.options.host then
+		local host = self.p.options.host
+		local port = self.p.options.port
+
+		if port then
+			port = tonumber(port)
+			if port ~= 80 or port ~= 443 then
+				host = ("%s:%s"):format(host, port)
+			end
+		end
+		self.options.Host = host
+	end
+
+	return self
 end
 
 

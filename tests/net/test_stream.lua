@@ -121,6 +121,7 @@ return {
 		local err, serve = h.stream:listen()
 		local err, c = h.stream:connect(("tcp://localhost:%s"):format(serve:port()))
 		assert(not err)
+		assert.equal(c.options.host, "localhost")
 		serve:recv()
 	end,
 }

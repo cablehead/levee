@@ -125,6 +125,8 @@ TCP_mt.__index = TCP_mt
 function TCP_mt:dial(port, host, timeout, connect_timeout)
 	local options = Options(port, host, timeout, connect_timeout)
 
+	options.host = options.host or "127.0.0.1"
+
 	if options.tls then
 		local TLS = require("levee.net.tls")
 		local err, config = TLS.Config(options.tls)
@@ -163,6 +165,8 @@ function TCP_mt:dial(port, host, timeout, connect_timeout)
 		err = conn:handshake()
 		if err then return err end
 	end
+
+	conn.options = options
 
 	return nil, conn
 end

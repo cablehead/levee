@@ -183,7 +183,8 @@ local R_mt = {}
 
 function R_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({hub=self.hub, io=self, rbuf=d.Buffer(4096)}, P_mt)
+		self.p = setmetatable(
+			{hub=self.hub, io=self, options=self.options, rbuf=d.Buffer(4096)}, P_mt)
 		return self.p
 	end
 	return R_mt[key]
@@ -345,7 +346,8 @@ local W_mt = {}
 
 function W_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({hub=self.hub, io=self, wbuf=d.Buffer(4096)}, P_mt)
+		self.p = setmetatable(
+			{hub=self.hub, io=self, options=self.options, wbuf=d.Buffer(4096)}, P_mt)
 		return self.p
 	end
 	return W_mt[key]
@@ -523,7 +525,13 @@ local RW_mt = {}
 
 function RW_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({hub=self.hub, io=self, rbuf=d.Buffer(4096), wbuf=d.Buffer(4096)}, P_mt)
+		self.p = setmetatable({
+			hub=self.hub,
+			io=self,
+			options=self.options,
+			rbuf=d.Buffer(4096),
+			wbuf=d.Buffer(4096),
+			}, P_mt)
 		return self.p
 	end
 	return RW_mt[key]

@@ -818,5 +818,17 @@ return {
 			res.body:save(tmp)
 			assert.equal(cat(tmp), BODY)
 		end,
+
+		test_host_header = function()
+			local h = levee.Hub()
+
+			local err, serve = h.stream:listen()
+			local err, c = h.stream:dial(serve:port())
+			local err, s = serve:recv()
+
+			c.p.http:write_request("GET", "/")
+			local err, req = s.p.http:read_request()
+			assert.equal(req.headers.Host, ("127.0.0.1:%s"):format(serve:port()))
+		end,
 	},
 }
