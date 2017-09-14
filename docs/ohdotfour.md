@@ -37,7 +37,7 @@ A stream is anything that provides the following interface:
 - :value()
 - :trim([n])
 
-All of levee's protocol decoders can work with this interface:
+All of Levee's protocol decoders can work with this interface:
 
 ```lua
     local p = require("levee.p")
@@ -49,7 +49,7 @@ that provides this stream interface.
 
 It's possible to register protocol conveniences that will then be available
 from the `.p` attribute. All of Levee's builtin core protocols are immediately
-available. As well as supporting read operations, protocol convenience support
+available. As well as supporting read operations, protocol conveniences support
 writes as well. There's an additional `d.Buffer` that's allocated that can be
 reused to prepare bytes before they are written.
 
