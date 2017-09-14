@@ -176,7 +176,13 @@ for k, v in pairs(IO.RW_mt) do RW_mt[k] = v end
 
 function RW_mt.__index(self, key)
 	if key == "p" then
-		self.p = setmetatable({hub=self.hub, io=self, rbuf=d.Buffer(4096), wbuf=d.Buffer(4096)}, IO.P_mt)
+		self.p = setmetatable({
+			hub=self.hub,
+			io=self,
+			options=self.options,
+			rbuf=d.Buffer(4096),
+			wbuf=d.Buffer(4096),
+			}, IO.P_mt)
 		return self.p
 	end
 	return RW_mt[key]

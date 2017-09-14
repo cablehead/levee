@@ -397,6 +397,8 @@ function P_mt:read_chunk()
 end
 
 
+local _ = require("levee._")
+
 function P_mt:write_request(method, path, params, headers, body)
 	headers = headers or {}
 	if self.options.Host and not headers.Host then
@@ -470,8 +472,8 @@ function M.io(p)
 		local host = self.p.options.host
 		local port = self.p.options.port
 
+		port = tonumber(port)
 		if port then
-			port = tonumber(port)
 			if port ~= 80 or port ~= 443 then
 				host = ("%s:%s"):format(host, port)
 			end
