@@ -1,8 +1,6 @@
-What's coming in Levee 0.4
-==========================
+# What's coming in Levee 0.4
 
-Protocol Conveniences
----------------------
+## Protocol Conveniences
 
 If you are familiar with streams with Levee, the new protocol conveniences
 expand on that idea. You probably aren't though, so let's start from scratch!
@@ -79,14 +77,11 @@ stream interface. The `.p` attribute offers these methods as well:
 - local err = r.p:save(name, [len])
 
 
-HTTP
-----
+## HTTP
 
 Levee's HTTP support has seen some drastic improvements.
 
-
-HTTP is now just a Protocol Convenience!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### HTTP is now just a Protocol Convenience!
 
 This has a bunch of advantages. It gave us a chance to rework the API for HTTP,
 and I think it's a lot easier to work with now.
@@ -107,8 +102,7 @@ paired pipe. Using HTTP is independent of establishing a connection.
     local err, req = r.p:http:read_request()
 ```
 
-More conveniences
-~~~~~~~~~~~~~~~~~
+### More conveniences
 
 When dialing a connection, you can now specify a uri, with the scheme, and host
 to dial. If the scheme is `https` to connection will be upgraded to a TLS
@@ -135,8 +129,7 @@ conveniences are available for use on the response `.body` attribute:
     local err = res.body:save("/tmp/response") -- save the response body to a file
 ```
 
-Case insensitive headers
-~~~~~~~~~~~~~~~~~~~~~~~~
+### Case insensitive headers
 
 Finally! It's bad this has taken so long. HTTP headers are now decoded into a
 Siphon d.Map, which allows them to be accessed case insensitively, while having
