@@ -69,7 +69,7 @@ And here's JSON:
 ```
 
 There's some basic conveniences you can power up anything that offers the
-stream interface. The `.p` attributes offer's these methods as well:
+stream interface. The `.p` attribute offers these methods as well:
 
 - local err, s = r.p:tostring([len])
 - local err = r.p:splice(target, [len])
