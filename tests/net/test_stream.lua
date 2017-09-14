@@ -115,4 +115,12 @@ return {
 		c2:readinto(buf)
 		assert(not h:in_use())
 	end,
+
+	test_uri = function()
+		local h = levee.Hub()
+		local err, serve = h.stream:listen()
+		local err, c = h.stream:connect(("tcp://localhost:%s"):format(serve:port()))
+		assert(not err)
+		serve:recv()
+	end,
 }

@@ -1,4 +1,5 @@
 local _ = require("levee._")
+local p = require("levee.p")
 
 
 local Listener_mt = {}
@@ -90,6 +91,23 @@ end
 local function Options(port, host, timeout, connect_timeout)
 	if type(port) == "table" then
 		return port
+	end
+
+	-- attempt to treat this as a uri
+	if type(port) == "string" then
+		local err, uri = p.uri(port)
+		if not err and uri.host then
+			local options = {
+				host = uri.host,
+				port = uri.port or uri.scheme,
+				}
+			if host then
+				for k, v in pairs(host) do
+					options[k] = v
+				end
+			end
+			return options
+		end
 	end
 
 	return {
