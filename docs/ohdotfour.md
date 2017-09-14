@@ -78,8 +78,15 @@ stream interface. The `.p` attribute offers these methods as well:
 - local err = r.p:splice(target, [len])
 - local err = r.p:save(name, [len])
 
+
+HTTP
+----
+
+Levee's HTTP support has seen some drastic improvements.
+
+
 HTTP is now just a Protocol Convenience!
-----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This has a bunch of advantages. It gave us a chance to rework the API for HTTP,
 and I think it's a lot easier to work with now.
@@ -99,3 +106,38 @@ paired pipe. Using HTTP is independent of establishing a connection.
     local err = w.p.http:write_request("GET", "/oh-hai")
     local err, req = r.p:http:read_request()
 ```
+
+More conveniences
+~~~~~~~~~~~~~~~~~
+
+When dialing a connection, you can now specify a uri, with the scheme, and host
+to dial. If the scheme is `https` to connection will be upgraded to a TLS
+connection:
+
+```lua
+    local h = levee.Hub()
+    local err, conn = h.stream:dial("https://httpbin.org")
+```
+
+There are shortcuts for making the common request methods, and reading the response
+to the request with a single call:
+
+```lua
+    local err, res = conn.p.http:get("/path", {params={foo="bar"}})
+```
+
+The response body adheres to the stream interface, making it efficiently
+transparent whether the body is `Transfer-Encoding: chunked`. All protocol
+conveniences are available for use on the response `.body` attribute:
+
+```lua
+    local err, data = res.body.json:read()     -- or, for example
+    local err = res.body:save("/tmp/response") -- save the response body to a file
+```
+
+Case insensitive headers
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Finally! It's bad this has taken so long. HTTP headers are now decoded into a
+Siphon d.Map, which allows them to be accessed case insensitively, while having
+a minimal impact on performance.
