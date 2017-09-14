@@ -1,3 +1,6 @@
+What's coming in Levee 0.4
+==========================
+
 Protocol Conveniences
 ---------------------
 
