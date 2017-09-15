@@ -412,7 +412,11 @@ function W_mt:writev(iov, n)
 				self:close()
 				return err
 			end
-			self.w_ev:recv()
+			local err = self.w_ev:recv()
+			if err then
+				self:close()
+				return err
+			end
 		end
 
 		total = total + len
