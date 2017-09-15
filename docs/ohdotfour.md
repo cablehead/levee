@@ -1,5 +1,7 @@
 # What's coming in Levee 0.4
 
+## Async name resolution
+
 ## Protocol Conveniences
 
 If you are familiar with streams with Levee, the new protocol conveniences
