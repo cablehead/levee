@@ -129,6 +129,11 @@ conveniences are available for use on the response `.body` attribute:
     local err = res.body:save("/tmp/response") -- save the response body to a file
 ```
 
+In addition to all regular protocol conveniences, the HTTP response `.body`
+attribute has an additional method `:proxy(target)`. This will proxy the body
+to the given target, transparently preserving chunk `Transfer-Encoding:
+chunked` if needed.
+
 ### Case insensitive headers
 
 Finally! It's bad this has taken so long. HTTP headers are now decoded into a
