@@ -25,9 +25,9 @@ reusing the same memory buffer for each read:
 ```
 
 Levee has a concept of a stream. A stream is usually combination of an io.R and
-a d.Buffer. So, a way to read additional bytes from a source into a reusable
-scratch pad of memory. When paired together it makes it possible to parse an
-incoming stream bytes in a memory efficient way.
+a d.Buffer. It's a way to read additional bytes from a source into a reusable
+scratch pad of memory which is useful to parse an incoming stream bytes in a
+memory efficient way.
 
 A stream is anything that provides the following interface:
 
