@@ -431,7 +431,7 @@ end
 
 function P_mt:put(path, options)
 	options = options or {}
-	local err = self:write_request("PUT", path, options.params, options.headers, options.body)
+	local err = self:write_request("PUT", path, options.params, options.headers, options.data)
 	if err then return err end
 	return self:read_response()
 end
@@ -439,7 +439,7 @@ end
 
 function P_mt:post(path, options)
 	options = options or {}
-	local err = self:write_request("POST", path, options.params, options.headers, options.body)
+	local err = self:write_request("POST", path, options.params, options.headers, options.data)
 	if err then return err end
 	return self:read_response()
 end
