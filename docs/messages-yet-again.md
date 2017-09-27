@@ -38,8 +38,8 @@ These are three key ideas I really tried to embrace for it
   this were:
 
   - Strictly enforcing the distinction between `1x` vs `Nx` almost demands you
-    need this, as you constantly need to adapt from what how a producer was
-    written for (say `1x`) and when you might to use it differently.
+    need this, as you constantly need to adapt from, say, how a producer was
+    written (likely for `1x`) and when you might want to use it differently.
 
   - You should be able to optimize performance, so the effect after the
     redirect is a message channel that's as efficient as it could be. E.g., a
