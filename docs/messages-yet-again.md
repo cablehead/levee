@@ -90,12 +90,12 @@ recver. What if you want that nature with `Nx` on one end?
   either hasn't been implemented for all types of message channels, or, even
   when it is, it's easier to explicitly do that naive piping above.
 
-- I'm curious to see it would be missed with more sane simple message passing
-  primitives.
+- I'm curious to see if it would be missed with more sane simple message
+  passing primitives.
 
 ## Embrace the idea of the nature of message passing?
 
-The best idea I currently have is just to have three types of message passing
+The best idea I currently have is just have three types of message passing
 primitives. Each one can seamlessly have more than one sender and recver.
 
 - `local p = pipe([n])` if `n` is nil, the pipe is unbuffered, otherwise it has a
