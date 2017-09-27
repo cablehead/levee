@@ -84,11 +84,11 @@ and 1x recver. What if you want that nature with `Nx` on one end?
 - Need to think about backwards compatibility. This one is a straight up trade
   off between a more intuitive API, vs explicit.
 
-## Drop the concept of piping?
+## Drop the concept of redirecting?
 
 - In practice because of the current distinctions, things are so clumsy it
   either hasn't been implemented for all types of message channels, or, even
-  when it is, it's easier to explicitly do that naive piping above.
+  when it is, it's easier to explicitly do that naive redirecting above.
 
 - I'm curious to see if it would be missed with more sane simple message
   passing primitives.
