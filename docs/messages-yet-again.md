@@ -98,16 +98,16 @@ and 1x recver. What if you want that nature with `Nx` on one end?
 The best idea I currently have is just have three types of message passing
 primitives. Each one can seamlessly have more than one sender and recver.
 
-- `local p = pipe([n])` if `n` is nil, the pipe is unbuffered, otherwise it has a
+- `local p = h:pipe([n])` if `n` is nil, the pipe is unbuffered, otherwise it has a
   buffered queue of that size. `0` indicates a limitless queue. Senders block
   if the buffer is full until there is a recver. Recvers block until there is
   an item in the buffer or there is a sender.
 
-- `local v = value()` senders never block. Recver's block until a value has been sent.
+- `local v = h:value()` senders never block. Recver's block until a value has been sent.
   From then on they will return immediately with the last sent value. Sending
   `nil` will clear the value, causing future recv's to block again.
 
-- `local b = broadcast()` senders never block. All recver's currently blocked
+- `local b = h:broadcast()` senders never block. All recver's currently blocked
   will fire when a value is sent.
 
 For backwards compatibility, maybe each method could continue to return 2
