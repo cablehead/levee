@@ -38,7 +38,7 @@ These are three key ideas I really tried to embrace for it
   this were:
 
   - Strictly enforcing the distinction between `1x` vs `Nx` almost demands you
-    need this, as you constantly need to adapt from what a producing was
+    need this, as you constantly need to adapt from what how a producer was
     written for (say `1x`) and when you might to use it differently.
 
   - You should be able to optimize performance, so the effect after piping is
