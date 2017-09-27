@@ -11,13 +11,13 @@ These are three key ideas I really tried to embrace for it
   whether a message channel would have only one, or more then one senders, or
   recvers. Ideas behind this were:
 
- - 1/ The data structure for `1x` is cheaper than `Nx`, since `Nx` uses a
-   `fifo`
+  - 1/ The data structure for `1x` is cheaper than `Nx`, since `Nx` uses a
+    `fifo`
 
- - 1/ It's important to enforce that you meant to have `Nx`. If you didn't, and
-   you accidentally allowed a message channel to end up in two coroutines,
-   unexpected things could happen, e.g. you could break serialization of a
-   message stream.
+  - 1/ It's important to enforce that you meant to have `Nx`. If you didn't,
+    and you accidentally allowed a message channel to end up in two coroutines,
+    unexpected things could happen, e.g. you could break serialization of a
+    message stream.
 
   - 1/ I read too many books on data flow and found the concept cool.
 
