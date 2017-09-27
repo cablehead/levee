@@ -62,7 +62,7 @@ the *nature* of the message passing channel. ATM there's only really two:
 up on one of the above restrictions. E.g. `h:value()` can only have 1x sender
 and 1x recver. What if you want that nature with `Nx` on one end?
 
-# Possible refactor
+# Implications to fix
 
 ## Drop the `1x` vs `Nx` distinction?
 
@@ -95,8 +95,11 @@ and 1x recver. What if you want that nature with `Nx` on one end?
 
 ## Embrace the idea of the nature of message passing?
 
-The best idea I currently have is just have three types of message passing
-primitives. Each one can seamlessly have more than one sender and recver.
+- would be good?
+
+# Possible new API
+
+Only 3 message primitives. Each one can seamlessly have more than one sender and recver.
 
 - `local p = h:pipe([n])` if `n` is nil, the pipe is unbuffered, otherwise it has a
   buffered queue of that size. `0` indicates a limitless queue. Senders block
