@@ -11,27 +11,27 @@ These are three key ideas I really tried to embrace for it
   whether a message channel would have only one, or more then one senders, or
   recvers. Ideas behind this were:
 
-  - 1/ The data structure for `1x` is cheaper than `Nx`, since `Nx` uses a
+  - The data structure for `1x` is cheaper than `Nx`, since `Nx` uses a
     `fifo`
 
-  - 1/ It's important to enforce that you meant to have `Nx`. If you didn't,
+  - It's important to enforce that you meant to have `Nx`. If you didn't,
     and you accidentally allowed a message channel to end up in two coroutines,
     unexpected things could happen, e.g. you could break serialization of a
     message stream.
 
-  - 1/ I read too many books on data flow and found the concept cool.
+  - I read too many books on data flow and found the concept cool.
 
 - Enforce the separation between sender and recver. Ideas behind this were:
 
-  - 1/ It's important to enforce the separation, to prevent accidentally having
+  - It's important to enforce the separation, to prevent accidentally having
     the wrong coroutine getting a handle on the wrong end, and to make code
     clearer. IE, this function must be a producer, since it's passed a sender
     and this must be a consumer, since it's passed a recver.
 
-  - 1/ Go allows you to do this, I think largely for the above reason, so I
+  - Go allows you to do this, I think largely for the above reason, so I
     thought it'd give the API *cred*.
 
-  - 1/ It makes things clearer use wise, when you begin to `pipe` one message
+  - It makes things clearer use wise, when you begin to `pipe` one message
     channel into another.
 
 - Provide the concept of piping a message channel into another. Ideas behind
@@ -53,8 +53,6 @@ These are three key ideas I really tried to embrace for it
         down.sender:close()
     end)
 ```
-
-  - 1/ I read too many books on data flow and found the concept cool.
 
 I now think these ideas are doing more harm than good.
 
