@@ -56,11 +56,11 @@ These are three key ideas I really tried to embrace for it
 
 I now think these ideas are doing more harm than good.
 
-Another idea that's in the mix, that I really find useful is the idea of the
-*nature* of the message passing channel. ATM there's only really two: `pipe`
-and `value`. It's hard to exploit these though, as you end up tripping up on
-one of the above restrictions. E.g. `h:value()` can only have 1x sender and 1x
-recver. What if you want that nature with `Nx` on one end?
+Another idea that's in the mix, that I actually do find useful is the idea of
+the *nature* of the message passing channel. ATM there's only really two:
+`pipe` and `value`. It's hard to exploit these though, as you end up tripping
+up on one of the above restrictions. E.g. `h:value()` can only have 1x sender
+and 1x recver. What if you want that nature with `Nx` on one end?
 
 # Possible refactor
 
