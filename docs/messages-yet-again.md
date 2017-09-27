@@ -31,19 +31,19 @@ These are three key ideas I really tried to embrace for it
   - Go allows you to do this, I think largely for the above reason, so I
     thought it'd give the API *cred*.
 
-  - It makes things clearer use wise, when you begin to `pipe` one message
+  - It makes things clearer use wise, when you begin to `redirect` one message
     channel into another.
 
-- Provide the concept of piping a message channel into another. Ideas behind
+- Provide the concept of redirecting a message channel into another. Ideas behind
   this were:
 
   - Strictly enforcing the distinction between `1x` vs `Nx` almost demands you
     need this, as you constantly need to adapt from what how a producer was
     written for (say `1x`) and when you might to use it differently.
 
-  - You should be able to optimize performance, so the effect after piping is
-    message channel is a minimal as it could be after a pipe. E.g., a naive
-    but inefficient implementation method to pipe is:
+  - You should be able to optimize performance, so the effect after the
+    redirect is a message channel that's as efficient as it could be. E.g., a
+    naive but inefficient implementation method to redirect is:
 
 ```lua
     h:spawn(function()
