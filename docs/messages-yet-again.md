@@ -110,6 +110,11 @@ Only 3 message primitives. Each one can seamlessly have more than one sender and
   From then on they will return immediately with the last sent value. Sending
   `nil` will clear the value, causing future recv's to block again.
 
+- Tentative:
+- `local s = h:state()` senders never block. Recver's block until a value has
+  been sent. From then on they will block until the state is updated with a new
+  value.
+
 - `local b = h:broadcast()` senders never block. All recver's currently blocked
   will fire when a value is sent.
 
