@@ -1,0 +1,17 @@
+static const int PROT_NONE = 0;
+static const int PROT_READ = 1;
+static const int PROT_WRITE = 2;
+static const int PROT_EXEC = 4;
+static const int MAP_ANON = 4096;
+static const int MAP_FILE = 0;
+static const int MAP_FIXED = 16;
+static const int MAP_PRIVATE = 2;
+static const int MAP_SHARED = 1;
+static const int MS_ASYNC = 1;
+static const int MS_SYNC = 16;
+static const int MS_INVALIDATE = 2;
+static const int MADV_NORMAL = 0;
+static const int MADV_SEQUENTIAL = 2;
+static const int MADV_RANDOM = 1;
+static const int MADV_WILLNEED = 3;
+static const int MADV_DONTNEED = 4;
