@@ -140,6 +140,7 @@ function Buffer_mt:ensure(hint)
 	local err, buf = _.mremap_anon(self.buf, self.cap, cap + pg)
 	if err then error(tostring(err)) end
 	_.mprotect(buf+cap, pg, "r")
+	_.madvise(buf, cap, bit.bor(C.MADV_SEQUENTIAL, C.MADV_WILLNEED))
 
 	-- always reset the offset back to 0
 	self.buf = buf
