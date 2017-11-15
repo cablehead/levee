@@ -37,6 +37,8 @@ end
 
 local headers = {
 	include("std", "std"),
+	include("mmap", "mmap"),
+	include("mmap", os),
 	include("process", "process"),
 	include("process", os),
 	include("time", "time"),
