@@ -188,6 +188,115 @@ _.open = function(path, oflag, mode)
 end
 
 
+_.mmap_prot = {
+	["r"]   = C.PROT_READ,
+	["r+"]  = bit.bor(C.PROT_READ, C.PROT_WRITE),
+}
+
+
+_.mmap = function(addr, len, prot, flags, fd, off)
+	if type(prot) == "string" then
+		prot = _.mmap_prot[prot]
+	end
+	addr = C.mmap(addr, len, prot, flags, fd, off)
+	if ffi.cast('intptr_t', addr) == -1 then
+		return errors.get(ffi.errno())
+	end
+	if bit.band(prot, C.PROT_WRITE) then
+		return nil, ffi.cast("unsigned char *", addr)
+	else
+		return nil, ffi.cast("const unsigned char *", addr)
+	end
+end
+
+
+_.mmap_anon = function(len, addr)
+	local prot = bit.bor(C.PROT_READ, C.PROT_WRITE)
+	local flags = bit.bor(C.MAP_ANON, C.MAP_PRIVATE)
+	if addr then
+		flags = bit.bor(flags, C.MAP_FIXED)
+	end
+	return _.mmap(addr, len, prot, flags, -1, 0)
+end
+
+
+_.mmap_file = function(file, prot, off, len)
+	local flags = bit.bor(C.MAP_FILE, C.MAP_SHARED)
+	local close = false
+
+	if not prot then
+		prot = C.PROT_READ
+	elseif type(prot) == "string" then
+		prot = _.mmap_prot[prot]
+	end
+
+	if type(file) == "string" then
+		local oflag = 0
+		if bit.band(prot, bit.bor(C.PROT_READ, C.PROT_WRITE)) ~= 0 then
+			oflag = C.O_RDWR
+		elseif bit.band(prot, C.PROT_READ) ~= 0 then
+			oflag = C.O_RDONLY
+		end
+		file = C.open(file, oflag)
+		if file < 0 then return errors.get(ffi.errno()) end
+		close = true
+	end
+
+	off = off or 0
+
+	if not len then
+		local err, stat = _.fstat(file)
+		if err then
+			if close then C.close(file) end
+			return err
+		end
+		len = stat.st_size - off
+	end
+
+	local err, addr = _.mmap(nil, len, prot, flags, file, off)
+	if close then C.close(file) end
+	return err, addr
+end
+
+
+_.munmap = function(addr, len)
+	if C.munmap(addr, len) < 0 then
+		return errors.get(ffi.errno())
+	end
+end
+
+
+_.msync = function(addr, len, flags_or_async)
+	if flags_or_async then
+		if type(flags_or_async) == "boolean" then
+			flags_or_async = C.MS_ASYNC
+		end
+	else
+		flags_or_async = C.MS_SYNC
+	end
+	if C.msync(addr, len, flags_or_async) < 0 then
+		return errors.get(ffi.errno())
+	end
+end
+
+
+_.mprotect = function(addr, len, prot)
+	if type(prot) == "string" then
+		prot = _.mmap_prot[prot]
+	end
+	if C.mprotect(addr, len, prot or C.PROT_NONE) < 0 then
+		return errors.get(ffi.errno())
+	end
+end
+
+
+_.madvise = function(addr, len, advice)
+	if C.madvise(addr, len, advice) < 0 then
+		return errors.get(ffi.errno())
+	end
+end
+
+
 _.pipe = function()
 	local fds = ffi.new("int[2]")
 	if C.pipe(fds) == 0 then
