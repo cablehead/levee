@@ -5,7 +5,11 @@ local errors = require("levee").errors
 
 local _ = require("levee")._
 
-
+ffi.cdef[[
+struct Thing {
+	int a, b, c, d;
+};
+]]
 
 return {
 	test_pipe_read_write = function()
@@ -249,5 +253,88 @@ return {
 		assert.equal(_.getservbyname("http", "udp"):proto(), "udp")
 
 		assert.equal(_.getservbyname("xxx"), nil)
+	end,
+
+	test_mmap_anon = function() 
+		local page = _.pagesize
+		local err, addr = _.mmap_anon(_.pagesize)
+		assert(not err)
+		_.munmap(addr, _.pagesize)
+	end,
+
+	test_mmap_protect = function()
+		local err, addr = _.mmap_anon(_.pagesize)
+		assert(not err)
+		C.memcpy(addr, "test", 4)
+		local err = _.mprotect(addr, _.pagesize, "r")
+		assert(not err)
+		assert.equals("test", ffi.string(addr))
+	end,
+
+	test_mmap_file_path = function()
+		local tmp = os.tmpname()
+		defer(function() os.remove(tmp) end)
+
+		local err, no = _.open(tmp, "r+")
+		assert(not err)
+		_.write(no, string.rep("\0", _.pagesize))
+		_.close(no)
+
+		local err, addr = _.mmap_file(tmp, "r+")
+		assert(not err)
+		for i=0,255 do
+			local t = ffi.cast("struct Thing *", addr) + i
+			t.a = i + 256
+			t.b = i + 512
+			t.c = i + 768
+			t.d = i + 1024
+		end
+		_.munmap(addr, _.pagesize)
+
+		local err, addr = _.mmap_file(tmp)
+		assert(not err)
+		for i=0,255 do
+			local t = ffi.cast("const struct Thing *", addr) + i
+			assert.equals(t.a, i + 256)
+			assert.equals(t.b, i + 512)
+			assert.equals(t.c, i + 768)
+			assert.equals(t.d, i + 1024)
+		end
+		_.munmap(addr, _.pagesize)
+	end,
+
+	test_mmap_file_no = function()
+		local tmp = os.tmpname()
+		local err, no, addr
+		defer(function()
+			if no then _.close(no) end
+			os.remove(tmp)
+		end)
+
+		err, no = _.open(tmp, "r+")
+		assert(not err)
+		_.write(no, string.rep("\0", _.pagesize))
+
+		err, addr = _.mmap_file(no, "r+")
+		assert(not err)
+		for i=0,255 do
+			local t = ffi.cast("struct Thing *", addr) + i
+			t.a = i + 256
+			t.b = i + 512
+			t.c = i + 768
+			t.d = i + 1024
+		end
+		_.munmap(addr, _.pagesize)
+
+		err, addr = _.mmap_file(no)
+		assert(not err)
+		for i=0,255 do
+			local t = ffi.cast("const struct Thing *", addr) + i
+			assert.equals(t.a, i + 256)
+			assert.equals(t.b, i + 512)
+			assert.equals(t.c, i + 768)
+			assert.equals(t.d, i + 1024)
+		end
+		_.munmap(addr, _.pagesize)
 	end,
 }
