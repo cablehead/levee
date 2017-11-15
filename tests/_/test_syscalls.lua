@@ -271,6 +271,19 @@ return {
 		assert.equal("test", ffi.string(addr))
 	end,
 
+	test_mmap_resize = function()
+		local err, addr = _.mmap_anon(_.pagesize)
+		assert(not err)
+		C.memcpy(addr, "test1", 5)
+
+		local err, addr = _.mremap_anon(addr, _.pagesize, 2*_.pagesize)
+		assert(not err)
+		C.memcpy(addr+_.pagesize, "test2", 5)
+
+		assert.equal("test1", ffi.string(addr))
+		assert.equal("test2", ffi.string(addr + _.pagesize))
+	end,
+
 	test_mmap_file_path = function()
 		local tmp = os.tmpname()
 		defer(function() os.remove(tmp) end)

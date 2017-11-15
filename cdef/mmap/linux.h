@@ -15,3 +15,7 @@ static const int MADV_SEQUENTIAL = 2;
 static const int MADV_RANDOM = 1;
 static const int MADV_WILLNEED = 3;
 static const int MADV_DONTNEED = 4;
+static const int MREMAP_MAYMOVE = 1;
+static const int MREMAP_FIXED = 2;
+
+void *mremap(void *old_addr, size_t old_size, size_t new_size, int flags, void *new_addr);
