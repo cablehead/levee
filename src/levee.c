@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
+#include <inttypes.h>
 
 #ifdef __linux__
 # include <sys/sendfile.h>
@@ -26,12 +27,66 @@
 #define LEVEE_BG 1
 
 static const LeveeConfig *config = NULL;
+static Levee *main_state = NULL;
 
 extern int
 luaopen_levee (lua_State *L);
 
 extern int
 luaopen_lpeg (lua_State *L);
+
+static void
+handle_fault(int sig, siginfo_t *si, void *ptr)
+{
+	fprintf (stderr, "recieved %s at address 0x%012" PRIxPTR ":\n",
+			sig == SIGBUS ? "SIGBUS" : "SIGSEGV", (uintptr_t)si->si_addr);
+	if (main_state) {
+		lua_State *L = main_state->L;
+		lua_Debug ar[10];
+		int count;
+		size_t maxlen = 0;
+		for (count = 0; count < 10; count++) {
+			if (lua_getstack (L, count+1, &ar[count]) != 1) { break; }
+			if (lua_getinfo( L, "nSl", &ar[count]) == 0) { break; }
+			if (strcmp (ar[count].what, "C") != 0) {
+				ssize_t len = strlen (ar[count].short_src);
+
+				// try to shorten the source path
+				const char *start = strnstr (ar[count].short_src, "levee/levee/", len);
+				if (start) {
+					start += 6;
+					len -= start - ar[count].short_src;
+					memmove(ar[count].short_src, start, len+1);
+				}
+
+				if (len > maxlen) { maxlen = len; }
+			}
+		}
+
+		// add space for line number
+		maxlen += 8;
+
+		for (int i = 0; i < count; i++) {
+			if (strcmp (ar[i].what, "C") == 0) {
+				fprintf (stderr, "  [C] %-*s %s\n",
+						(int)(maxlen - 3), "", ar[i].name ? ar[i].name : "-");
+			}
+			else if (ar[i].name == NULL) {
+				fprintf (stderr, "  %-s:%-*d anonymous@%d\n",
+						ar[i].short_src, (int)(maxlen - strlen(ar[i].short_src)),
+						ar[i].currentline, ar[i].linedefined);
+			}
+			else {
+				fprintf (stderr, "  %-s:%-*d %s\n",
+						ar[i].short_src, (int)(maxlen - strlen(ar[i].short_src)),
+						ar[i].currentline, ar[i].name);
+			}
+		}
+	}
+	fflush (stderr);
+	fflush (stdout);
+	exit (1);
+}
 
 static int
 require (lua_State *L, const char *name)
@@ -435,6 +490,16 @@ levee_run (Levee *self, int narg, bool bg)
 			return false;
 		}
 		return true;
+	}
+	else {
+		main_state = self;
+
+		struct sigaction sa;
+		sa.sa_flags = SA_SIGINFO;
+		sigemptyset (&sa.sa_mask);
+		sa.sa_sigaction = handle_fault;
+		sigaction (SIGSEGV, &sa, NULL);
+		sigaction (SIGBUS, &sa, NULL);
 	}
 
 	if (lua_pcall (self->L, narg, 0, 0)) {
