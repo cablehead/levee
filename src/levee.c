@@ -52,7 +52,7 @@ handle_fault(int sig, siginfo_t *si, void *ptr)
 				ssize_t len = strlen (ar[count].short_src);
 
 				// try to shorten the source path
-				const char *start = strnstr (ar[count].short_src, "levee/levee/", len);
+				const char *start = strstr (ar[count].short_src, "levee/levee/");
 				if (start) {
 					start += 6;
 					len -= start - ar[count].short_src;
