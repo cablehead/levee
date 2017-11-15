@@ -9,6 +9,7 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 #ifdef __linux__
 # include <sys/sendfile.h>
@@ -35,11 +36,75 @@ luaopen_levee (lua_State *L);
 extern int
 luaopen_lpeg (lua_State *L);
 
+typedef struct {
+	char *p;
+	char buf[4096];
+} Msg;
+
 static void
-handle_fault(int sig, siginfo_t *si, void *ptr)
+msg_init (Msg *m)
 {
-	fprintf (stderr, "recieved %s at address 0x%012" PRIxPTR ":\n",
-			sig == SIGBUS ? "SIGBUS" : "SIGSEGV", (uintptr_t)si->si_addr);
+	m->p = m->buf;
+}
+
+static ssize_t
+msg_write (Msg *m, int fd)
+{
+	return write (fd, m->buf, m->p - m->buf);
+}
+
+static bool
+msg_append (Msg *m, const char *val, size_t len, int pad, char fill)
+{
+	size_t remain = sizeof (m->buf) - (m->p - m->buf), npad = 0;
+	if (pad < 0 && (size_t)-pad > len) { npad = (size_t)-pad - len; }
+	else if (pad > 0 && (size_t)pad > len) { npad = (size_t)pad - len; }
+
+	if (len + npad > remain) { return false; }
+
+	if (npad > 0 && pad > 0) {
+		memset (m->p, fill, npad);
+		m->p += npad;
+	}
+	memcpy (m->p, val, len);
+	m->p += len;
+	if (npad > 0 && pad < 0) {
+		memset (m->p, fill, npad);
+		m->p += npad;
+	}
+	return true;
+}
+
+#define msg_append_arr(m, arr, pad, fill) \
+	msg_append ((m), (arr), sizeof (arr) - 1, (pad), (fill))
+
+static bool
+msg_append_str (Msg *m, const char *str, int pad, char fill)
+{
+	return msg_append (m, str, strlen (str), pad, fill);
+}
+
+static bool
+msg_append_int (Msg *m, intptr_t val, size_t base, int pad, char fill)
+{
+	if (base < 2 || base > 16 || val == INTPTR_MIN) { return false; }
+	intptr_t n = val < 0 ? -val : val;
+	char buf[256], *p = buf + sizeof(buf);
+	for (; n > 0; n /= base) { *--p = "0123456789abcdef"[n % base]; }
+	if (p == buf + sizeof(buf)) { *--p = '0'; }
+    if (val < 0) { *--p = '-'; }
+	return msg_append (m, p, sizeof (buf) - (p - buf), pad, fill);
+}
+
+static void
+handle_fault (int sig, siginfo_t *si, void *ptr)
+{
+	Msg msg;
+	msg_init (&msg);
+	msg_append_arr (&msg, "recieved fault at addres 0x", 0, 0);
+	msg_append_int (&msg, (intptr_t)si->si_addr, 16, 12, '0');
+	msg_append_arr (&msg, ":\n", 0, 0);
+
 	if (main_state) {
 		lua_State *L = main_state->L;
 		lua_Debug ar[10];
@@ -67,24 +132,31 @@ handle_fault(int sig, siginfo_t *si, void *ptr)
 		maxlen += 8;
 
 		for (int i = 0; i < count; i++) {
+			msg_append_arr (&msg, "  ", 0, 0);
 			if (strcmp (ar[i].what, "C") == 0) {
-				fprintf (stderr, "  [C] %-*s %s\n",
-						(int)(maxlen - 3), "", ar[i].name ? ar[i].name : "-");
-			}
-			else if (ar[i].name == NULL) {
-				fprintf (stderr, "  %-s:%-*d anonymous@%d\n",
-						ar[i].short_src, (int)(maxlen - strlen(ar[i].short_src)),
-						ar[i].currentline, ar[i].linedefined);
+				msg_append_arr (&msg, "[C] ", 0, 0);
+				msg_append_arr (&msg, " ", (int)(maxlen - 3), ' ');
+				msg_append_str (&msg, ar[i].name ? ar[i].name : "-", 0, 0);
 			}
 			else {
-				fprintf (stderr, "  %-s:%-*d %s\n",
-						ar[i].short_src, (int)(maxlen - strlen(ar[i].short_src)),
-						ar[i].currentline, ar[i].name);
+				msg_append_str (&msg, ar[i].short_src, 0, 0);
+				msg_append_arr (&msg, ":", 0, 0);
+				msg_append_int (&msg, ar[i].currentline, 10,
+						-(int)(maxlen - strlen(ar[i].short_src)), ' ');
+				if (ar[i].name == NULL) {
+					msg_append_arr (&msg, "anonymous@", 0, 0);
+					msg_append_int (&msg, ar[i].linedefined, 10, 0, 0);
+				}
+				else {
+					msg_append_str (&msg, ar[i].name, 0, 0);
+				}
 			}
+			msg_append_str (&msg, "\n", 0, 0);
 		}
 	}
-	fflush (stderr);
-	fflush (stdout);
+
+	msg_write (&msg, STDERR_FILENO);
+
 	exit (1);
 }
 
