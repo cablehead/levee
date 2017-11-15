@@ -270,10 +270,12 @@ if ffi.os:lower() == "linux" then
 	end
 
 	_.mremap_anon = function(addr, len, newlen)
+		if not addr or len == 0 then return _.mmap_anon(newlen) end
 		return _.mremap(addr, len, newlen, C.MREMAP_MAYMOVE)
 	end
 else
 	_.mremap_anon = function(addr, len, newlen)
+		if not addr or len == 0 then return _.mmap_anon(newlen) end
 		local prot = bit.bor(C.PROT_READ, C.PROT_WRITE)
 		local flags = bit.bor(C.MAP_ANON, C.MAP_PRIVATE)
 		if newlen > len then
