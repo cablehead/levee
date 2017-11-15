@@ -101,7 +101,7 @@ handle_fault (int sig, siginfo_t *si, void *ptr)
 {
 	Msg msg;
 	msg_init (&msg);
-	msg_append_arr (&msg, "recieved fault at addres 0x", 0, 0);
+	msg_append_arr (&msg, "recieved fault at address 0x", 0, 0);
 	msg_append_int (&msg, (intptr_t)si->si_addr, 16, 12, '0');
 	msg_append_arr (&msg, ":\n", 0, 0);
 
