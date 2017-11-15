@@ -268,7 +268,7 @@ return {
 		C.memcpy(addr, "test", 4)
 		local err = _.mprotect(addr, _.pagesize, "r")
 		assert(not err)
-		assert.equals("test", ffi.string(addr))
+		assert.equal("test", ffi.string(addr))
 	end,
 
 	test_mmap_file_path = function()
@@ -295,10 +295,10 @@ return {
 		assert(not err)
 		for i=0,255 do
 			local t = ffi.cast("const struct Thing *", addr) + i
-			assert.equals(t.a, i + 256)
-			assert.equals(t.b, i + 512)
-			assert.equals(t.c, i + 768)
-			assert.equals(t.d, i + 1024)
+			assert.equal(t.a, i + 256)
+			assert.equal(t.b, i + 512)
+			assert.equal(t.c, i + 768)
+			assert.equal(t.d, i + 1024)
 		end
 		_.munmap(addr, _.pagesize)
 	end,
@@ -330,10 +330,10 @@ return {
 		assert(not err)
 		for i=0,255 do
 			local t = ffi.cast("const struct Thing *", addr) + i
-			assert.equals(t.a, i + 256)
-			assert.equals(t.b, i + 512)
-			assert.equals(t.c, i + 768)
-			assert.equals(t.d, i + 1024)
+			assert.equal(t.a, i + 256)
+			assert.equal(t.b, i + 512)
+			assert.equal(t.c, i + 768)
+			assert.equal(t.d, i + 1024)
 		end
 		_.munmap(addr, _.pagesize)
 	end,
