@@ -110,4 +110,17 @@ return {
 		assert.equal(buf:peek(), "foo")
 		assert.equal(butt:peek(), "")
 	end,
+
+	test_protect = function()
+		local buf = d.Buffer()
+		buf:write("this is a test")
+		buf:protect()
+
+		assert.equal(buf:peek(), "this is a test")
+		--buf:write("boom")
+		
+		buf:unprotect()
+		buf:write(" value")
+		assert.equal(buf:peek(), "this is a test value")
+	end
 }
