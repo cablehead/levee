@@ -189,6 +189,7 @@ end
 
 
 _.mmap_prot = {
+	[""]    = C.PROT_NONE,
 	["r"]   = C.PROT_READ,
 	["r+"]  = bit.bor(C.PROT_READ, C.PROT_WRITE),
 }
