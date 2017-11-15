@@ -1,6 +1,8 @@
 local ffi = require('ffi')
 local C = ffi.C
 
+local _ = require("levee._.syscalls")
+
 
 local errors = require("levee.errors")
 
@@ -112,8 +114,6 @@ function Buffer_mt:ensure(hint)
 		return self
 	end
 
-	local buf
-
 	-- find next capacity size
 	if cap <= C.LEVEE_BUFFER_MIN_SIZE then
 		cap = C.LEVEE_BUFFER_MIN_SIZE
@@ -129,19 +129,8 @@ function Buffer_mt:ensure(hint)
 	local sav = self.sav
 	if sav > 0 then self:thaw() end
 
-	if self.off > 0 or cap < C.LEVEE_BUFFER_MAX_BLOCK then
-		buf = C.malloc(cap)
-		if buf == nil then error(tostring(errors.get(ffi.errno()))) end
-		if self.len > 0 then
-			-- only copy the subregion containing untrimmed data
-			C.memcpy(buf, self.buf+self.off, self.len)
-		end
-		C.free(self.buf)
-	else
-		-- use realloc to take advantage of mremap
-		buf = C.realloc(self.buf, cap)
-		if buf == nil then error(tostring(errors.get(ffi.errno()))) end
-	end
+	local err, buf = _.mremap_anon(self.buf, self.cap, cap)
+	if err then error(tostring(err)) end
 
 	-- always reset the offset back to 0
 	self.buf = buf
@@ -284,7 +273,7 @@ end
 
 
 local function cleanup(buf)
-	C.free(buf.buf)
+	_.munmap(buf.buf, buf.cap)
 	C.free(buf)
 end
 
