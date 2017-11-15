@@ -130,12 +130,14 @@ function Buffer_mt:ensure(hint)
 	if sav > 0 then self:thaw() end
 
 	local pg = _.pagesize
+	local oldcap = self.cap
 
-	if self.buf then
-		_.mprotect(self.buf+self.cap, pg, "r+")
+	if oldcap > 0 then
+		local err = _.mprotect(self.buf+oldcap, pg, "r+")
+		oldcap = oldcap + pg
 	end
 
-	local err, buf = _.mremap_anon(self.buf, self.cap + pg, cap + pg)
+	local err, buf = _.mremap_anon(self.buf, self.cap, cap + pg)
 	if err then error(tostring(err)) end
 	_.mprotect(buf+cap, pg, "r")
 
