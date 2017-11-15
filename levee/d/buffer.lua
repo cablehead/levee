@@ -133,7 +133,7 @@ function Buffer_mt:ensure(hint)
 	local oldcap = self.cap
 
 	if oldcap > 0 then
-		local err = _.mprotect(self.buf+oldcap, pg, "r+")
+		_.mprotect(self.buf+oldcap, pg, "r+")
 		oldcap = oldcap + pg
 	end
 
