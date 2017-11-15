@@ -129,8 +129,13 @@ function Buffer_mt:ensure(hint)
 	local sav = self.sav
 	if sav > 0 then self:thaw() end
 
-	local err, buf = _.mremap_anon(self.buf, self.cap, cap)
+	if self.buf then
+		_.mprotect(self.buf+self.cap, _.pagesize, "r+")
+	end
+
+	local err, buf = _.mremap_anon(self.buf, self.cap, cap + _.pagesize)
 	if err then error(tostring(err)) end
+	_.mprotect(buf+cap, _.pagesize, "r")
 
 	-- always reset the offset back to 0
 	self.buf = buf
@@ -273,7 +278,7 @@ end
 
 
 local function cleanup(buf)
-	_.munmap(buf.buf, buf.cap)
+	_.munmap(buf.buf, buf.cap + _.pagesize)
 	C.free(buf)
 end
 
