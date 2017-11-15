@@ -240,6 +240,16 @@ function Buffer_mt:thaw()
 end
 
 
+function Buffer_mt:protect()
+	_.mprotect(self.buf, self.cap, "r")
+end
+
+
+function Buffer_mt:unprotect()
+	_.mprotect(self.buf, self.cap, "r+")
+end
+
+
 function Buffer_mt:peek(len)
 	if len then
 		len = len < self.len and len or self.len
