@@ -107,10 +107,10 @@ handle_fault (int sig, siginfo_t *si, void *ptr)
 
 	if (main_state) {
 		lua_State *L = main_state->L;
-		lua_Debug ar[10];
+		lua_Debug ar[32];
 		int count;
 		size_t maxlen = 0;
-		for (count = 0; count < 10; count++) {
+		for (count = 0; count < 32; count++) {
 			if (lua_getstack (L, count+1, &ar[count]) != 1) { break; }
 			if (lua_getinfo( L, "nSl", &ar[count]) == 0) { break; }
 			if (strcmp (ar[count].what, "C") != 0) {
