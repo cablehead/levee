@@ -1,6 +1,8 @@
 local ffi = require('ffi')
 local C = ffi.C
 
+local _ = require("levee._.syscalls")
+
 
 local errors = require("levee.errors")
 
@@ -112,8 +114,6 @@ function Buffer_mt:ensure(hint)
 		return self
 	end
 
-	local buf
-
 	-- find next capacity size
 	if cap <= C.LEVEE_BUFFER_MIN_SIZE then
 		cap = C.LEVEE_BUFFER_MIN_SIZE
@@ -129,19 +129,18 @@ function Buffer_mt:ensure(hint)
 	local sav = self.sav
 	if sav > 0 then self:thaw() end
 
-	if self.off > 0 or cap < C.LEVEE_BUFFER_MAX_BLOCK then
-		buf = C.malloc(cap)
-		if buf == nil then error(tostring(errors.get(ffi.errno()))) end
-		if self.len > 0 then
-			-- only copy the subregion containing untrimmed data
-			C.memcpy(buf, self.buf+self.off, self.len)
-		end
-		C.free(self.buf)
-	else
-		-- use realloc to take advantage of mremap
-		buf = C.realloc(self.buf, cap)
-		if buf == nil then error(tostring(errors.get(ffi.errno()))) end
+	local pg = _.pagesize
+	local oldcap = self.cap
+
+	if oldcap > 0 then
+		_.mprotect(self.buf+oldcap, pg, "r+")
+		oldcap = oldcap + pg
 	end
+
+	local err, buf = _.mremap_anon(self.buf, self.cap, cap + pg)
+	if err then error(tostring(err)) end
+	_.mprotect(buf+cap, pg, "r")
+	_.madvise(buf, cap, bit.bor(C.MADV_SEQUENTIAL, C.MADV_WILLNEED))
 
 	-- always reset the offset back to 0
 	self.buf = buf
@@ -244,6 +243,17 @@ function Buffer_mt:thaw()
 end
 
 
+function Buffer_mt:protect(n)
+	local protref = self.protref + n
+	if protref == 0 and self.protref ~= 0 then
+		_.mprotect(self.buf, self.cap, "r+")
+	elseif protref ~= 0 and self.protref == 0 then
+		_.mprotect(self.buf, self.cap, "r")
+	end
+	self.protref = protref
+end
+
+
 function Buffer_mt:peek(len)
 	if len then
 		len = len < self.len and len or self.len
@@ -284,7 +294,7 @@ end
 
 
 local function cleanup(buf)
-	C.free(buf.buf)
+	_.munmap(buf.buf, buf.cap + _.pagesize)
 	C.free(buf)
 end
 
@@ -305,6 +315,7 @@ function M_mt.__call(M, hint)
 	buf.len = 0
 	buf.cap = 0
 	buf.sav = 0
+	protref = 0
 	buf:ensure(hint)
 	return buf
 end
