@@ -50,7 +50,20 @@ msg_init (Msg *m)
 static ssize_t
 msg_write (Msg *m, int fd)
 {
-	return write (fd, m->buf, m->p - m->buf);
+	const char *p = m->buf, *pe = m->p;
+	ssize_t total = 0, n;
+	for (; p + total < pe; total += n) {
+		n = write (fd, m->buf, m->p - m->buf);
+		if (n < 0) {
+			if (errno == EAGAIN || errno == EINTR) { n = 0; }
+			else { return n; }
+		}
+		else if (n == 0) {
+			return 0;
+		}
+	}
+	m->p = m->buf;
+	return total;
 }
 
 static bool
