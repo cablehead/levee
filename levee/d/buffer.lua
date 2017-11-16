@@ -243,13 +243,14 @@ function Buffer_mt:thaw()
 end
 
 
-function Buffer_mt:protect()
-	_.mprotect(self.buf, self.cap, "r")
-end
-
-
-function Buffer_mt:unprotect()
-	_.mprotect(self.buf, self.cap, "r+")
+function Buffer_mt:protect(n)
+	local protref = self.protref + n
+	if protref == 0 and self.protref ~= 0 then
+		_.mprotect(self.buf, self.cap, "r+")
+	elseif protref ~= 0 and self.protref == 0 then
+		_.mprotect(self.buf, self.cap, "r")
+	end
+	self.protref = protref
 end
 
 
@@ -314,6 +315,7 @@ function M_mt.__call(M, hint)
 	buf.len = 0
 	buf.cap = 0
 	buf.sav = 0
+	protref = 0
 	buf:ensure(hint)
 	return buf
 end
