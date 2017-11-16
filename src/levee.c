@@ -157,7 +157,7 @@ handle_fault (int sig, siginfo_t *si, void *ptr)
 
 	msg_write (&msg, STDERR_FILENO);
 
-	exit (1);
+	abort ();
 }
 
 static int
