@@ -270,12 +270,12 @@ if ffi.os:lower() == "linux" then
 	end
 
 	_.mremap_anon = function(addr, len, newlen)
-		if not addr or len == 0 then return _.mmap_anon(newlen) end
+		if addr == nil or len == 0 then return _.mmap_anon(newlen) end
 		return _.mremap(addr, len, newlen, C.MREMAP_MAYMOVE)
 	end
 else
 	_.mremap_anon = function(addr, len, newlen)
-		if not addr or len == 0 then return _.mmap_anon(newlen) end
+		if addr == nil or len == 0 then return _.mmap_anon(newlen) end
 		local prot = bit.bor(C.PROT_READ, C.PROT_WRITE)
 		local flags = bit.bor(C.MAP_ANON, C.MAP_PRIVATE)
 		if newlen > len then
@@ -298,6 +298,7 @@ end
 
 
 _.munmap = function(addr, len)
+	if addr == nil then return end
 	if C.munmap(addr, len) < 0 then
 		return errors.get(ffi.errno())
 	end
@@ -305,6 +306,7 @@ end
 
 
 _.msync = function(addr, len, flags_or_async)
+	if addr == nil then return end
 	if flags_or_async then
 		if type(flags_or_async) == "boolean" then
 			flags_or_async = C.MS_ASYNC
@@ -319,6 +321,7 @@ end
 
 
 _.mprotect = function(addr, len, prot)
+	if addr == nil then return end
 	if type(prot) == "string" then
 		prot = _.mmap_prot[prot]
 	end
@@ -329,6 +332,7 @@ end
 
 
 _.madvise = function(addr, len, advice)
+	if addr == nil then return end
 	if C.madvise(addr, len, advice) < 0 then
 		return errors.get(ffi.errno())
 	end
