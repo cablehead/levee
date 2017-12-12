@@ -203,11 +203,7 @@ _.mmap = function(addr, len, prot, flags, fd, off)
 	if ffi.cast('intptr_t', addr) == -1 then
 		return errors.get(ffi.errno())
 	end
-	if bit.band(prot, C.PROT_WRITE) then
-		return nil, ffi.cast("unsigned char *", addr)
-	else
-		return nil, ffi.cast("const unsigned char *", addr)
-	end
+	return nil, ffi.cast("char *", addr)
 end
 
 
@@ -266,7 +262,7 @@ if ffi.os:lower() == "linux" then
 		if ffi.cast('intptr_t', newaddr) == -1 then
 			return errors.get(ffi.errno())
 		end
-		return nil, ffi.cast("unsigned char *", newaddr)
+		return nil, ffi.cast("char *", newaddr)
 	end
 
 	_.mremap_anon = function(addr, len, newlen)
@@ -279,15 +275,11 @@ else
 		local prot = bit.bor(C.PROT_READ, C.PROT_WRITE)
 		local flags = bit.bor(C.MAP_ANON, C.MAP_PRIVATE)
 		if newlen > len then
-			local err, newaddr = _.mmap(ffi.cast("char *", addr) + len, newlen - len,
-				prot, bit.bor(flags, C.MAP_FIXED), -1, 0);
-			if err then
-				err, newaddr = _.mmap(nil, newlen, prot, flags, -1, 0)
-				if err then return err end
-				C.memcpy(newaddr, addr, len)
-				C.munmap(addr, len)
-				addr = newaddr
-			end
+			local err, newaddr = _.mmap(nil, newlen, prot, flags, -1, 0)
+			if err then return err end
+			C.memcpy(newaddr, addr, len)
+			C.munmap(addr, len)
+			addr = newaddr
 		else
 			err = _.munmap(ffi.cast("char *", oldaddr) + newlen, len - len)
 			if err then return err end
