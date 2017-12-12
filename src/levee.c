@@ -112,17 +112,28 @@ msg_append_int (Msg *m, intptr_t val, size_t base, int pad, char fill)
 static void
 handle_fault (int sig, siginfo_t *si, void *ptr)
 {
+	(void)sig;
+	(void)ptr;
+
 	Msg msg;
 	msg_init (&msg);
 	msg_append_arr (&msg, "recieved fault at address 0x", 0, 0);
 	msg_append_int (&msg, (intptr_t)si->si_addr, 16, 12, '0');
+	if ((intptr_t)si->si_addr < 4096) {
+		msg_append_arr (&msg, " (possible NULL dereference", 0, 0);
+	}
+	if (si->si_errno) {
+		msg_append_arr (&msg, " (", 0, 0);
+		msg_append_str (&msg, strerror (si->si_errno), 0, 0);
+		msg_append_arr (&msg, ")", 0, 0);
+	}
 	msg_append_arr (&msg, ":\n", 0, 0);
 
 	if (main_state) {
 		lua_State *L = main_state->L;
 		lua_Debug ar[32];
 		int count;
-		size_t maxlen = 0;
+		ssize_t maxlen = 0;
 		for (count = 0; count < 32; count++) {
 			if (lua_getstack (L, count+1, &ar[count]) != 1) { break; }
 			if (lua_getinfo( L, "nSl", &ar[count]) == 0) { break; }
@@ -585,6 +596,7 @@ levee_run (Levee *self, int narg, bool bg)
 		sa.sa_sigaction = handle_fault;
 		sigaction (SIGSEGV, &sa, NULL);
 		sigaction (SIGBUS, &sa, NULL);
+		sigaction (SIGQUIT, &sa, NULL);
 	}
 
 	if (lua_pcall (self->L, narg, 0, 0)) {
