@@ -137,7 +137,7 @@ function Buffer_mt:ensure(hint)
 		oldcap = oldcap + pg
 	end
 
-	local err, buf = _.mremap_anon(self.buf, self.cap, cap + pg)
+	local err, buf = _.mremap_anon(self.buf, oldcap, cap + pg)
 	if err then error(tostring(err)) end
 	_.mprotect(buf+cap, pg, "r")
 	_.madvise(buf, cap, bit.bor(C.MADV_SEQUENTIAL, C.MADV_WILLNEED))
