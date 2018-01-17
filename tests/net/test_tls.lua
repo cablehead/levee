@@ -64,6 +64,8 @@ return {
 
 		-- client
 		local err, conn = h.stream:connect({port=addr:port(), tls=CLIENT_OPTIONS})
+		print()
+		print(err)
 		conn:write("foo")
 		assert.equal(conn:reads(), "bar")
 		assert.equal(conn:reads(), nil)

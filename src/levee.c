@@ -8,8 +8,6 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
-#include <inttypes.h>
-#include <unistd.h>
 
 #ifdef __linux__
 # include <sys/sendfile.h>
@@ -28,161 +26,12 @@
 #define LEVEE_BG 1
 
 static const LeveeConfig *config = NULL;
-static Levee *main_state = NULL;
 
 extern int
 luaopen_levee (lua_State *L);
 
 extern int
 luaopen_lpeg (lua_State *L);
-
-typedef struct {
-	char *p;
-	char buf[4096];
-} Msg;
-
-static void
-msg_init (Msg *m)
-{
-	m->p = m->buf;
-}
-
-static ssize_t
-msg_write (Msg *m, int fd)
-{
-	const char *p = m->buf, *pe = m->p;
-	ssize_t total = 0, n;
-	for (; p + total < pe; total += n) {
-		n = write (fd, m->buf, m->p - m->buf);
-		if (n < 0) {
-			if (errno == EAGAIN || errno == EINTR) { n = 0; }
-			else { return n; }
-		}
-		else if (n == 0) {
-			return 0;
-		}
-	}
-	m->p = m->buf;
-	return total;
-}
-
-static bool
-msg_append (Msg *m, const char *val, size_t len, int pad, char fill)
-{
-	size_t remain = sizeof (m->buf) - (m->p - m->buf), npad = 0;
-	if (pad < 0 && (size_t)-pad > len) { npad = (size_t)-pad - len; }
-	else if (pad > 0 && (size_t)pad > len) { npad = (size_t)pad - len; }
-
-	if (len + npad > remain) { return false; }
-
-	if (npad > 0 && pad > 0) {
-		memset (m->p, fill, npad);
-		m->p += npad;
-	}
-	memcpy (m->p, val, len);
-	m->p += len;
-	if (npad > 0 && pad < 0) {
-		memset (m->p, fill, npad);
-		m->p += npad;
-	}
-	return true;
-}
-
-#define msg_append_arr(m, arr, pad, fill) \
-	msg_append ((m), (arr), sizeof (arr) - 1, (pad), (fill))
-
-static bool
-msg_append_str (Msg *m, const char *str, int pad, char fill)
-{
-	return msg_append (m, str, strlen (str), pad, fill);
-}
-
-static bool
-msg_append_int (Msg *m, intptr_t val, size_t base, int pad, char fill)
-{
-	if (base < 2 || base > 16 || val == INTPTR_MIN) { return false; }
-	intptr_t n = val < 0 ? -val : val;
-	char buf[256], *p = buf + sizeof(buf);
-	for (; n > 0; n /= base) { *--p = "0123456789abcdef"[n % base]; }
-	if (p == buf + sizeof(buf)) { *--p = '0'; }
-    if (val < 0) { *--p = '-'; }
-	return msg_append (m, p, sizeof (buf) - (p - buf), pad, fill);
-}
-
-static void
-handle_fault (int sig, siginfo_t *si, void *ptr)
-{
-	(void)sig;
-	(void)ptr;
-
-	Msg msg;
-	msg_init (&msg);
-	msg_append_arr (&msg, "recieved fault at address 0x", 0, 0);
-	msg_append_int (&msg, (intptr_t)si->si_addr, 16, 12, '0');
-	if ((intptr_t)si->si_addr < 4096) {
-		msg_append_arr (&msg, " (possible NULL dereference", 0, 0);
-	}
-	if (si->si_errno) {
-		msg_append_arr (&msg, " (", 0, 0);
-		msg_append_str (&msg, strerror (si->si_errno), 0, 0);
-		msg_append_arr (&msg, ")", 0, 0);
-	}
-	msg_append_arr (&msg, ":\n", 0, 0);
-
-	if (main_state) {
-		lua_State *L = main_state->L;
-		lua_Debug ar[32];
-		int count;
-		ssize_t maxlen = 0;
-		for (count = 0; count < 32; count++) {
-			if (lua_getstack (L, count+1, &ar[count]) != 1) { break; }
-			if (lua_getinfo( L, "nSl", &ar[count]) == 0) { break; }
-			if (strcmp (ar[count].what, "C") != 0) {
-				ssize_t len = strlen (ar[count].short_src);
-
-				// try to shorten the source path
-				const char *start = strstr (ar[count].short_src, "levee/levee/");
-				if (start) {
-					start += 6;
-					len -= start - ar[count].short_src;
-					memmove(ar[count].short_src, start, len+1);
-				}
-
-				if (len > maxlen) { maxlen = len; }
-			}
-		}
-
-		// add space for line number
-		maxlen += 8;
-
-		for (int i = 0; i < count; i++) {
-			msg_append_arr (&msg, "  ", 0, 0);
-			if (strcmp (ar[i].what, "C") == 0) {
-				msg_append_arr (&msg, "[C] ", 0, 0);
-				msg_append_arr (&msg, " ", (int)(maxlen - 3), ' ');
-				msg_append_str (&msg, ar[i].name ? ar[i].name : "-", 0, 0);
-			}
-			else {
-				msg_append_str (&msg, ar[i].short_src, 0, 0);
-				msg_append_arr (&msg, ":", 0, 0);
-				msg_append_int (&msg, ar[i].currentline, 10,
-						-(int)(maxlen - strlen(ar[i].short_src)), ' ');
-				if (ar[i].name == NULL) {
-					msg_append_arr (&msg, "anonymous@", 0, 0);
-					msg_append_int (&msg, ar[i].linedefined, 10, 0, 0);
-				}
-				else {
-					msg_append_str (&msg, ar[i].name, 0, 0);
-				}
-			}
-			msg_append_str (&msg, "\n", 0, 0);
-		}
-	}
-
-	msg_write (&msg, STDERR_FILENO);
-
-	abort ();
-}
 
 static int
 require (lua_State *L, const char *name)
@@ -586,17 +435,6 @@ levee_run (Levee *self, int narg, bool bg)
 			return false;
 		}
 		return true;
-	}
-	else {
-		main_state = self;
-
-		struct sigaction sa;
-		sa.sa_flags = SA_SIGINFO;
-		sigemptyset (&sa.sa_mask);
-		sa.sa_sigaction = handle_fault;
-		sigaction (SIGSEGV, &sa, NULL);
-		sigaction (SIGBUS, &sa, NULL);
-		sigaction (SIGQUIT, &sa, NULL);
 	}
 
 	if (lua_pcall (self->L, narg, 0, 0)) {
