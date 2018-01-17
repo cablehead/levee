@@ -1,4 +1,4 @@
-typedef volatile struct LeveeRef LeveeRef;
+typedef volatile struct LeveeRef_s LeveeRef;
 
 typedef struct LeveeChan LeveeChan;
 typedef struct LeveeChanSender LeveeChanSender;

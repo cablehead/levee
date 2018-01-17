@@ -5,7 +5,7 @@
 #include <time.h>
 #include <stdio.h>
 
-struct LeveeRef {
+struct LeveeRef_s {
 	int64_t ref;
 	union {
 		void *ptr;

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef volatile struct LeveeRef LeveeRef;
+typedef volatile struct LeveeRef_s LeveeRef;
 
 extern LeveeRef *
 levee_ref_make (void *ptr);

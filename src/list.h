@@ -3,10 +3,10 @@
 
 #include <stdbool.h>
 
-typedef volatile struct LeveeList LeveeList;
+typedef volatile struct LeveeList_s LeveeList;
 typedef struct LeveeNode LeveeNode;
 
-struct LeveeList {
+struct LeveeList_s {
 	LeveeNode *tail;
 } __attribute__ ((aligned (16)));
 
