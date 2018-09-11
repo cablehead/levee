@@ -14,7 +14,7 @@ set(SIPHON_OSX_DEPLOYMENT_TARGET "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPL
 endif(CMAKE_OSX_DEPLOYMENT_TARGET)
 
 externalproject_add(siphon_project
-	GIT_REPOSITORY git@github.com:kalamay/siphon.git
+	GIT_REPOSITORY git@github.com:thelinuxkid/siphon.git
 	GIT_TAG ${SIPHON_HASH}
 	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/siphon_project_${SIPHON_HASH}"
 	UPDATE_COMMAND ""
