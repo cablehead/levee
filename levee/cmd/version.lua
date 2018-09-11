@@ -40,8 +40,6 @@ Options:
 				capitalize(meta.name),
 				version,
 				version.date.string))
-			print(string.format("Copyright (c) %d Imgix",
-				version.date.year))
 		end
 	end
 }
