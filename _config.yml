@@ -1,11 +1,11 @@
 # Site settings
 title: "Levee"
-email: "support@imgix.com"
+email: "andy@thecablelounge.com"
 description: "Levee is a tool to succinctly and quickly create high performance network appliances with Lua."
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "http://imgix.github.io" # the base hostname & protocol for your site
-twitter_username: "imgix"
-github_username:  "imgix"
+url: "http://cablehead.github.io" # the base hostname & protocol for your site
+twitter_username: "cablelounger"
+github_username:  "cablehead"
 
 # Build settings
 markdown: kramdown

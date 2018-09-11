@@ -16,7 +16,7 @@ introduction to some of Levee's networking capabilities.
 ## The `run` command
 
 ```bash
-imgix:~ andy$ levee run -h
+$ levee run -h
 Usage: levee run (<path> | -e <script>) [arg...]
 ```
 
@@ -27,14 +27,14 @@ way. We'll look at creating a Levee project in a short bit. First `run` has a
 `-e` option which will run a string snippet:
 
 ```bash
-imgix:~ andy$ levee run -e "print('oh hai')"
+$ levee run -e "print('oh hai')"
 oh hai
 ```
 
 Slightly more interesting:
 
 ```bash
-imgix:~ andy$ levee run -e "
+$ levee run -e "
 local h = require('levee').Hub()
 
 h:spawn(function()
@@ -88,13 +88,13 @@ end
 To run:
 
 ```bash
-imgix:~ andy$ levee run dtsrv.lua
+$ levee run dtsrv.lua
 ```
 
 Then in another window:
 
 ```bash
-imgix:~ andy$ nc localhost 4000
+$ nc localhost 4000
 Thu, 27 Aug 2015 18:14:37 GMT
 Thu, 27 Aug 2015 18:14:38 GMT
 Thu, 27 Aug 2015 18:14:39 GMT
@@ -106,7 +106,7 @@ Thu, 27 Aug 2015 18:14:39 GMT
 Levee projects are usually structured with the following layout:
 
 ```bash
-imgix:~ andy$ find dtsrv
+$ find dtsrv
 dtsrv
 dtsrv/dtsrv
 dtsrv/dtsrv/foo.lua
@@ -130,13 +130,13 @@ It's possible to run this project just by specifying the project's main Lua
 folder:
 
 ```bash
-imgix:dtsrv andy$ levee run ./dtsrv
+$ levee run ./dtsrv
 ```
 
 Again, in another window:
 
 ```bash
-imgix:~ andy$ nc localhost 4000
+$ nc localhost 4000
 Thu, 27 Aug 2015 18:53:57 GMT
 Thu, 27 Aug 2015 18:53:58 GMT
 Thu, 27 Aug 2015 18:53:59 GMT
@@ -149,7 +149,7 @@ Levee has a built in test running to facilitate quickly adding tests for your
 project.
 
 ```bash
-imgix:~ andy$ levee test -h
+$ levee test -h
 Usage: levee test [-v] [-x] [-k <match>] <path>
 ```
 
@@ -182,7 +182,7 @@ return {
 To run:
 
 ```bash
-imgix:dtsrv andy$ levee test -v ./test/
+$ levee test -v ./test/
 ./test/test_foo.lua
     test_add                                  PASS
 
@@ -195,7 +195,7 @@ This is where things get really interesting. Levee's build command will bundle
 your Levee project and compile it into a standalone executable.
 
 ```bash
-imgix:~ andy$ levee build -h
+$ levee build -h
 Usage: levee build [-o <exe] [-n <name>] <module> [module...]
 
 Options:
@@ -214,8 +214,8 @@ mkdir -p ~/bin
 Let's build our `dtsrv` project:
 
 ```bash
-imgix:dtsrv andy$ levee build ./dtsrv -o ~/bin/dtsrv
-imgix:dtsrv andy$ ls -lh ~/bin/dtsrv
+$ levee build ./dtsrv -o ~/bin/dtsrv
+$ ls -lh ~/bin/dtsrv
 -rwxr-xr-x  1 andy  staff   934K Aug 27 12:03 /Users/andy/bin/dtsrv
 ```
 
@@ -231,7 +231,7 @@ Finally let's run our new binary:
 And in that other window:
 
 ```bash
-imgix:~ andy$ nc localhost 4000
+$ nc localhost 4000
 Thu, 27 Aug 2015 18:53:57 GMT
 Thu, 27 Aug 2015 18:53:58 GMT
 Thu, 27 Aug 2015 18:53:59 GMT
